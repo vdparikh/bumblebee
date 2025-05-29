@@ -1,0 +1,498 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import {
+    getCampaignTaskInstanceById,
+    getUsers,
+    getCommentsByCampaignTaskInstanceId,
+    addCommentToCampaignTaskInstance,
+    getEvidenceByCampaignTaskInstanceId,
+    addGenericEvidenceToCampaignTaskInstance, // New for text/link
+    uploadEvidenceToCampaignTaskInstance,
+    updateCampaignTaskInstance,
+    executeCampaignTaskInstance, // New API for execution
+    getCampaignTaskInstanceResults, // New API for results
+} from '../services/api';
+import Card from 'react-bootstrap/Card';
+import Alert from 'react-bootstrap/Alert';
+import Badge from 'react-bootstrap/Badge';
+import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
+import Spinner from 'react-bootstrap/Spinner';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Popover from 'react-bootstrap/Popover';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import ListGroup from 'react-bootstrap/ListGroup';
+import Tabs from 'react-bootstrap/Tabs';
+import Tab from 'react-bootstrap/Tab';
+import Dropdown from 'react-bootstrap/Dropdown'; // Added for status dropdown
+import {
+    FaArrowLeft,
+    FaClipboardCheck,
+    FaInfoCircle,
+    FaLink,
+    FaAlignLeft,
+    FaTag,
+    FaUserShield,
+    FaUserCheck,
+    FaCalendarAlt,
+    FaClipboardList,
+    FaCogs,
+    FaSyncAlt,
+    FaFileUpload,
+    FaFileAlt,
+    FaCommentDots,
+    FaRegComment,
+    FaBullhorn,
+    FaPlayCircle, // For execute icon
+    FaPoll // For results icon
+} from 'react-icons/fa';
+import { ListGroupItem } from 'react-bootstrap';
+
+function CampaignTaskInstanceDetail() {
+    const { instanceId } = useParams();
+    const location = useLocation(); // Get location object
+    const [taskInstance, setTaskInstance] = useState(null);
+    const [users, setUsers] = useState([]);
+    const [comments, setComments] = useState([]);
+    const [newComment, setNewComment] = useState('');
+    const [evidenceList, setEvidenceList] = useState([]);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [evidenceType, setEvidenceType] = useState('file'); // 'file', 'link', or 'text'
+    const [evidenceLink, setEvidenceLink] = useState('');
+    const [evidenceText, setEvidenceText] = useState('');
+    const [evidenceDescription, setEvidenceDescription] = useState(''); // Common description field
+
+    // const [currentStatus, setCurrentStatus] = useState(''); // No longer needed as status is directly updated
+    const [executionResults, setExecutionResults] = useState([]); // New state for execution results
+
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [commentError, setCommentError] = useState('');
+    const [addEvidenceError, setAddEvidenceError] = useState(''); // Consolidated error for adding evidence
+    const [evidenceError, setEvidenceError] = useState('');
+    const [statusError, setStatusError] = useState('');
+    const [executionError, setExecutionError] = useState(''); // New
+    const [executionSuccess, setExecutionSuccess] = useState(''); // New
+    const [loadingResults, setLoadingResults] = useState(false); // New
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'Closed': return 'success';
+            case 'Open': return 'primary';
+            case 'In Progress': return 'info';
+            case 'Pending Review': return 'warning';
+            case 'Failed': return 'danger';
+            default: return 'secondary';
+        }
+    };
+
+    const fetchData = useCallback(async () => {
+        if (!instanceId) {
+            setError('Task Instance ID is missing.');
+            setLoading(false);
+            return;
+        }
+        setLoading(true);
+        setError('');
+        try {
+            const taskInstancePromise = getCampaignTaskInstanceById(instanceId);
+            const usersPromise = getUsers();
+            const commentsPromise = getCommentsByCampaignTaskInstanceId(instanceId);
+            const evidencePromise = getEvidenceByCampaignTaskInstanceId(instanceId);
+            // Results are not fetched initially, but on demand or after execution
+            const [taskResponse, usersResponse, commentsResponse, evidenceResponse] = await Promise.allSettled([
+                taskInstancePromise, usersPromise, commentsPromise, evidencePromise
+            ]);
+            if (taskResponse.status === 'fulfilled' && taskResponse.value.data) {
+                setTaskInstance(taskResponse.value.data); // Corrected: Access data from taskResponse.value
+                // setCurrentStatus(taskResponse.value.data.status); // No longer needed
+            } else {
+                setError('Task Instance not found.');
+            }
+
+            setUsers(usersResponse.status === 'fulfilled' && Array.isArray(usersResponse.value.data) ? usersResponse.value.data : []);
+            setComments(commentsResponse.status === 'fulfilled' && Array.isArray(commentsResponse.value.data) ? commentsResponse.value.data : []);
+            setEvidenceList(evidenceResponse.status === 'fulfilled' && Array.isArray(evidenceResponse.value.data) ? evidenceResponse.value.data : []);
+            
+        } catch (err) {
+            console.error("Error fetching campaign task instance details:", err);
+            setError('Failed to fetch task instance data. ' + (err.response?.data?.error || err.message));
+            setTaskInstance(null);
+        } finally {
+            setLoading(false);
+        }
+    }, [instanceId]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const isOverdue = (dueDate, status) => {
+        if (!dueDate || status === "Closed") return false;
+        return new Date(dueDate) < new Date() && new Date(dueDate).setHours(0,0,0,0) !== new Date().setHours(0,0,0,0);
+    };
+
+    const getUserDetails = (userId) => users.find(user => user.id === userId);
+
+    const renderUserWithPopover = (userId, defaultText = 'N/A') => {
+        if (!userId) return defaultText;
+        const user = getUserDetails(userId);
+        if (!user) return userId;
+
+        const userPopover = (
+            <Popover id={`popover-user-${user.id}-${defaultText.toLowerCase().replace(' ', '-')}`}>
+                <Popover.Header as="h3">{user.name}</Popover.Header>
+                <Popover.Body><strong>Email:</strong> {user.email || 'N/A'}<br /><strong>ID:</strong> {user.id}</Popover.Body>
+            </Popover>
+        );
+        return <OverlayTrigger placement="top" overlay={userPopover} delay={{ show: 250, hide: 400 }}><span>{user.name}</span></OverlayTrigger>;
+    };
+
+    const handleCommentSubmit = async (e) => {
+        e.preventDefault();
+        if (!newComment.trim()) {
+            setCommentError("Comment cannot be empty.");
+            return;
+        }
+        setCommentError('');
+        try {
+            const loggedInUserId = "36a95829-f890-43dc-aff3-289c50ce83c2"; // Placeholder for auth user
+            const commentData = { text: newComment, userId: loggedInUserId };
+            const response = await addCommentToCampaignTaskInstance(instanceId, commentData);
+            setComments(prevComments => [...prevComments, response.data]);
+            setNewComment('');
+        } catch (err) {
+            console.error("Error adding comment:", err);
+            setCommentError("Failed to add comment. " + (err.response?.data?.error || ''));
+        }
+    };
+
+    const handleFileChange = (event) => {
+        setSelectedFile(event.target.files[0]);
+        setAddEvidenceError('');
+    };
+
+    const resetEvidenceForm = () => {
+        setSelectedFile(null);
+        setEvidenceLink('');
+        setEvidenceText('');
+        setEvidenceDescription('');
+        // setEvidenceType('file'); // Optionally reset type or keep current
+        if (document.getElementById('evidenceFile')) {
+            document.getElementById('evidenceFile').value = null;
+        }
+    };
+
+    const handleAddEvidence = async () => {
+        setAddEvidenceError('');
+        let evidencePayload = {
+            description: evidenceDescription,
+            // uploader_user_id would be set by backend based on auth
+        };
+        let response;
+
+        try {
+            if (evidenceType === 'file') {
+                if (!selectedFile) {
+                    setAddEvidenceError("Please select a file to upload.");
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('description', evidenceDescription); // Send description with file
+                response = await uploadEvidenceToCampaignTaskInstance(instanceId, formData);
+            } else if (evidenceType === 'link') {
+                if (!evidenceLink.trim()) {
+                    setAddEvidenceError("Please enter a valid URL for the link.");
+                    return;
+                }
+                evidencePayload.file_path = evidenceLink; // Use file_path for URL
+                evidencePayload.file_name = "Link Evidence"; // Or derive from URL/description
+                evidencePayload.mime_type = "text/url"; // Custom type for links
+                response = await addGenericEvidenceToCampaignTaskInstance(instanceId, evidencePayload);
+            } else if (evidenceType === 'text') {
+                if (!evidenceText.trim()) {
+                    setAddEvidenceError("Please enter the evidence text/description.");
+                    return;
+                }
+                // For text, the main content is in the description.
+                // We can use the existing description field in the payload.
+                // If you need a separate field for "text content" vs "description of text content", adjust model and payload.
+                evidencePayload.description = evidenceText; // Overwrite if general description was also filled
+                evidencePayload.mime_type = "text/plain";
+                response = await addGenericEvidenceToCampaignTaskInstance(instanceId, evidencePayload);
+            }
+            setEvidenceList(prevEvidence => [...prevEvidence, response.data]);
+            resetEvidenceForm();
+        } catch (err) {
+            console.error("Error adding evidence:", err);
+            setAddEvidenceError(`Failed to add evidence. ${err.response?.data?.error || 'Please try again.'}`);
+        }
+    };
+
+    const handleStatusUpdate = async (newStatus) => {
+        if (!taskInstance || newStatus === taskInstance.status) return;
+        setStatusError('');
+        try {
+            const updatedTaskData = { status: newStatus };
+            const response = await updateCampaignTaskInstance(instanceId, updatedTaskData);
+            setTaskInstance(response.data); // Update local task state with the full response
+        } catch (err) {
+            console.error("Error updating status:", err);
+            setStatusError("Failed to update status. " + (err.response?.data?.error || ''));
+            // No need to revert currentStatus state as it's removed
+        }
+    };
+
+    const handleExecuteInstance = async () => {
+        setExecutionError('');
+        setExecutionSuccess('');
+        setLoadingResults(true); // Indicate activity
+        try {
+            const response = await executeCampaignTaskInstance(instanceId);
+            setExecutionSuccess(response.data.message || "Execution triggered successfully. Results will be available shortly.");
+            // Optionally, fetch results immediately or prompt user to refresh
+            await fetchInstanceResults(); // Fetch results after triggering
+        } catch (err) {
+            console.error("Error executing task instance:", err);
+            setExecutionError(`Failed to execute task. ${err.response?.data?.error || ''}`);
+        } finally {
+            setLoadingResults(false);
+        }
+    };
+
+    const fetchInstanceResults = async () => {
+        setExecutionError('');
+        setLoadingResults(true);
+        try {
+            const response = await getCampaignTaskInstanceResults(instanceId);
+            setExecutionResults(Array.isArray(response.data) ? response.data : []);
+        } catch (err) {
+            console.error("Error fetching execution results:", err);
+            setExecutionError(`Failed to fetch execution results. ${err.response?.data?.error || ''}`);
+            setExecutionResults([]);
+        } finally {
+            setLoadingResults(false);
+        }
+    };
+    if (loading) return <div className="text-center mt-5"><Spinner animation="border" /><p>Loading task instance details...</p></div>;
+    if (error) return <Alert variant="danger" className="mt-3">{error}</Alert>;
+    if (!taskInstance) return <Alert variant="warning" className="mt-3">Task Instance data not available.</Alert>;
+
+    // Determine the "Back" button's link and text
+    let backLinkTarget = location.state?.from;
+    let backButtonText = "Back";
+
+    if (backLinkTarget) {
+        if (backLinkTarget === '/my-tasks') {
+            backButtonText = "Back to My Tasks";
+        } else if (backLinkTarget.startsWith('/campaigns/')) {
+            backButtonText = "Back to Campaign";
+        }
+        // If 'from' is something else, it will say "Back" and go to that 'from' location.
+    } else {
+        // Fallback if 'from' state is not available
+        backLinkTarget = taskInstance.campaign_id ? `/campaigns/${taskInstance.campaign_id}` : "/my-tasks";
+        backButtonText = taskInstance.campaign_id ? "Back to Campaign" : "Back to My Tasks";
+    }
+
+    return (
+        <div>
+            <Button as={Link} to={backLinkTarget} variant="outline-dark" size="sm" className="mb-3">
+                <FaArrowLeft className="me-1" /> {backButtonText}
+            </Button>
+
+            <Row>
+                <Col md={12}>
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                        <h2 className="mb-0"><FaClipboardCheck className="me-2 text-primary" />{taskInstance.title}</h2>
+                        <div>
+                            {isOverdue(taskInstance.due_date, taskInstance.status) && <Badge bg="danger" className="me-2 fs-6">Overdue</Badge>}
+                            <Dropdown>
+                                <Dropdown.Toggle variant={getStatusColor(taskInstance.status)} id="dropdown-status" size="sm" className="fs-6">
+                                    {taskInstance.status}
+                                </Dropdown.Toggle>
+                                <Dropdown.Menu>
+                                    <Dropdown.Item onClick={() => handleStatusUpdate('Open')} active={taskInstance.status === 'Open'}>Open</Dropdown.Item>
+                                    <Dropdown.Item onClick={() => handleStatusUpdate('In Progress')} active={taskInstance.status === 'In Progress'}>In Progress</Dropdown.Item>
+                                    <Dropdown.Item onClick={() => handleStatusUpdate('Pending Review')} active={taskInstance.status === 'Pending Review'}>Pending Review</Dropdown.Item>
+                                    <Dropdown.Item onClick={() => handleStatusUpdate('Closed')} active={taskInstance.status === 'Closed'}>Closed</Dropdown.Item>
+                                    <Dropdown.Item onClick={() => handleStatusUpdate('Failed')} active={taskInstance.status === 'Failed'}>Failed</Dropdown.Item>
+                                </Dropdown.Menu>
+                            </Dropdown>
+                        </div>
+                    </div>
+                    <small className="text-muted d-block mb-3">
+                        Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> | 
+                        Created: {new Date(taskInstance.created_at).toLocaleString()} | 
+                        Last Updated: {new Date(taskInstance.updated_at).toLocaleString()}
+                    </small>
+                </Col>
+                <Col md={8} className='border-end'>
+                    <Tabs defaultActiveKey="details" id="task-instance-detail-tabs" className="nav-line-tabs mb-3">
+                        <Tab eventKey="details" title={<><FaInfoCircle className="me-1" />Details</>}>
+                            <Card><Card.Body>
+                                <Card.Text><FaInfoCircle className="me-2 text-muted"/><strong>Instance ID:</strong> {taskInstance.id}</Card.Text>
+                                <Card.Text><FaAlignLeft className="me-2 text-muted"/><strong>Description:</strong> {taskInstance.description || 'N/A'}</Card.Text>
+                                <Card.Text><FaTag className="me-2 text-muted"/><strong>Category:</strong> {taskInstance.category || 'N/A'}</Card.Text>
+                                <hr />
+                                <Card.Text><FaUserShield className="me-2 text-muted"/><strong>Owner:</strong> {renderUserWithPopover(taskInstance.owner_user_id, taskInstance.owner_user_name)}</Card.Text>
+                                <Card.Text><FaUserCheck className="me-2 text-muted"/><strong>Assignee:</strong> {renderUserWithPopover(taskInstance.assignee_user_id, taskInstance.assignee_user_name)}</Card.Text>
+                                <Card.Text><FaCalendarAlt className="me-2 text-muted"/><strong>Due Date:</strong> {taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</Card.Text>
+                                <Card.Text><FaClipboardList className="me-2 text-muted"/><strong>Requirement:</strong> {taskInstance.requirement_control_id_reference || 'N/A'}</Card.Text>
+                                <hr />
+                                {taskInstance.check_type && (
+                                    <>
+                                        <h5><FaCogs className="me-2 text-muted"/>Automated Check Details</h5>
+                                        <Card.Text className="ps-1"><strong>Check Type:</strong> {taskInstance.check_type}</Card.Text>
+                                        <Card.Text className="ps-1"><strong>Target:</strong> {taskInstance.target || 'N/A'}</Card.Text>
+                                        <Card.Text className="ps-1"><strong>Parameters:</strong> {taskInstance.parameters ? JSON.stringify(taskInstance.parameters) : 'None'}</Card.Text>
+                                    </>
+                                )}
+                            </Card.Body></Card>
+                        </Tab>
+                        <Tab eventKey="evidence" title={<><FaFileUpload className="me-1" />Evidence</>}>
+                            <Card><Card.Body>
+                                {addEvidenceError && <Alert variant="danger" onClose={() => setAddEvidenceError('')} dismissible>{addEvidenceError}</Alert>}
+                                <div className='bg-light p-3 rounded-3 mb-3'>
+                                    <h5 className="mb-3">Add New Evidence</h5>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Evidence Type:</Form.Label>
+                                        <div>
+                                            <Form.Check inline label="File" name="evidenceType" type="radio" id="evidence-type-file" value="file" checked={evidenceType === 'file'} onChange={(e) => setEvidenceType(e.target.value)} />
+                                            <Form.Check inline label="Link (URL)" name="evidenceType" type="radio" id="evidence-type-link" value="link" checked={evidenceType === 'link'} onChange={(e) => setEvidenceType(e.target.value)} />
+                                            <Form.Check inline label="Text" name="evidenceType" type="radio" id="evidence-type-text" value="text" checked={evidenceType === 'text'} onChange={(e) => setEvidenceType(e.target.value)} />
+                                        </div>
+                                    </Form.Group>
+
+                                    {evidenceType === 'file' && (
+                                        <Form.Group controlId="evidenceFile" className="mb-3">
+                                            <Form.Label><FaFileUpload className="me-1"/>Select File</Form.Label>
+                                            <Form.Control type="file" onChange={handleFileChange} />
+                                        </Form.Group>
+                                    )}
+                                    {evidenceType === 'link' && (
+                                        <Form.Group controlId="evidenceLink" className="mb-3">
+                                            <Form.Label>Link URL</Form.Label>
+                                            <Form.Control type="url" placeholder="https://example.com/evidence" value={evidenceLink} onChange={(e) => setEvidenceLink(e.target.value)} />
+                                        </Form.Group>
+                                    )}
+                                    {evidenceType === 'text' && (
+                                        <Form.Group controlId="evidenceText" className="mb-3">
+                                            <Form.Label>Evidence Text/Details</Form.Label>
+                                            <Form.Control as="textarea" rows={3} placeholder="Describe the evidence or paste text here..." value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} />
+                                        </Form.Group>
+                                    )}
+                                     <Form.Group controlId="evidenceDescription" className="mb-3">
+                                        <Form.Label>General Description (Optional)</Form.Label>
+                                        <Form.Control as="textarea" rows={2} placeholder="Optional: Describe this piece of evidence..." value={evidenceDescription} onChange={(e) => setEvidenceDescription(e.target.value)} />
+                                    </Form.Group>
+
+                                    <Button variant='success' onClick={handleAddEvidence} className="w-100 mb-3">Add Evidence</Button>
+                                </div>
+                                </Card.Body>
+                                
+                                {evidenceList.length > 0 ? (
+                                    <ListGroup variant="flush">
+                                        <ListGroupItem><b>Existing Evidence:</b></ListGroupItem>
+                                        {evidenceList.map(evidence => {
+                                            let icon = <FaFileAlt className="me-2 text-muted"/>;
+                                            let mainDisplay = evidence.file_name || evidence.id; // Default
+                                            let showSeparateDescription = true;
+
+                                            if (evidence.mime_type === 'text/url') {
+                                                icon = <FaLink className="me-2 text-primary"/>;
+                                                const linkText = evidence.description || evidence.file_name || evidence.file_path;
+                                                mainDisplay = <a href={evidence.file_path} target="_blank" rel="noopener noreferrer">{linkText}</a>;
+                                                showSeparateDescription = !evidence.description; // Only show separate if description wasn't used as link text
+                                            } else if (evidence.mime_type === 'text/plain') {
+                                                icon = <FaAlignLeft className="me-2 text-info"/>; 
+                                                mainDisplay = <span style={{ whiteSpace: 'pre-wrap' }}>{evidence.description || 'No text content'}</span>;
+                                                showSeparateDescription = false; 
+                                            } else if (evidence.file_path) { // Assumed to be a file
+                                                // Icon remains default FaFileAlt or could be more specific based on actual mime_type
+                                                mainDisplay = <a href={`http://localhost:8080/${evidence.file_path}`} target="_blank" rel="noopener noreferrer">{evidence.file_name || evidence.id}</a>;
+                                            }
+
+                                            return (
+                                                <ListGroup.Item key={evidence.id}>
+                                                    {icon}
+                                                    {mainDisplay}
+                                                    <small className="text-muted d-block">Uploaded: {evidence.uploaded_at ? new Date(evidence.uploaded_at).toLocaleString() : 'N/A'}</small>
+                                                    {showSeparateDescription && evidence.description && <p className="mb-0 mt-1"><small>Description: {evidence.description}</small></p>}
+                                                </ListGroup.Item>
+                                            );
+                                        })}
+                                    </ListGroup>
+                                ) : <p className="text-muted">No evidence uploaded yet.</p>}
+                            </Card>
+                        </Tab>
+                        <Tab eventKey="execution" title={<><FaPlayCircle className="me-1" />Execution</>}>
+                            <Card><Card.Body>
+                                {executionError && <Alert variant="danger" onClose={() => setExecutionError('')} dismissible>{executionError}</Alert>}
+                                {executionSuccess && <Alert variant="success" onClose={() => setExecutionSuccess('')} dismissible>{executionSuccess}</Alert>}
+                                
+                                {taskInstance.check_type ? (
+                                    <>
+                                        <p>This task instance is configured for automated execution.</p>
+                                        <Button onClick={handleExecuteInstance} disabled={loadingResults}>
+                                            {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1"/> Executing...</> : <><FaPlayCircle className="me-1"/>Execute Task</>}
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
+                                )}
+                            </Card.Body></Card>
+                        </Tab>
+                        <Tab eventKey="results" title={<><FaPoll className="me-1" />Results</>}>
+                            <Card><Card.Body>
+                                <Button onClick={fetchInstanceResults} disabled={loadingResults} className="mb-3">
+                                    {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1"/> Loading...</> : "Refresh Results"}
+                                </Button>
+                                {executionResults.length > 0 ? (
+                                    <ListGroup variant="flush">
+                                        {executionResults.map(res => (
+                                            <ListGroup.Item key={res.id}>
+                                                <small><strong>Timestamp:</strong> {new Date(res.timestamp).toLocaleString()}</small><br/>
+                                                <small><strong>Status:</strong> <Badge bg={res.status === 'Success' ? 'success' : 'danger'}>{res.status}</Badge></small><br/>
+                                                <small><strong>Output:</strong></small>
+                                                <pre className="bg-dark text-light p-2 rounded mt-1" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em'}}>{res.output}</pre>
+                                            </ListGroup.Item>
+                                        ))}
+                                    </ListGroup>
+                                ) : <p className="text-muted">No execution results available for this task instance. Execute the task or refresh if recently executed.</p>}
+                            </Card.Body></Card>
+                        </Tab>
+                    </Tabs>
+                </Col>
+                <Col md={4}>
+                    <Card>
+                        <Card.Header as="h5"><FaCommentDots className="me-1"/>Comments</Card.Header>
+                        <Card.Body>
+                            {commentError && <Alert variant="danger" onClose={() => setCommentError('')} dismissible>{commentError}</Alert>}
+                            <Form onSubmit={handleCommentSubmit} className="mb-3 p-3 bg-light">
+                                <Form.Group className="mb-2" controlId="newCommentText"><Form.Label>Add a comment:</Form.Label>
+                                    <Form.Control as="textarea" rows={3} value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Type your comment here..." />
+                                </Form.Group>
+                                <Button type="submit" variant="primary" className='btn-sm w-100 mt-2'>Post Comment</Button>
+                            </Form>
+                            <ListGroup variant='flush'>
+                                {comments.length > 0 ? comments.map(comment => (
+                                    <ListGroup.Item key={comment.id} className="pb-2">
+                                        <FaRegComment className="me-2 text-muted" style={{float: 'left', marginTop: '0.25em'}}/>
+                                        <p className="mb-0">{comment.text}</p>
+                                        <small className="text-muted">By: {renderUserWithPopover(comment.userId, comment.userName || 'Unknown User')} on {new Date(comment.createdAt).toLocaleString()}</small>
+
+                                    </ListGroup.Item>
+                                )) : <p className="text-muted p-2">No comments yet.</p>}
+                            </ListGroup>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+        </div>
+    );
+}
+
+export default CampaignTaskInstanceDetail;

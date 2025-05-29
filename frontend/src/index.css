@@ -1,0 +1,130 @@
+/* /Users/vishal/go/src/github.com/vdparikh/compliance-automation/frontend/src/index.css */
+body {
+  margin: 0;
+  font-family: "Segoe UI", 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #E5E9F8; /* A light grey background for the whole page */
+  font-size: 0.9em;
+  font-weight: 400;
+  color: #444;
+}
+
+form, select, input, .form-control, .form-select {
+  font-size: 1em;
+}
+
+
+.hero-bg {
+  background-image: radial-gradient(209.88% 93.42% at 100% 100%,#1D5B9A 3.78%,#27237B 57.29%,#33005E 100%);
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Custom Variables (Optional, but good for consistency) */
+:root {
+  --custom-primary: #616FC6; /* A nice blue */
+  --custom-secondary: rgb(108, 117, 125); /* Bootstrap's default secondary, or choose your own */
+  --custom-theme-color: #EC5100;
+  --custom-header-font: 'Ancizar Sans', sans-serif;
+  --custom-body-font: 'Lato', sans-serif;
+  --bs-primary: #616FC6!important;
+  
+}
+
+.bg-info {
+  background-color: #ff9610!important;
+}
+/* Apply custom fonts */
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--custom-header-font);
+  color: #333; /* Darker color for headers */
+}
+
+h2 { 
+  font-size: 1.7em;
+}
+
+h3 { 
+  font-size: 1.5em;
+}
+
+.card {
+  border: 1px solid #E5E9F8!important;
+  box-shadow: none!important;
+}
+
+.card .card-header {
+  background-color: #E5E9F8 !important;
+  /* color: #fff!important; */
+  font-size: 1.1em;
+  border: 0px;
+}
+
+.navbar-brand, .nav-link { /* Targeting specific Bootstrap components */
+  font-family: var(--custom-header-font);
+  font-size: 1.1em;
+  font-weight: 200;
+}
+
+a { 
+  color: var(--custom-primary) !important;
+}
+
+.list-group-item.active {
+    background-color: #616FC6;
+    border-color: #616FC6;
+}
+
+.navbar-brand, .nav-link svg {
+  margin-right: 5px!important;
+  color: var(--custom-theme-color) !important;
+}
+
+.navbar-brand, .nav-pills .nav-link.active {
+  font-weight: 400;
+  background-color: #fff;
+}
+
+.nav-tabs .nav-link {
+  color: #000!important;
+}
+
+.nav-tabs .nav-link.active {
+  font-weight: 400!important;
+}
+
+.nav-line-tabs .nav-link {
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* Align with tab content border */
+}
+.nav-line-tabs .nav-link.active {
+  border-bottom-color: var(--bs-primary); /* Or your theme's active color */
+  color: var(--bs-primary);
+}
+
+
+/* Example of using custom primary color for buttons */
+.btn-primary {
+  background-color: var(--custom-primary) !important; /* Important to override Bootstrap */
+  border-color: var(--custom-primary) !important;
+}
+
+.btn-primary:hover {
+  background-color: #004a80 !important; /* A slightly darker shade for hover */
+  border-color: #004a80 !important;
+}
+
+/* You can add more custom styles here */
+.card {
+  border: none; /* Softer look for cards */
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Subtle shadow */
+}
+
+
