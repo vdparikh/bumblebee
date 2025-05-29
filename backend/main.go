@@ -1,0 +1,110 @@
+package main
+
+import (
+	"log"
+	"os" // For environment variables
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/vdparikh/compliance-automation/backend/handlers" // Adjust import path
+	"github.com/vdparikh/compliance-automation/backend/store"    // Adjust import path
+)
+
+func main() {
+	// Database Configuration (consider using a config file or env vars for production)
+	// Example: postgresql://user:password@host:port/database?sslmode=disable
+	dbUser := os.Getenv("DB_USER")
+	if dbUser == "" {
+		dbUser = "postgres" // Default user, replace if different
+	}
+	dbPassword := os.Getenv("DB_PASSWORD") // Your 'mysecretpassword'
+	if dbPassword == "" {
+		log.Fatal("DB_PASSWORD environment variable not set")
+	}
+	dbName := "compliance"
+	dbHost := "localhost" // Or your Docker container's IP if not localhost from Go app's perspective
+	dbPort := "5432"
+
+	// dataSourceName := "postgres://postgres:mysecretpassword@localhost:5432/compliance?sslmode=disable"
+	dataSourceName := "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=disable"
+
+	dbStore, err := store.NewDBStore(dataSourceName)
+	if err != nil {
+		log.Fatalf("Could not connect to the database: %v", err)
+	}
+	defer dbStore.DB.Close()
+
+	router := gin.Default()
+
+	// CORS middleware configuration to allow requests from your React frontend
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:3000"} // Adjust if your React app runs on a different port
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
+	router.Use(cors.New(config))
+
+	// Initialize handlers with the DB store
+	// Note: You'll need to update your handler functions to accept the store.
+	// For simplicity, I'm showing a direct way, but dependency injection patterns are common.
+	// We will modify the handlers in the next step.
+	taskHandler := handlers.NewTaskHandler(dbStore) // Example for a new Task handler structure
+	requirementHandler := handlers.NewRequirementHandler(dbStore)
+	standardHandler := handlers.NewStandardHandler(dbStore)
+	userHandler := handlers.NewUserHandler(dbStore)
+	campaignHandler := handlers.NewCampaignHandler(dbStore) // New Campaign Handler
+
+	api := router.Group("/api")
+	{
+		api.POST("/tasks", taskHandler.CreateTaskHandler) // Was CreateCheckDefinitionHandler
+		api.GET("/tasks", taskHandler.GetTasksHandler)    // Was GetCheckDefinitionsHandler
+		api.GET("/tasks/:id", taskHandler.GetTaskHandler)
+		api.PUT("/tasks/:id", taskHandler.UpdateTaskHandler) // For updating task status etc.
+
+		// Task Comments
+		api.POST("/tasks/:id/comments", taskHandler.AddTaskCommentHandler) // This might need to change to /campaign-task-instances/:id/comments
+		api.GET("/tasks/:id/comments", taskHandler.GetTaskCommentsHandler) // Or have a query param for campaign_task_instance_id
+		// Task Evidence
+		api.POST("/tasks/:id/evidence", taskHandler.UploadTaskEvidenceHandler) // Similar change needed
+		api.GET("/tasks/:id/evidence", taskHandler.GetTaskEvidenceHandler)     // Similar change needed
+
+		api.POST("/requirements", requirementHandler.CreateRequirementHandler)
+		api.GET("/requirements", requirementHandler.GetRequirementsHandler)
+		api.GET("/requirements/:id", requirementHandler.GetRequirementByIDHandler) // New route
+		api.PUT("/requirements/:id", requirementHandler.UpdateRequirementHandler)
+
+		api.POST("/standards", standardHandler.CreateStandardHandler)
+		api.GET("/standards", standardHandler.GetStandardsHandler)
+		api.PUT("/standards/:id", standardHandler.UpdateStandardHandler)
+
+		api.POST("/users", userHandler.CreateUserHandler)
+		api.GET("/users", userHandler.GetUsersHandler)
+
+		// Campaign Routes
+		api.POST("/campaigns", campaignHandler.CreateCampaignHandler)
+		api.GET("/campaigns", campaignHandler.GetCampaignsHandler)
+		api.GET("/campaigns/:id", campaignHandler.GetCampaignByIDHandler)
+		api.PUT("/campaigns/:id", campaignHandler.UpdateCampaignHandler)
+		api.DELETE("/campaigns/:id", campaignHandler.DeleteCampaignHandler)
+		api.GET("/campaigns/:id/requirements", campaignHandler.GetCampaignSelectedRequirementsHandler)
+		api.GET("/campaigns/:id/task-instances", campaignHandler.GetCampaignTaskInstancesHandler)
+
+		api.PUT("/campaign-task-instances/:id", campaignHandler.UpdateCampaignTaskInstanceHandler)  // For updating individual task instances
+		api.GET("/campaign-task-instances/:id", campaignHandler.GetCampaignTaskInstanceByIDHandler) // New route
+		api.GET("/user-campaign-tasks", campaignHandler.GetUserCampaignTaskInstancesHandler)        // New route for MyTasks page
+
+		// Campaign Task Instance Comments & Evidence
+		api.POST("/campaign-task-instances/:id/comments", campaignHandler.AddCampaignTaskInstanceCommentHandler)
+		api.GET("/campaign-task-instances/:id/comments", campaignHandler.GetCampaignTaskInstanceCommentsHandler)
+		api.POST("/campaign-task-instances/:id/evidence", campaignHandler.UploadCampaignTaskInstanceEvidenceHandler)
+		api.GET("/campaign-task-instances/:id/evidence", campaignHandler.GetCampaignTaskInstanceEvidenceHandler)
+
+		// api.POST("/tasks/:id/execute", handlers.ExecuteCheckHandler) // Needs update to use TaskID and TaskExecutionResult
+		// api.GET("/tasks/:id/results", handlers.GetCheckResultsHandler) // Needs update
+		// TODO: Add routes for evidence, comments
+	}
+
+	log.Println("Starting server on :8080...")
+	if err = router.Run(":8080"); err != nil {
+		log.Fatalf("Failed to run server: %v", err)
+	}
+}
