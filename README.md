@@ -1,3 +1,7 @@
+# Bumblebee
+
+![alt text](image.png)
+
 **Start Database**
 ```sh
 # Pull and start postgres container
@@ -279,3 +283,11 @@ ADD CONSTRAINT fk_campaign_task_instance_evidence
     FOREIGN KEY (campaign_task_instance_id)
     REFERENCES campaign_task_instances (id)
     ON DELETE CASCADE; -- Or ON DELETE SET NULL, depending on desired behavior
+
+
+
+
+TODO
+- Only add tasks to the user when the campaign goes into active state.
+- Why is overdue tasks not showing?
+- 
