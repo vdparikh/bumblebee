@@ -290,4 +290,11 @@ ADD CONSTRAINT fk_campaign_task_instance_evidence
 TODO
 - Only add tasks to the user when the campaign goes into active state.
 - Why is overdue tasks not showing?
-- 
+
+
+
+
+
+
+docker cp sample_data.sql mypostgres:/tmp/sample_data.sql
+docker exec -it mypostgres psql -U postgres -d compliance -f /tmp/sample_data.sql

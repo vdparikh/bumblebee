@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -403,35 +404,6 @@ func (s *DBStore) CreateTaskComment(comment *models.Comment) error {
 	return nil
 }
 
-// // GetTaskComments retrieves all comments for a given task_id.
-// func (s *DBStore) GetTaskComments(taskID string) ([]models.Comment, error) {
-// 	query := `
-// 		SELECT tc.id, tc.task_id, tc.user_id, u.name as user_name, tc.text, tc.created_at
-// 		FROM task_comments tc
-// 		JOIN users u ON tc.user_id = u.id
-// 		WHERE tc.task_id = $1
-// 		ORDER BY tc.created_at ASC
-// 	`
-// 	rows, err := s.DB.Query(query, taskID)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to query task comments for task_id %s: %w", taskID, err)
-// 	}
-// 	defer rows.Close()
-
-// 	var comments []models.Comment
-// 	for rows.Next() {
-// 		var c models.Comment
-// 		if err := rows.Scan(&c.ID, &c.TaskID, &c.UserID, &c.UserName, &c.Text, &c.CreatedAt); err != nil {
-// 			return nil, fmt.Errorf("failed to scan task comment row: %w", err)
-// 		}
-// 		comments = append(comments, c)
-// 	}
-// 	if err = rows.Err(); err != nil {
-// 		return nil, fmt.Errorf("error during rows iteration for task comments: %w", err)
-// 	}
-// 	return comments, nil
-// }
-
 // --- TaskEvidence Methods ---
 
 // CreateTaskEvidence adds a new evidence record for a task.
@@ -652,13 +624,18 @@ func (s *DBStore) CreateCampaign(campaign *models.Campaign, selectedReqs []model
 	return campaign.ID, nil
 }
 
-func (s *DBStore) GetCampaigns() ([]models.Campaign, error) {
+func (s *DBStore) GetCampaigns(campaignStatus string) ([]models.Campaign, error) {
 	query := `
 		SELECT c.id, c.name, c.description, c.standard_id, cs.name as standard_name, c.start_date, c.end_date, c.status, c.created_at, c.updated_at
 		FROM campaigns c
 		LEFT JOIN compliance_standards cs ON c.standard_id = cs.id
-		ORDER BY c.created_at DESC
 	`
+	if campaignStatus != "" {
+		query += fmt.Sprintf(" WHERE c.status = '%s'", campaignStatus)
+	}
+
+	query += " ORDER BY c.created_at DESC"
+	fmt.Println(query)
 	rows, err := s.DB.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query campaigns: %w", err)
@@ -736,6 +713,7 @@ func (s *DBStore) UpdateCampaign(campaign *models.Campaign, newSelectedReqs []mo
 	for _, req := range currentDBReqs {
 		currentReqMap[req.RequirementID] = req
 	}
+
 	newReqMap := make(map[string]models.CampaignSelectedRequirement)
 	for _, req := range newSelectedReqs {
 		newReqMap[req.RequirementID] = req
@@ -777,8 +755,8 @@ func (s *DBStore) UpdateCampaign(campaign *models.Campaign, newSelectedReqs []mo
 		if newReq.IsApplicable {
 			masterTasks, err := s.GetTasksByRequirementID(newReq.RequirementID) // This can be outside Tx if it's just a read
 			if err != nil {
-				log.Printf("Error fetching master tasks for requirement %s (CSR_ID: %s) during campaign update: %v", newReq.RequirementID, campaignSelectedRequirementID, err)
-				continue // Or rollback
+				// Propagate error to rollback transaction
+				return fmt.Errorf("error fetching master tasks for requirement %s (CSR_ID: %s) during campaign update: %w", newReq.RequirementID, campaignSelectedRequirementID, err)
 			}
 
 			if len(masterTasks) == 0 {
@@ -835,9 +813,8 @@ func (s *DBStore) UpdateCampaign(campaign *models.Campaign, newSelectedReqs []mo
 					}
 					_, err := s.CreateCampaignTaskInstance(tx, &cti)
 					if err != nil {
-						log.Printf("Error creating new campaign task instance for master task %s (CSR_ID: %s) during campaign update: %v", masterTask.ID, campaignSelectedRequirementID, err)
-						// Decide on error handling: continue or rollback. For now, continue.
-						continue
+						// Propagate error to rollback transaction
+						return fmt.Errorf("error creating new CTI for master task %s (CSR_ID: %s) during campaign update: %w", masterTask.ID, campaignSelectedRequirementID, err)
 					}
 					log.Printf("Successfully created new CTI for master task %s (CSR_ID: %s, ControlID: %s) in campaign %s", masterTask.ID, campaignSelectedRequirementID, newReq.ControlIDReference, campaign.ID)
 				}
@@ -847,61 +824,6 @@ func (s *DBStore) UpdateCampaign(campaign *models.Campaign, newSelectedReqs []mo
 
 	return tx.Commit()
 }
-
-// // UpdateCampaign updates an existing campaign and its selected requirements.
-// // For simplicity, this example replaces all selected requirements. A more robust
-// // solution would diff and update/insert/delete as needed.
-// func (s *DBStore) UpdateCampaign(campaign *models.Campaign, selectedReqs []models.CampaignSelectedRequirement) error {
-// 	campaign.UpdatedAt = time.Now()
-// 	tx, err := s.DB.Begin()
-// 	if err != nil {
-// 		return fmt.Errorf("failed to begin transaction for update campaign: %w", err)
-// 	}
-// 	defer tx.Rollback()
-
-// 	query := `
-// 		UPDATE campaigns
-// 		SET name = $2, description = $3, standard_id = $4, start_date = $5, end_date = $6, status = $7, updated_at = $8
-// 		WHERE id = $1
-// 	`
-// 	_, err = tx.Exec(query, campaign.ID, campaign.Name, campaign.Description, campaign.StandardID, campaign.StartDate, campaign.EndDate, campaign.Status, campaign.UpdatedAt)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to update campaign %s: %w", campaign.ID, err)
-// 	}
-
-// 	// Simplified: Delete old selected requirements and insert new ones
-// 	// In a real app, you might want a more sophisticated merge/update.
-// 	_, err = tx.Exec("DELETE FROM campaign_selected_requirements WHERE campaign_id = $1", campaign.ID)
-// 	// Before deleting, we should get the list of requirements whose instances might need to be deleted.
-// 	// This simplified approach means task instances are not managed here based on requirement scope changes.
-// 	// A more robust solution is needed below.
-// 	if err != nil {
-// 		return fmt.Errorf("failed to delete old selected requirements for campaign %s: %w", campaign.ID, err)
-// 	}
-// 	if len(selectedReqs) > 0 {
-// 		stmt, err := tx.Prepare(`
-// 			INSERT INTO campaign_selected_requirements (id, campaign_id, requirement_id, is_applicable)
-// 			VALUES ($1, $2, $3, $4)
-// 		`)
-// 		if err != nil {
-// 			return fmt.Errorf("failed to prepare statement for campaign_selected_requirements on update: %w", err)
-// 		}
-// 		defer stmt.Close()
-
-// 		for _, sr := range selectedReqs {
-// 			_, err = stmt.Exec(uuid.NewString(), campaign.ID, sr.RequirementID, sr.IsApplicable)
-// 			if err != nil {
-// 				return fmt.Errorf("failed to insert campaign_selected_requirement on update: %w", err)
-// 			}
-// 			// Task re-generation/update logic based on changed requirements
-// 			// This part is complex and needs careful handling.
-// 			// If sr.IsApplicable, and it's a new requirement or was previously not applicable, create tasks.
-// 			// If a requirement was applicable and now is not, or removed, delete its tasks for this campaign.
-// 		}
-// 	}
-
-// 	return tx.Commit()
-// }
 
 // DeleteCampaign - Implement
 func (s *DBStore) DeleteCampaign(campaignID string) error {
@@ -1140,11 +1062,12 @@ func (s *DBStore) UpdateCampaignTaskInstance(cti *models.CampaignTaskInstance) e
 
 // GetCampaignTaskInstancesForUser retrieves all campaign task instances for a given user ID,
 // filtered by their role (owner or assignee). It also joins with campaigns to get campaign names.
-func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField string) ([]models.CampaignTaskInstance, error) {
+// It can also filter by campaign status.
+func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField string, campaignStatus string) ([]models.CampaignTaskInstance, error) {
 	if userID == "" || (userField != "owner" && userField != "assignee") {
 		return nil, fmt.Errorf("userID and a valid userField ('owner' or 'assignee') are required")
 	}
-
+	var args []interface{}
 	query := `
 		SELECT 
 			cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id, cti.campaign_selected_requirement_id, 
@@ -1159,14 +1082,30 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 		LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
 		LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
 		LEFT JOIN requirements req ON csr.requirement_id = req.id
-	`
+    	`
+	conditions := []string{}
+	paramIndex := 1
+
 	if userField == "owner" {
-		query += " WHERE cti.owner_user_id = $1 ORDER BY cti.due_date ASC, cti.created_at DESC"
+		conditions = append(conditions, fmt.Sprintf("cti.owner_user_id = $%d", paramIndex))
 	} else { // assignee
-		query += " WHERE cti.assignee_user_id = $1 ORDER BY cti.due_date ASC, cti.created_at DESC"
+		conditions = append(conditions, fmt.Sprintf("cti.assignee_user_id = $%d", paramIndex))
+	}
+	args = append(args, userID)
+	paramIndex++
+
+	if campaignStatus != "" {
+		conditions = append(conditions, fmt.Sprintf("c.status = $%d", paramIndex))
+		args = append(args, campaignStatus)
+		paramIndex++
 	}
 
-	rows, err := s.DB.Query(query, userID)
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " AND ")
+	}
+	query += " ORDER BY cti.due_date ASC, cti.created_at DESC"
+
+	rows, err := s.DB.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query campaign task instances for user %s (%s): %w", userID, userField, err)
 	}

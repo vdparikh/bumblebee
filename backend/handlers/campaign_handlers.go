@@ -66,7 +66,9 @@ func (h *CampaignHandler) CreateCampaignHandler(c *gin.Context) {
 }
 
 func (h *CampaignHandler) GetCampaignsHandler(c *gin.Context) {
-	campaigns, err := h.Store.GetCampaigns()
+	campaignStatus := c.Query("campaignStatus")
+
+	campaigns, err := h.Store.GetCampaigns(campaignStatus)
 	if err != nil {
 		log.Printf("Error fetching campaigns: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch campaigns"})
@@ -282,16 +284,18 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 // Expects query parameters: userId and userField (owner or assignee)
 func (h *CampaignHandler) GetUserCampaignTaskInstancesHandler(c *gin.Context) {
 	userID := c.Query("userId")
-	userField := c.Query("userField") // "owner" or "assignee"
+	userField := c.Query("userField")           // "owner" or "assignee"
+	campaignStatus := c.Query("campaignStatus") // New parameter
 
 	if userID == "" || (userField != "owner" && userField != "assignee") {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "userId and a valid userField ('owner' or 'assignee') query parameters are required"})
 		return
 	}
 
-	taskInstances, err := h.Store.GetCampaignTaskInstancesForUser(userID, userField)
+	// Pass campaignStatus to the store method
+	taskInstances, err := h.Store.GetCampaignTaskInstancesForUser(userID, userField, campaignStatus)
 	if err != nil {
-		log.Printf("Error fetching campaign task instances for user %s (%s): %v", userID, userField, err)
+		log.Printf("Error fetching campaign task instances for user %s (%s), status %s: %v", userID, userField, campaignStatus, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user's campaign tasks"})
 		return
 	}
@@ -375,45 +379,82 @@ func (h *CampaignHandler) UploadCampaignTaskInstanceEvidenceHandler(c *gin.Conte
 	// In a real app, get UserID from authenticated session/token
 	uploaderUserID := "36a95829-f890-43dc-aff3-289c50ce83c2" // Placeholder
 
-	file, header, err := c.Request.FormFile("file")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File upload error: " + err.Error()})
-		return
-	}
-	defer file.Close()
-
-	fileName := strings.ReplaceAll(filepath.Base(header.Filename), " ", "_")
-	uploadDir := "./uploads/campaign_tasks/" + instanceID // Separate directory for campaign task evidence
-	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-		log.Printf("Error creating upload directory %s: %v", uploadDir, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
-		return
-	}
-	filePath := filepath.Join(uploadDir, fileName)
-
-	out, err := os.Create(filePath)
-	if err != nil {
-		log.Printf("Error creating file %s: %v", filePath, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
-		return
-	}
-	defer out.Close()
-	_, err = io.Copy(out, file)
-	if err != nil {
-		log.Printf("Error copying file content to %s: %v", filePath, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write file content"})
-		return
-	}
-
 	evidence := models.Evidence{
 		CampaignTaskInstanceID: &instanceID,
 		UploaderUserID:         uploaderUserID,
-		FileName:               fileName,
-		FilePath:               filePath,
-		MimeType:               header.Header.Get("Content-Type"),
-		FileSize:               header.Size,
 	}
 
+	contentType := c.ContentType()
+
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		// Handle file upload
+		file, header, err := c.Request.FormFile("file")
+		if err != nil {
+			log.Printf("File upload error for CTI %s: %v", instanceID, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "File upload error: " + err.Error()})
+			return
+		}
+		defer file.Close()
+
+		fileName := strings.ReplaceAll(filepath.Base(header.Filename), " ", "_")
+		uploadDir := filepath.Join("./uploads/campaign_tasks/", instanceID) // Use filepath.Join for OS-agnostic paths
+
+		if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+			log.Printf("Error creating upload directory %s for CTI %s: %v", uploadDir, instanceID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+			return
+		}
+		filePath := filepath.Join(uploadDir, fileName)
+
+		out, err := os.Create(filePath)
+		if err != nil {
+			log.Printf("Error creating file %s for CTI %s: %v", filePath, instanceID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+			return
+		}
+		defer out.Close()
+
+		_, err = io.Copy(out, file)
+		if err != nil {
+			log.Printf("Error copying file content to %s for CTI %s: %v", filePath, instanceID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write file content"})
+			return
+		}
+
+		evidence.FileName = fileName
+		evidence.FilePath = filePath
+		evidence.MimeType = header.Header.Get("Content-Type") // This is the multipart content type, better to get from file header
+		if len(header.Header["Content-Type"]) > 0 {
+			evidence.MimeType = header.Header["Content-Type"][0]
+		}
+		evidence.FileSize = header.Size
+
+		// Get description from form data if provided
+		description := c.Request.FormValue("description")
+		if description != "" {
+			evidence.Description = &description
+		}
+
+	} else if strings.HasPrefix(contentType, "application/json") {
+		// Handle JSON payload for link or text
+		var jsonPayload models.Evidence // Assuming frontend sends fields matching models.Evidence for link/text
+		if err := c.ShouldBindJSON(&jsonPayload); err != nil {
+			log.Printf("Invalid JSON payload for CTI %s: %v", instanceID, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload: " + err.Error()})
+			return
+		}
+		evidence.FileName = jsonPayload.FileName       // For links, this might be "Link Evidence" or derived
+		evidence.FilePath = jsonPayload.FilePath       // For links, this is the URL
+		evidence.MimeType = jsonPayload.MimeType       // e.g., "text/url" or "text/plain"
+		evidence.Description = jsonPayload.Description // For text, this holds the content; for links, a description
+		// FileSize would be 0 or not applicable for links/text
+
+	} else {
+		c.JSON(http.StatusUnsupportedMediaType, gin.H{"error": "Unsupported content type: " + contentType})
+		return
+	}
+
+	// Save the evidence record to the database
 	if err := h.Store.CreateCampaignTaskInstanceEvidence(&evidence); err != nil {
 		log.Printf("Error creating evidence record for CTI %s: %v", instanceID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save evidence metadata"})
@@ -434,4 +475,27 @@ func (h *CampaignHandler) GetCampaignTaskInstanceEvidenceHandler(c *gin.Context)
 		evidences = []models.Evidence{}
 	}
 	c.JSON(http.StatusOK, evidences)
+}
+
+// ... other imports and your CampaignHandler struct ...
+
+func (h *CampaignHandler) ExecuteCampaignTaskInstanceHandler(c *gin.Context) {
+	instanceID := c.Param("id")
+	// TODO:
+	// 1. Retrieve the campaign task instance by instanceID from the store.
+	// 2. Check if it's an automated task (has check_type, target, parameters).
+	// 3. If automated, trigger the execution logic (e.g., call a script, API, etc.).
+	// 4. Store the execution result (status, output, timestamp) in a new table
+	//    (e.g., campaign_task_instance_results) linked to the instanceID.
+	// 5. Return a success response or an error.
+	c.JSON(http.StatusOK, gin.H{"message": "Execution triggered for instance " + instanceID}) // Placeholder
+}
+
+func (h *CampaignHandler) GetCampaignTaskInstanceResultsHandler(c *gin.Context) {
+	instanceID := c.Param("id")
+	// TODO:
+	// 1. Retrieve all execution results for the given instanceID from the
+	//    campaign_task_instance_results table.
+	// 2. Return the results as JSON or an error if not found/other issues.
+	c.JSON(http.StatusOK, gin.H{"results": "Results for instance " + instanceID}) // Placeholder
 }

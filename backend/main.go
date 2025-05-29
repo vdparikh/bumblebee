@@ -60,13 +60,6 @@ func main() {
 		api.GET("/tasks/:id", taskHandler.GetTaskHandler)
 		api.PUT("/tasks/:id", taskHandler.UpdateTaskHandler) // For updating task status etc.
 
-		// Task Comments
-		api.POST("/tasks/:id/comments", taskHandler.AddTaskCommentHandler) // This might need to change to /campaign-task-instances/:id/comments
-		api.GET("/tasks/:id/comments", taskHandler.GetTaskCommentsHandler) // Or have a query param for campaign_task_instance_id
-		// Task Evidence
-		api.POST("/tasks/:id/evidence", taskHandler.UploadTaskEvidenceHandler) // Similar change needed
-		api.GET("/tasks/:id/evidence", taskHandler.GetTaskEvidenceHandler)     // Similar change needed
-
 		api.POST("/requirements", requirementHandler.CreateRequirementHandler)
 		api.GET("/requirements", requirementHandler.GetRequirementsHandler)
 		api.GET("/requirements/:id", requirementHandler.GetRequirementByIDHandler) // New route
@@ -98,9 +91,9 @@ func main() {
 		api.POST("/campaign-task-instances/:id/evidence", campaignHandler.UploadCampaignTaskInstanceEvidenceHandler)
 		api.GET("/campaign-task-instances/:id/evidence", campaignHandler.GetCampaignTaskInstanceEvidenceHandler)
 
-		// api.POST("/tasks/:id/execute", handlers.ExecuteCheckHandler) // Needs update to use TaskID and TaskExecutionResult
-		// api.GET("/tasks/:id/results", handlers.GetCheckResultsHandler) // Needs update
-		// TODO: Add routes for evidence, comments
+		// New routes for executing campaign task instances and getting results
+		api.POST("/campaign-task-instances/:id/execute", campaignHandler.ExecuteCampaignTaskInstanceHandler)
+		api.GET("/campaign-task-instances/:id/results", campaignHandler.GetCampaignTaskInstanceResultsHandler)
 	}
 
 	log.Println("Starting server on :8080...")
