@@ -15,7 +15,7 @@ docker exec -it mypostgres psql -U postgres
 create database compliance;
 \c compliance;
 ```
-
+```sql
 -- Connect to your PostgreSQL instance and then connect to the 'compliance' database:
 -- psql -U postgres -h localhost
 -- \c compliance;
@@ -284,7 +284,7 @@ ADD CONSTRAINT fk_campaign_task_instance_evidence
     REFERENCES campaign_task_instances (id)
     ON DELETE CASCADE; -- Or ON DELETE SET NULL, depending on desired behavior
 
-
+```
 
 
 TODO
