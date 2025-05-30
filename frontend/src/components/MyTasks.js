@@ -438,9 +438,7 @@ function MyTasks() {
                         </Row>
                     )}
                     {viewMode === 'list' && (
-                        <Card>
-                            <Card.Header as="h5">Tasks ({filteredTasks.length} / {myTasks.length})</Card.Header>
-                            <ListGroup variant='flush' className="shadow-none border-0">
+                        <div>
                                 {filteredTasks.map(task => (
                                     <TaskListItem
                                         key={task.id}
@@ -451,11 +449,12 @@ function MyTasks() {
                                         isOverdueFn={isOverdue}
                                         showCampaignInfo={true}
                                         showAssigneeInfo={true}
-                                        showOwnerInfo={false} // Owner is the loggedInUserId for "My Tasks"
+                                        showOwnerInfo={true} // Display the list of all owners
+                                        owners={task.owners} // Pass the owners array from the task data
                                     />
                                 ))}
-                            </ListGroup>
-                        </Card>
+                        
+                        </div>
                     )}
 
                     {myTasks.length === 0 && !loading && !error && (

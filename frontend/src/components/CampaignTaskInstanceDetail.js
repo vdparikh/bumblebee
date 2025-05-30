@@ -42,15 +42,17 @@ import {
     FaFileUpload,
     FaFileAlt,
     FaCommentDots,
-    FaRegComment,
     FaBullhorn,
     FaPlayCircle, // For execute icon
-    FaPoll // For results icon
+    FaPoll, // For results icon
+    // FaRegComment, // Moved to CommentSection
 } from 'react-icons/fa';
 import { ListGroupItem } from 'react-bootstrap';
 import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils'; // Assuming this is the path
 import { useAuth } from '../contexts/AuthContext';
+import UserDisplay from './common/UserDisplay';
 
+import CommentSection from './common/CommentSection'; // Import the new component
 
 function CampaignTaskInstanceDetail() {
     const { currentUser } = useAuth();
@@ -84,16 +86,16 @@ function CampaignTaskInstanceDetail() {
     const canUpdateTaskStatus = useMemo(() => {
         if (!currentUser || !taskInstance) return false;
         return currentUser.role === 'admin' ||
-               currentUser.role === 'auditor' ||
-               (currentUser.role === 'user' && taskInstance.assignee_user_id === currentUser.id);
+            currentUser.role === 'auditor' ||
+            (currentUser.role === 'user' && taskInstance.assignee_user_id === currentUser.id);
     }, [currentUser, taskInstance]);
 
     // Only admin/auditor can manage evidence and execute automated tasks.
     const canManageEvidenceAndExecution = useMemo(() => {
         if (!currentUser || !taskInstance) return false;
         return currentUser.role === 'admin' ||
-               currentUser.role === 'auditor' ||
-               (currentUser.role === 'user' && taskInstance.owner_user_id === currentUser.id);
+            currentUser.role === 'auditor' ||
+            (currentUser.role === 'user' && taskInstance.owners && taskInstance.owners.some(owner => owner.id === currentUser.id));
     }, [currentUser, taskInstance]);
 
     const getStatusColor = (status) => {
@@ -134,7 +136,7 @@ function CampaignTaskInstanceDetail() {
             setUsers(usersResponse.status === 'fulfilled' && Array.isArray(usersResponse.value.data) ? usersResponse.value.data : []);
             setComments(commentsResponse.status === 'fulfilled' && Array.isArray(commentsResponse.value.data) ? commentsResponse.value.data : []);
             setEvidenceList(evidenceResponse.status === 'fulfilled' && Array.isArray(evidenceResponse.value.data) ? evidenceResponse.value.data : []);
-            
+
         } catch (err) {
             console.error("Error fetching campaign task instance details:", err);
             setError('Failed to fetch task instance data. ' + (err.response?.data?.error || err.message));
@@ -150,24 +152,10 @@ function CampaignTaskInstanceDetail() {
 
     const isOverdue = (dueDate, status) => {
         if (!dueDate || status === "Closed") return false;
-        return new Date(dueDate) < new Date() && new Date(dueDate).setHours(0,0,0,0) !== new Date().setHours(0,0,0,0);
+        return new Date(dueDate) < new Date() && new Date(dueDate).setHours(0, 0, 0, 0) !== new Date().setHours(0, 0, 0, 0);
     };
 
     const getUserDetails = (userId) => users.find(user => user.id === userId);
-
-    const renderUserWithPopover = (userId, defaultText = 'N/A') => {
-        if (!userId) return defaultText;
-        const user = getUserDetails(userId);
-        if (!user) return userId;
-
-        const userPopover = (
-            <Popover id={`popover-user-${user.id}-${defaultText.toLowerCase().replace(' ', '-')}`}>
-                <Popover.Header as="h3">{user.name}</Popover.Header>
-                <Popover.Body><strong>Email:</strong> {user.email || 'N/A'}<br /><strong>ID:</strong> {user.id}</Popover.Body>
-            </Popover>
-        );
-        return <OverlayTrigger placement="top" overlay={userPopover} delay={{ show: 250, hide: 400 }}><span>{user.name}</span></OverlayTrigger>;
-    };
 
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
@@ -343,8 +331,8 @@ function CampaignTaskInstanceDetail() {
                         </div>
                     </div>
                     <small className="text-muted d-block mb-3">
-                        Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> | 
-                        Created: {new Date(taskInstance.created_at).toLocaleString()} | 
+                        Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> |
+                        Created: {new Date(taskInstance.created_at).toLocaleString()} |
                         Last Updated: {new Date(taskInstance.updated_at).toLocaleString()}
                     </small>
                 </Col>
@@ -352,24 +340,78 @@ function CampaignTaskInstanceDetail() {
                     <Tabs defaultActiveKey="details" id="task-instance-detail-tabs" className="nav-line-tabs mb-3">
                         <Tab eventKey="details" title={<><FaInfoCircle className="me-1" />Details</>}>
                             <Card><Card.Body>
-                                <Card.Text><FaInfoCircle className="me-2 text-muted"/><strong>Instance ID:</strong> {taskInstance.id}</Card.Text>
-                                <Card.Text><FaAlignLeft className="me-2 text-muted"/><strong>Description:</strong> {taskInstance.description || 'N/A'}</Card.Text>
-                                <Card.Text><FaTag className="me-2 text-muted"/><strong>Category:</strong> {taskInstance.category || 'N/A'}</Card.Text>
-                                <hr />
-                                <Card.Text><FaUserShield className="me-2 text-muted"/><strong>Owner:</strong> {renderUserWithPopover(taskInstance.owner_user_id, taskInstance.owner_user_name)}</Card.Text>
-                                <Card.Text><FaUserCheck className="me-2 text-muted"/><strong>Assignee:</strong> {renderUserWithPopover(taskInstance.assignee_user_id, taskInstance.assignee_user_name)}</Card.Text>
-                                <Card.Text><FaCalendarAlt className="me-2 text-muted"/><strong>Due Date:</strong> {taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</Card.Text>
-                                <Card.Text><FaClipboardList className="me-2 text-muted"/><strong>Requirement:</strong> {taskInstance.requirement_control_id_reference || 'N/A'}</Card.Text>
-                                <hr />
-                                {taskInstance.check_type && (
-                                    <>
-                                        <h5><FaCogs className="me-2 text-muted"/>Automated Check Details</h5>
-                                        <Card.Text className="ps-1"><strong>Check Type:</strong> {taskInstance.check_type}</Card.Text>
-                                        <Card.Text className="ps-1"><strong>Target:</strong> {taskInstance.target || 'N/A'}</Card.Text>
-                                        <Card.Text className="ps-1"><strong>Parameters:</strong> {taskInstance.parameters ? JSON.stringify(taskInstance.parameters) : 'None'}</Card.Text>
-                                    </>
-                                )}
-                            </Card.Body></Card>
+                                    {taskInstance.description || 'N/A'}
+                            </Card.Body>
+                                <ListGroup variant='flush'>
+
+                                    <ListGroupItem><FaInfoCircle className="me-2 text-muted" /><strong>Instance ID:</strong> {taskInstance.id}</ListGroupItem>
+
+
+                                    <ListGroupItem>
+                                        <FaTag className="me-2 text-muted" /><strong>Category:</strong> 
+                                        
+ {taskInstance.category && (
+                        <Badge pill bg="light" text="dark" className="fw-normal ms-2 border"><FaTag className="me-1" />{taskInstance.category}</Badge>
+                    )}
+                    {taskInstance.requirement_control_id_reference && (
+                        <Badge pill bg="light" text="dark" className="fw-normal border">Req: {taskInstance.requirement_control_id_reference}</Badge>
+                    )}
+
+                                        </ListGroupItem>
+                                    <ListGroupItem>
+                                        <FaUserShield className="me-2 text-muted" /><strong className='me-2'>Owner(s):</strong>
+                                        {taskInstance.owners && taskInstance.owners.length > 0 ?
+                                            taskInstance.owners.map((owner, index) => (
+                                                <React.Fragment key={owner.id}>
+                                                    {/* Using UserDisplay directly for consistency if renderUserWithPopover is not needed for other specific logic */}
+                                                    <UserDisplay userId={owner.id} userName={owner.name} allUsers={users} />
+                                                    {index < taskInstance.owners.length - 1 && ' '}
+                                                </React.Fragment>
+                                            )) : ' N/A'}
+                                    </ListGroupItem>
+                                    <ListGroupItem><FaUserCheck className="me-2 text-muted" /><strong className="me-1">Assignee:</strong>
+
+                                        <UserDisplay userId={taskInstance.assignee_user_id} userName={taskInstance.assignee_user_id} allUsers={users} />
+                                        {/* renderUserWithPopover is replaced by UserDisplay */}
+
+                                    </ListGroupItem>
+                                    <ListGroupItem><FaCalendarAlt className="me-2 text-muted" /><strong>Due Date:</strong> {taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</ListGroupItem>
+                                    <ListGroupItem>
+                                        <FaClipboardList className="me-2 text-muted" /><strong>Requirement:</strong> 
+                                        
+                                        {/* {taskInstance.requirement_control_id_reference || 'N/A'}
+                                        {taskInstance.requirement_control_id_reference && (
+                                            <OverlayTrigger
+                                                placement="top"
+                                                delay={{ show: 250, hide: 400 }}
+                                                overlay={
+                                                    <Popover id={`popover-req-details-${taskInstance.id}`} style={{ maxWidth: '600px', minWidth: '300px' }}>
+                                                        <Popover.Header as="h3">{taskInstance.requirement_control_id_reference} ({taskInstance.requirement_standard_name || 'Standard N/A'})</Popover.Header>
+                                                        <Popover.Body>
+                                                            <p style={{ whiteSpace: 'pre-wrap' }}>{taskInstance.requirement_text || 'No detailed text available.'}</p>
+                                                        </Popover.Body>
+                                                    </Popover>
+                                                }
+                                            >
+                                                <Button variant="link" size="sm" className="p-0 ms-1 align-baseline"><FaInfoCircle /></Button>
+                                            </OverlayTrigger>
+                                        )} */}
+
+<h6 className='mt-3'>{taskInstance.requirement_control_id_reference} - {taskInstance.requirement_standard_name || 'Standard N/A'}</h6>
+                                         <p className='mt-2 text-muted' style={{ whiteSpace: 'pre-wrap' }}>{taskInstance.requirement_text || 'No detailed text available.'}</p>
+
+
+                                    </ListGroupItem>
+                                    {taskInstance.check_type && (
+                                        <>
+                                            <h5><FaCogs className="me-2 text-muted" />Automated Check Details</h5>
+                                            <Card.Text className="ps-1"><strong>Check Type:</strong> {taskInstance.check_type}</Card.Text>
+                                            <Card.Text className="ps-1"><strong>Target:</strong> {taskInstance.target || 'N/A'}</Card.Text>
+                                            <Card.Text className="ps-1"><strong>Parameters:</strong> {taskInstance.parameters ? JSON.stringify(taskInstance.parameters) : 'None'}</Card.Text>
+                                        </>
+                                    )}
+                                </ListGroup>
+                            </Card>
                         </Tab>
                         <Tab eventKey="evidence" title={<><FaFileUpload className="me-1" />Evidence</>}>
                             <Card><Card.Body>
@@ -389,7 +431,7 @@ function CampaignTaskInstanceDetail() {
 
                                             {evidenceType === 'file' && (
                                                 <Form.Group controlId="evidenceFile" className="mb-3">
-                                                    <Form.Label><FaFileUpload className="me-1"/>Select File</Form.Label>
+                                                    <Form.Label><FaFileUpload className="me-1" />Select File</Form.Label>
                                                     <Form.Control type="file" onChange={handleFileChange} />
                                                 </Form.Group>
                                             )}
@@ -416,54 +458,59 @@ function CampaignTaskInstanceDetail() {
                                 ) : (
                                     <Alert variant="info">Evidence management is restricted.</Alert>
                                 )}
-                                        
-                                </Card.Body>
-                                
+
+                            </Card.Body>
+</Card>
                                 {evidenceList.length > 0 ? (
-                                    <ListGroup variant="flush">
-                                        <ListGroupItem><b>Existing Evidences:</b></ListGroupItem>
+                                    <div>
+                                        <h6 className='mt-3 p-3'>Existing Evidences</h6>
                                         {evidenceList.map(evidence => {
-                                            let icon = <FaFileAlt className="me-2 text-muted"/>;
+                                            let icon = <FaFileAlt className="me-2 text-muted" />;
                                             let mainDisplay = evidence.file_name || evidence.id; // Default
                                             let showSeparateDescription = true;
 
-                                            if (evidence.mime_type === 'text/url') {
-                                                icon = <FaLink className="me-2 text-primary"/>;
+                                            if (evidence.mimeType === 'text/url') {
+                                                icon = <FaLink className="me-2 text-primary" />;
                                                 const linkText = evidence.description || evidence.fileName || evidence.filePath;
                                                 mainDisplay = <a href={evidence.filePath} target="_blank" rel="noopener noreferrer">{linkText}</a>;
                                                 showSeparateDescription = !evidence.description; // Only show separate if description wasn't used as link text
                                             } else if (evidence.mimeType === 'text/plain') {
-                                                icon = <FaAlignLeft className="me-2 text-info"/>; 
+                                                icon = <FaAlignLeft className="me-2 text-info" />;
                                                 mainDisplay = <span style={{ whiteSpace: 'pre-wrap' }}>{evidence.description || 'No text content'}</span>;
-                                                showSeparateDescription = false; 
+                                                showSeparateDescription = false;
                                             } else if (evidence.filePath) { // Assumed to be a file
                                                 // Icon remains default FaFileAlt or could be more specific based on actual mime_type
                                                 mainDisplay = <a href={`http://localhost:8080/${evidence.filePath}`} target="_blank" rel="noopener noreferrer">{evidence.fileName || evidence.id}</a>;
                                             }
 
                                             return (
-                                                <ListGroup.Item key={evidence.id}>
-                                                    {icon}
+                                                <Card className='mb-2' key={evidence.id}>
+                                                    <Card.Header>{icon}
                                                     {mainDisplay}
-                                                    <small className="text-muted d-block">Uploaded: {evidence.uploaded_at ? new Date(evidence.uploaded_at).toLocaleString() : 'N/A'}</small>
+                                                    </Card.Header>
+                                                    <Card.Body>
                                                     {showSeparateDescription && evidence.description && <p className="mb-0 mt-1"><small>Description: {evidence.description}</small></p>}
-                                                </ListGroup.Item>
+                                                    </Card.Body>
+                                                    <Card.Footer>
+                                                        <small className="text-muted d-block">Uploaded: {evidence.uploaded_at ? new Date(evidence.uploaded_at).toLocaleString() : 'N/A'}</small>
+                                                    </Card.Footer>
+                                                </Card>
                                             );
                                         })}
-                                    </ListGroup>
+                                    </div>
                                 ) : <p className="m-3 alert alert-info text-muted">No evidence uploaded yet.</p>}
-                            </Card>
+                            
                         </Tab>
                         <Tab eventKey="execution" title={<><FaPlayCircle className="me-1" />Execution</>}>
                             <Card><Card.Body>
                                 {executionError && <Alert variant="danger" onClose={() => setExecutionError('')} dismissible>{executionError}</Alert>}
                                 {executionSuccess && <Alert variant="success" onClose={() => setExecutionSuccess('')} dismissible>{executionSuccess}</Alert>}
-                                
+
                                 {canManageEvidenceAndExecution && taskInstance.check_type ? (
                                     <>
                                         <p>This task instance is configured for automated execution.</p>
                                         <Button onClick={handleExecuteInstance} disabled={loadingResults}>
-                                            {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1"/> Executing...</> : <><FaPlayCircle className="me-1"/>Execute Task</>}
+                                            {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1" /> Executing...</> : <><FaPlayCircle className="me-1" />Execute Task</>}
                                         </Button>
                                     </>
                                 ) : !canManageEvidenceAndExecution ? (
@@ -478,16 +525,16 @@ function CampaignTaskInstanceDetail() {
                         <Tab eventKey="results" title={<><FaPoll className="me-1" />Results</>}>
                             <Card><Card.Body>
                                 <Button onClick={fetchInstanceResults} disabled={loadingResults} className="mb-3">
-                                    {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1"/> Loading...</> : "Refresh Results"}
+                                    {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1" /> Loading...</> : "Refresh Results"}
                                 </Button>
                                 {executionResults.length > 0 ? (
                                     <ListGroup variant="flush">
                                         {executionResults.map(res => (
                                             <ListGroup.Item key={res.id}>
-                                                <small><strong>Timestamp:</strong> {new Date(res.timestamp).toLocaleString()}</small><br/>
-                                            <small><strong>Status:</strong> <Badge bg={getStatusColorUtil(res.status)}>{res.status}</Badge></small><br/>
+                                                <small><strong>Timestamp:</strong> {new Date(res.timestamp).toLocaleString()}</small><br />
+                                                <small><strong>Status:</strong> <Badge bg={getStatusColorUtil(res.status)}>{res.status}</Badge></small><br />
                                                 <small><strong>Output:</strong></small>
-                                                <pre className="bg-dark text-light p-2 rounded mt-1" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em'}}>{res.output}</pre>
+                                                <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>{res.output}</pre>
                                             </ListGroup.Item>
                                         ))}
                                     </ListGroup>
@@ -497,32 +544,20 @@ function CampaignTaskInstanceDetail() {
                     </Tabs>
                 </Col>
                 <Col md={4}>
-                    <Card>
-                        <Card.Header as="h5"><FaCommentDots className="me-1"/>Comments</Card.Header>
-                        <Card.Body>
-                            {commentError && <Alert variant="danger" onClose={() => setCommentError('')} dismissible>{commentError}</Alert>}
-                            <Form onSubmit={handleCommentSubmit} className="mb-3 p-3 bg-light">
-                                <Form.Group className="mb-2" controlId="newCommentText"><Form.Label>Add a comment:</Form.Label>
-                                    <Form.Control as="textarea" rows={3} value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Type your comment here..." />
-                                </Form.Group>
-                                <Button type="submit" variant="primary" className='btn-sm w-100 mt-2'>Post Comment</Button>
-                            </Form>
-                            <ListGroup variant='flush'>
-                                {comments.length > 0 ? comments.map(comment => (
-                                    <ListGroup.Item key={comment.id} className="pb-2">
-                                        <FaRegComment className="me-2 text-muted" style={{float: 'left', marginTop: '0.25em'}}/>
-                                        <p className="mb-0">{comment.text}</p>
-                                        <small className="text-muted">By: {renderUserWithPopover(comment.userId, comment.userName || 'Unknown User')} on {new Date(comment.createdAt).toLocaleString()}</small>
-
-                                    </ListGroup.Item>
-                                )) : <p className="text-muted p-2">No comments yet.</p>}
-                            </ListGroup>
-                        </Card.Body>
-                    </Card>
+                    <CommentSection
+                        comments={comments}
+                        allUsers={users}
+                        currentUser={currentUser}
+                        newComment={newComment}
+                        setNewComment={setNewComment}
+                        onCommentSubmit={handleCommentSubmit}
+                        commentError={commentError}
+                        setCommentError={setCommentError}
+                    />
                 </Col>
             </Row>
         </div>
-        
+
     );
 }
 

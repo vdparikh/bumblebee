@@ -214,10 +214,13 @@ function Dashboard() {
             {/* Task and Campaign Summaries */}
             <Row>
                 <Col md={6} className="mb-4">
-                    <Card>
-                        <Card.Header as="h5"><FaTasks className="me-2"/>My Recent Open Tasks</Card.Header>
+                        <div className="d-flex justify-content-between small mb-1 p-2">
+                                                <h6>My Recent Open Tasks</h6>
+                                                <span><Link to="/my-tasks">View All My Tasks</Link></span>
+                                            </div>
+
                         {dashboardStats.recentOpenTasks.length > 0 ? (
-                            <ListGroup variant="flush">
+                            <div>
                                 {dashboardStats.recentOpenTasks.map(task => (
                                     <TaskListItem
                                         key={task.id}
@@ -228,18 +231,14 @@ function Dashboard() {
                                         isOverdueFn={isOverdue}
                                         showCampaignInfo={true}
                                         showAssigneeInfo={true}
-                                        showOwnerInfo={false}
-                                        className="p-2"
+                                        showOwnerInfo={true} // Display the list of all owners
+                                        owners={task.owners} // Pass the owners array from the task data
                                     />
                                 ))}
-                            </ListGroup>
+                            </div>
                         ) : (
                             <Card.Body><p className="text-muted">No open tasks at the moment.</p></Card.Body>
                         )}
-                        <Card.Footer className="text-center">
-                            <Link to="/my-tasks">View All My Tasks</Link>
-                        </Card.Footer>
-                    </Card>
                 </Col>
                 <Col md={6} className="mb-4">
                     <Card>

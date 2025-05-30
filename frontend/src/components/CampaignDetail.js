@@ -32,6 +32,7 @@ import {
     // ButtonGroup // For view toggle (though not used in this request, good to have if needed later)
 } from 'react-bootstrap';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
+import Select from 'react-select'; // Import react-select
 // import { Pie, Bar } from 'react-chartjs-2'; // Will be used by reusable components
 import {
     FaBullhorn,
@@ -84,7 +85,7 @@ function CampaignDetail() {
     // State for modals
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [currentTaskInstanceForAssignment, setCurrentTaskInstanceForAssignment] = useState(null);
-    const [selectedOwner, setSelectedOwner] = useState('');
+    const [selectedOwnerIDs, setSelectedOwnerIDs] = useState([]); // Changed for multi-select
     const [selectedAssignee, setSelectedAssignee] = useState('');
     const [selectedDueDate, setSelectedDueDate] = useState('');
 
@@ -165,7 +166,10 @@ function CampaignDetail() {
     }, [taskInstances, searchTerm, selectedRequirementFilterId, activeStatusFilter, activeCategoryFilter]);
     const handleOpenAssignModal = (taskInstance) => {
         setCurrentTaskInstanceForAssignment(taskInstance);
-        setSelectedOwner(taskInstance.owner_user_id || '');
+        // Assuming taskInstance.owners is an array of {id, name} objects after backend changes
+        const currentOwnerIds = taskInstance.owners ? taskInstance.owners.map(owner => owner.id) : [];
+        // For react-select, we need an array of { value: id, label: name }
+        setSelectedOwnerIDs(allUsers.filter(u => currentOwnerIds.includes(u.id)).map(u => ({ value: u.id, label: u.name })));
         setSelectedAssignee(taskInstance.assignee_user_id || '');
         // Format due date for the input type="date"
         setSelectedDueDate(taskInstance.due_date ? new Date(taskInstance.due_date).toISOString().split('T')[0] : '');
@@ -178,7 +182,7 @@ function CampaignDetail() {
         const updatedTaskData = {
             // ... copy other fields if your update API expects the full object
             // or just send the fields to be updated
-            owner_user_id: selectedOwner || null,
+            owner_user_ids: selectedOwnerIDs.map(owner => owner.value) || [], // Send array of IDs
             assignee_user_id: selectedAssignee || null,
             due_date: selectedDueDate || null, // Add due date
         };
@@ -534,9 +538,8 @@ function CampaignDetail() {
 
                 {/* Right Column: Campaign Tasks */}
                 <Col md={8}>
-                    <Card>
-                        <Card.Header as="h5">Campaign Tasks ({filteredTaskInstances.length} / {taskInstances.length})</Card.Header>
-                        <ListGroup variant="flush">
+                    <div>
+                        
                             {filteredTaskInstances.map(task => {
                                 const taskActionMenu = (
                                     <div className="d-flex align-items-center">
@@ -565,15 +568,16 @@ function CampaignDetail() {
                                         isOverdueFn={isOverdue}
                                         showCampaignInfo={false} // Already in campaign context
                                         showOwnerInfo={true}
-                                        actionMenu={taskActionMenu}
-                                        className="p-3"
+                                        // Pass owners directly if available, otherwise UserDisplay will handle it
+                                        // This assumes task.owners is an array of {id, name}
+                                        owners={task.owners} 
+                                        actionMenu={taskActionMenu} 
                                     />
                                 );
                             })}
                             {filteredTaskInstances.length === 0 && taskInstances.length > 0 && <ListGroup.Item>No tasks match the current filters.</ListGroup.Item>}
                             {taskInstances.length === 0 && <ListGroup.Item>No task instances found for this campaign.</ListGroup.Item>}
-                        </ListGroup>
-                    </Card>
+                        </div>
                 </Col>
             </Row>
 
@@ -586,11 +590,15 @@ function CampaignDetail() {
                 <Modal.Body>
                     <Form>
                         <Form.Group className="mb-3">
-                            <Form.Label>Owner</Form.Label>
-                            <Form.Select value={selectedOwner} onChange={e => setSelectedOwner(e.target.value)}>
-                                <option value="">Select Owner</option>
-                                {allUsers.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
-                            </Form.Select>
+                            <Form.Label>Owners</Form.Label>
+                            <Select
+                                isMulti
+                                options={allUsers.map(user => ({ value: user.id, label: user.name }))}
+                                value={selectedOwnerIDs}
+                                onChange={setSelectedOwnerIDs}
+                                placeholder="Select Owners..."
+                                closeMenuOnSelect={false}
+                            />
                         </Form.Group>
                         <Form.Group>
                             <Form.Label>Assignee</Form.Label>

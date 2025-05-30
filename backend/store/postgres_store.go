@@ -976,16 +976,30 @@ func (s *DBStore) CreateCampaignTaskInstance(tx *sql.Tx, cti *models.CampaignTas
 	query := `
 		INSERT INTO campaign_task_instances (
 			id, campaign_id, master_task_id, campaign_selected_requirement_id, title, description, category, 
-			owner_user_id, assignee_user_id, status, due_date, created_at, updated_at, 
+			assignee_user_id, status, due_date, created_at, updated_at, 
 			check_type, target, parameters
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-	`
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+	` // Removed owner_user_id from here
+
+	var execFunc func(query string, args ...interface{}) (sql.Result, error)
 	if tx != nil {
-		_, err = tx.Exec(query, cti.ID, cti.CampaignID, cti.MasterTaskID, cti.CampaignSelectedRequirementID, cti.Title, cti.Description, cti.Category, cti.OwnerUserID, cti.AssigneeUserID, cti.Status, cti.DueDate, cti.CreatedAt, cti.UpdatedAt, cti.CheckType, cti.Target, paramsJSON)
+		execFunc = tx.Exec
 	} else {
-		_, err = s.DB.Exec(query, cti.ID, cti.CampaignID, cti.MasterTaskID, cti.CampaignSelectedRequirementID, cti.Title, cti.Description, cti.Category, cti.OwnerUserID, cti.AssigneeUserID, cti.Status, cti.DueDate, cti.CreatedAt, cti.UpdatedAt, cti.CheckType, cti.Target, paramsJSON)
+		execFunc = s.DB.Exec
 	}
+
+	_, err = execFunc(query, cti.ID, cti.CampaignID, cti.MasterTaskID, cti.CampaignSelectedRequirementID, cti.Title, cti.Description, cti.Category, cti.AssigneeUserID, cti.Status, cti.DueDate, cti.CreatedAt, cti.UpdatedAt, cti.CheckType, cti.Target, paramsJSON)
+
+	if err != nil {
+		return "", fmt.Errorf("failed to insert campaign task instance: %w", err)
+	}
+
+	// Insert owners into the junction table
+	// This part assumes cti.OwnerUserIDs is populated (e.g., from handler)
+	// If CreateCampaignTaskInstance is called internally (like from CreateCampaign),
+	// OwnerUserIDs might be empty initially, which is fine.
+	err = s.updateCampaignTaskInstanceOwners(tx, cti.ID, cti.OwnerUserIDs) // Pass tx or nil
 
 	if err != nil {
 		return "", fmt.Errorf("failed to insert campaign task instance: %w", err)
@@ -997,29 +1011,33 @@ func (s *DBStore) GetCampaignTaskInstances(campaignID string, userID string, use
 	baseQuery := `
 		SELECT 
 			cti.id, cti.campaign_id, cti.master_task_id, cti.campaign_selected_requirement_id, 
-			cti.title, cti.description, cti.category, cti.owner_user_id, cti.assignee_user_id, 
+			cti.title, cti.description, cti.category, cti.assignee_user_id, 
 			cti.status, cti.due_date, cti.created_at, cti.updated_at, 
 			cti.check_type, cti.target, cti.parameters,
-			owner.name as owner_user_name, assignee.name as assignee_user_name,
-			req.control_id_reference as requirement_control_id_reference
+			assignee.name as assignee_user_name,
+			req.control_id_reference as requirement_control_id_reference,
+			req.requirement_text as requirement_text,
+			std.name as requirement_standard_name
 		FROM campaign_task_instances cti
-		LEFT JOIN users owner ON cti.owner_user_id = owner.id
 		LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
 		LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
 		LEFT JOIN requirements req ON csr.requirement_id = req.id
+		LEFT JOIN compliance_standards std ON req.standard_id = std.id
 		WHERE cti.campaign_id = $1
 	`
 	args := []interface{}{campaignID}
 	var fullQuery string
 
+	// Filtering by a single owner_user_id directly in the main query is no longer straightforward
+	// due to the many-to-many relationship. This might need adjustment if such filtering is critical.
+	// For now, this specific userID/userField filtering for owners is removed from this function.
+	// GetCampaignTaskInstancesForUser handles owner-specific fetching.
 	if userID != "" {
-		if userField == "owner" {
-			fullQuery = baseQuery + " AND cti.owner_user_id = $2 ORDER BY cti.created_at DESC"
-			args = append(args, userID)
-		} else if userField == "assignee" {
+		if userField == "assignee" {
 			fullQuery = baseQuery + " AND cti.assignee_user_id = $2 ORDER BY cti.created_at DESC"
 			args = append(args, userID)
 		} else {
+			// If userField is "owner" or invalid, we don't filter by owner here.
 			fullQuery = baseQuery + " ORDER BY cti.created_at DESC"
 		}
 	} else {
@@ -1038,10 +1056,10 @@ func (s *DBStore) GetCampaignTaskInstances(campaignID string, userID string, use
 		var paramsJSON []byte
 		if err := rows.Scan(
 			&i.ID, &i.CampaignID, &i.MasterTaskID, &i.CampaignSelectedRequirementID,
-			&i.Title, &i.Description, &i.Category, &i.OwnerUserID, &i.AssigneeUserID,
+			&i.Title, &i.Description, &i.Category, &i.AssigneeUserID,
 			&i.Status, &i.DueDate, &i.CreatedAt, &i.UpdatedAt,
 			&i.CheckType, &i.Target, &paramsJSON,
-			&i.OwnerUserName, &i.AssigneeUserName, &i.RequirementControlIDReference,
+			&i.AssigneeUserName, &i.RequirementControlIDReference, &i.RequirementText, &i.RequirementStandardName,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan campaign task instance row: %w", err)
 		}
@@ -1053,6 +1071,12 @@ func (s *DBStore) GetCampaignTaskInstances(campaignID string, userID string, use
 		} else {
 			i.Parameters = make(map[string]interface{})
 		}
+		// Fetch owners for this instance
+		owners, err := s.getCampaignTaskInstanceOwners(i.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch owners for CTI %s: %w", i.ID, err)
+		}
+		i.Owners = owners
 		instances = append(instances, i)
 	}
 	return instances, rows.Err()
@@ -1062,17 +1086,19 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
 	query := `
 		SELECT 
 			cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id, cti.campaign_selected_requirement_id, 
-			cti.title, cti.description, cti.category, cti.owner_user_id, cti.assignee_user_id, 
+			cti.title, cti.description, cti.category, cti.assignee_user_id, 
 			cti.status, cti.due_date, cti.created_at, cti.updated_at, 
 			cti.check_type, cti.target, cti.parameters,
-			owner.name as owner_user_name, assignee.name as assignee_user_name,
-			req.control_id_reference as requirement_control_id_reference
+			assignee.name as assignee_user_name,
+			req.control_id_reference as requirement_control_id_reference,
+			req.requirement_text as requirement_text,
+			std.name as requirement_standard_name
 		FROM campaign_task_instances cti
 		LEFT JOIN campaigns c ON cti.campaign_id = c.id
-		LEFT JOIN users owner ON cti.owner_user_id = owner.id
 		LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
 		LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
 		LEFT JOIN requirements req ON csr.requirement_id = req.id
+		LEFT JOIN compliance_standards std ON req.standard_id = std.id
 		WHERE cti.id = $1
 	`
 	row := s.DB.QueryRow(query, ctiID)
@@ -1080,10 +1106,10 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
 	var paramsJSON []byte
 	err := row.Scan(
 		&cti.ID, &cti.CampaignID, &cti.CampaignName, &cti.MasterTaskID, &cti.CampaignSelectedRequirementID,
-		&cti.Title, &cti.Description, &cti.Category, &cti.OwnerUserID, &cti.AssigneeUserID,
+		&cti.Title, &cti.Description, &cti.Category, &cti.AssigneeUserID,
 		&cti.Status, &cti.DueDate, &cti.CreatedAt, &cti.UpdatedAt,
 		&cti.CheckType, &cti.Target, &paramsJSON,
-		&cti.OwnerUserName, &cti.AssigneeUserName, &cti.RequirementControlIDReference,
+		&cti.AssigneeUserName, &cti.RequirementControlIDReference, &cti.RequirementText, &cti.RequirementStandardName,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan campaign task instance by ID %s: %w", ctiID, err)
@@ -1097,32 +1123,100 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
 	} else {
 		cti.Parameters = make(map[string]interface{})
 	}
+
+	// Fetch owners
+	owners, err := s.getCampaignTaskInstanceOwners(cti.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch owners for CTI %s: %w", cti.ID, err)
+	}
+	cti.Owners = owners
+
 	return &cti, nil
 }
 
 func (s *DBStore) UpdateCampaignTaskInstance(cti *models.CampaignTaskInstance) error {
 	cti.UpdatedAt = time.Now()
+
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction for CTI update: %w", err)
+	}
+	defer tx.Rollback()
+
 	paramsJSON, err := json.Marshal(cti.Parameters)
 	if err != nil {
 		return fmt.Errorf("failed to marshal CTI parameters for update: %w", err)
 	}
 
-	// Build query dynamically based on which fields are non-nil/non-zero in 'cti'
-	// This is a simplified version that updates all provided fields.
-	// A more robust PATCH-like update would only update fields present in the request.
-	query := `
+	// Update scalar fields in campaign_task_instances table
+	ctiQuery := `
 		UPDATE campaign_task_instances
-		SET title = $2, description = $3, category = $4, owner_user_id = $5, 
-		    assignee_user_id = $6, status = $7, due_date = $8, updated_at = $9,
-		    check_type = $10, target = $11, parameters = $12
+		SET title = $2, description = $3, category = $4, 
+		    assignee_user_id = $5, status = $6, due_date = $7, updated_at = $8,
+		    check_type = $9, target = $10, parameters = $11
 		WHERE id = $1
 	`
-	_, err = s.DB.Exec(query, cti.ID, cti.Title, cti.Description, cti.Category,
-		cti.OwnerUserID, cti.AssigneeUserID, cti.Status, cti.DueDate, cti.UpdatedAt,
+	_, err = tx.Exec(ctiQuery, cti.ID, cti.Title, cti.Description, cti.Category,
+		cti.AssigneeUserID, cti.Status, cti.DueDate, cti.UpdatedAt,
 		cti.CheckType, cti.Target, paramsJSON)
 
 	if err != nil {
 		return fmt.Errorf("failed to update campaign task instance %s: %w", cti.ID, err)
+	}
+
+	// Update owners in the junction table if OwnerUserIDs is provided
+	// cti.OwnerUserIDs is populated by the handler from the request payload.
+	// If it's nil, it means owners were not part of this update request.
+	if cti.OwnerUserIDs != nil {
+		err = s.updateCampaignTaskInstanceOwners(tx, cti.ID, cti.OwnerUserIDs)
+		if err != nil {
+			return fmt.Errorf("failed to update owners for CTI %s: %w", cti.ID, err)
+		}
+	}
+
+	return tx.Commit()
+}
+
+// updateCampaignTaskInstanceOwners manages the entries in the campaign_task_instance_owners junction table.
+// It should be called within a transaction if part of a larger operation.
+// If tx is nil, it will execute directly on s.DB (not recommended for multi-step updates).
+func (s *DBStore) updateCampaignTaskInstanceOwners(tx *sql.Tx, ctiID string, ownerIDs []string) error {
+	var execFunc func(query string, args ...interface{}) (sql.Result, error)
+	if tx != nil {
+		execFunc = tx.Exec
+	} else {
+		execFunc = s.DB.Exec
+	}
+
+	// Delete existing owners for this CTI
+	_, err := execFunc("DELETE FROM campaign_task_instance_owners WHERE campaign_task_instance_id = $1", ctiID)
+	if err != nil {
+		return fmt.Errorf("failed to delete existing owners for CTI %s: %w", ctiID, err)
+	}
+
+	if len(ownerIDs) == 0 {
+		return nil // No new owners to add
+	}
+
+	// Prepare statement for inserting new owners
+	// Using tx.Prepare if tx is not nil, otherwise s.DB.Prepare
+	var stmt *sql.Stmt
+	if tx != nil {
+		stmt, err = tx.Prepare("INSERT INTO campaign_task_instance_owners (campaign_task_instance_id, user_id) VALUES ($1, $2)")
+	} else {
+		stmt, err = s.DB.Prepare("INSERT INTO campaign_task_instance_owners (campaign_task_instance_id, user_id) VALUES ($1, $2)")
+	}
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement for inserting owners: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, ownerID := range ownerIDs {
+		_, err = stmt.Exec(ctiID, ownerID)
+		if err != nil {
+			// Consider collecting all errors if you want to report them all
+			return fmt.Errorf("failed to insert owner %s for CTI %s: %w", ownerID, ctiID, err)
+		}
 	}
 	return nil
 }
@@ -1138,24 +1232,31 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 	query := `
 		SELECT 
 			cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id, cti.campaign_selected_requirement_id, 
-			cti.title, cti.description, cti.category, cti.owner_user_id, cti.assignee_user_id, 
+			cti.title, cti.description, cti.category, cti.assignee_user_id, 
 			cti.status, cti.due_date, cti.created_at, cti.updated_at, 
 			cti.check_type, cti.target, cti.parameters,
-			owner.name as owner_user_name, assignee.name as assignee_user_name,
-			req.control_id_reference as requirement_control_id_reference
+			assignee.name as assignee_user_name,
+			req.control_id_reference as requirement_control_id_reference,
+			req.requirement_text as requirement_text,
+			std.name as requirement_standard_name
 		FROM campaign_task_instances cti
 		LEFT JOIN campaigns c ON cti.campaign_id = c.id
-		LEFT JOIN users owner ON cti.owner_user_id = owner.id
 		LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
 		LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
 		LEFT JOIN requirements req ON csr.requirement_id = req.id
+		LEFT JOIN compliance_standards std ON req.standard_id = std.id
     	`
+	// Note: owner_user_name is removed from here as owners are now a list.
 	conditions := []string{}
 	paramIndex := 1
 
 	if userField == "owner" {
-		conditions = append(conditions, fmt.Sprintf("cti.owner_user_id = $%d", paramIndex))
+		conditions = append(conditions, fmt.Sprintf("cti.id IN (SELECT cto.campaign_task_instance_id FROM campaign_task_instance_owners cto WHERE cto.user_id = $%d)", paramIndex))
 	} else { // assignee
+		// Ensure userField is "assignee" if not "owner", or handle error if it's something else
+		if userField != "assignee" {
+			return nil, fmt.Errorf("invalid userField: %s", userField)
+		}
 		conditions = append(conditions, fmt.Sprintf("cti.assignee_user_id = $%d", paramIndex))
 	}
 	args = append(args, userID)
@@ -1172,6 +1273,9 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 	}
 	query += " ORDER BY cti.due_date ASC, cti.created_at DESC"
 
+	// Log the constructed query and arguments for debugging
+	// log.Printf("Executing GetCampaignTaskInstancesForUser query: %s with args: %v", query, args) // Temporarily commented out for diagnostics
+
 	rows, err := s.DB.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query campaign task instances for user %s (%s): %w", userID, userField, err)
@@ -1184,11 +1288,10 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 		var paramsJSON []byte
 		// Add campaign_name to scan targets
 		err = rows.Scan( // Assign to err to check it
-			&i.ID, &i.CampaignID, &i.CampaignName, &i.MasterTaskID, &i.CampaignSelectedRequirementID,
-			&i.Title, &i.Description, &i.Category, &i.OwnerUserID, &i.AssigneeUserID,
+			&i.ID, &i.CampaignID, &i.CampaignName, &i.MasterTaskID, &i.CampaignSelectedRequirementID, // Removed OwnerUserID from scan
+			&i.Title, &i.Description, &i.Category, &i.AssigneeUserID,
 			&i.Status, &i.DueDate, &i.CreatedAt, &i.UpdatedAt,
-			&i.CheckType, &i.Target, &paramsJSON,
-			&i.OwnerUserName, &i.AssigneeUserName, &i.RequirementControlIDReference,
+			&i.CheckType, &i.Target, &paramsJSON, &i.AssigneeUserName, &i.RequirementControlIDReference, &i.RequirementText, &i.RequirementStandardName,
 		)
 
 		if err != nil {
@@ -1203,9 +1306,40 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 		} else {
 			i.Parameters = make(map[string]interface{})
 		}
+		// Fetch owners for this instance
+		owners, err := s.getCampaignTaskInstanceOwners(i.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch owners for CTI %s: %w", i.ID, err)
+		}
+		i.Owners = owners
 		instances = append(instances, i)
 	}
 	return instances, rows.Err()
+}
+
+// getCampaignTaskInstanceOwners fetches the basic info of all owners for a given CTI ID.
+func (s *DBStore) getCampaignTaskInstanceOwners(ctiID string) ([]models.UserBasicInfo, error) {
+	query := `
+		SELECT u.id, u.name, u.email
+		FROM users u
+		JOIN campaign_task_instance_owners cto ON u.id = cto.user_id
+		WHERE cto.campaign_task_instance_id = $1
+	`
+	rows, err := s.DB.Query(query, ctiID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query owners for CTI %s: %w", ctiID, err)
+	}
+	defer rows.Close()
+
+	var owners []models.UserBasicInfo
+	for rows.Next() {
+		var owner models.UserBasicInfo
+		if err := rows.Scan(&owner.ID, &owner.Name, &owner.Email); err != nil {
+			return nil, fmt.Errorf("failed to scan owner for CTI %s: %w", ctiID, err)
+		}
+		owners = append(owners, owner)
+	}
+	return owners, rows.Err()
 }
 
 // DeleteCampaignTaskInstance - Implement if needed

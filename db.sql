@@ -230,3 +230,18 @@ ADD COLUMN role VARCHAR(50) NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'au
 
 ALTER TABLE users
 ADD COLUMN hashed_password VARCHAR(255) NOT NULL DEFAULT '';
+
+
+ALTER TABLE campaign_task_instances
+DROP COLUMN IF EXISTS owner_user_id;
+
+-- 2. Create the junction table for multiple owners
+CREATE TABLE IF NOT EXISTS campaign_task_instance_owners (
+    campaign_task_instance_id UUID NOT NULL REFERENCES campaign_task_instances(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (campaign_task_instance_id, user_id)
+);
+
+-- Optional: Add indexes for performance
+CREATE INDEX IF NOT EXISTS idx_cti_owners_instance_id ON campaign_task_instance_owners(campaign_task_instance_id);
+CREATE INDEX IF NOT EXISTS idx_cti_owners_user_id ON campaign_task_instance_owners(user_id);

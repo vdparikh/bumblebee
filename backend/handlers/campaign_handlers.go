@@ -222,7 +222,7 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 		Title          *string                `json:"title"`
 		Description    *string                `json:"description"`
 		Category       *string                `json:"category"`
-		OwnerUserID    *string                `json:"owner_user_id"`
+		OwnerUserIDs   *[]string              `json:"owner_user_ids"` // Changed to slice for multiple owners
 		AssigneeUserID *string                `json:"assignee_user_id"`
 		Status         *string                `json:"status"`
 		DueDate        *models.CustomDate     `json:"due_date"` // CustomDate handles null from JSON
@@ -246,8 +246,10 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 	if payload.Category != nil { // Category is *string in model
 		existingInstance.Category = payload.Category
 	}
-	if payload.OwnerUserID != nil {
-		existingInstance.OwnerUserID = payload.OwnerUserID
+	// Handle multiple owners - existingInstance.OwnerUserIDs will be used by the store method
+	if payload.OwnerUserIDs != nil {
+		// The store method will handle the logic of updating the junction table
+		existingInstance.OwnerUserIDs = *payload.OwnerUserIDs
 	}
 	if payload.AssigneeUserID != nil {
 		existingInstance.AssigneeUserID = payload.AssigneeUserID

@@ -34,6 +34,7 @@ code {
   --custom-header-font: 'Ancizar Sans', sans-serif;
   --custom-body-font: 'Lato', sans-serif;
   --bs-primary: #4D51A1; /* Define your primary color. Avoid !important here if Bootstrap uses it. */
+  --bs-primary-rgb:77, 81, 161; /* Define your primary color. Avoid !important here if Bootstrap uses it. */
   
 }
 /* If you want --bs-primary to be different in dark mode, you'd define it in [data-bs-theme="dark"] */
@@ -63,11 +64,14 @@ h3 {
 }
 
 .card .card-header {
-  background-color: var(--bs-tertiary-bg); /* Use Bootstrap variable */
+  background-color: rgba(var(--bs-primary-rgb),0.1)!important; /* Use Bootstrap variable */
   font-size: 1.1em;
   border: 0px;
 }
-
+.card .card-footer {
+  background-color: transparent!important;
+  padding: 10px 10px!important;
+}
 .navbar-brand, .nav-link { /* Targeting specific Bootstrap components */
   font-family: var(--custom-header-font);
   font-size: 1.1em;
@@ -253,3 +257,92 @@ a:hover {
 [data-bs-theme="dark"] .requirements-panel .list-group-item.active {
   background-color: var(--bs-dark-bg-subtle);
 }
+
+
+/* Add to your App.css or a relevant CSS file */
+.task-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Adjust minmax as needed */
+  gap: 0.5rem 1rem; /* Row gap and column gap */
+  align-items: start; /* Align items to the start of their grid cell */
+}
+
+.task-detail-item {
+  display: flex; /* Use flex for icon and text alignment */
+  align-items: center; /* Vertically align icon and text */
+  /* padding: 0.25rem 0; */ /* Optional padding for each item */
+}
+
+.task-detail-item .me-1 { /* Ensure consistent spacing for icons */
+  flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
+.task-detail-value {
+    margin-left: 0.25rem; /* Space between label (e.g., "Owner(s):") and value */
+    word-break: break-word; /* Prevent long values from breaking layout */
+}
+
+/* Optional: if you want a more definition list style */
+/*
+.task-detail-item {
+  display: flex;
+  margin-bottom: 0.25rem;
+}
+.task-detail-item > span:first-of-type { // The label like "Owner(s):"
+  font-weight: 500; // Slightly bolder
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+.task-detail-item > span:last-of-type { // The value
+  word-break: break-word;
+}
+*/
+
+
+/* Add to your src/index.css or src/App.css */
+
+/* Comment Section Styling */
+.comment-list .list-group-item {
+  border-bottom: 1px solid #e9ecef !important; /* Softer border */
+}
+.comment-list .list-group-item:last-child {
+  border-bottom: 0 !important;
+}
+
+.comment-text {
+  font-size: 0.95rem;
+  color: #495057; /* Slightly softer black */
+  line-height: 1.5;
+  white-space: pre-wrap; /* Preserve line breaks in comments */
+}
+
+.comment-textarea {
+  border-radius: 0.5rem; /* Rounded corners for textarea */
+  border: 1px solid #ced4da;
+  padding: 0.75rem 1rem;
+  transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.comment-textarea:focus {
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+}
+
+.comment-submit-btn {
+  border-radius: 0.5rem; /* Match textarea */
+  padding: 0.65rem 0.9rem; /* Adjust padding for icon button */
+  line-height: 1; /* Ensure icon is centered */
+  height: 100%; /* Make button take full height of its column if desired */
+}
+
+.comment-text { font-size: 0.9em;}
+
+.user-display { /* General styling for UserDisplay component if needed */
+  font-weight: 500; /* Medium weight for names */
+}
+
+/* Ensure popovers from UserDisplay are above other elements if needed */
+.popover {
+  z-index: 1060; /* Bootstrap's default modal z-index is 1050, popovers should be higher */
+}
+
