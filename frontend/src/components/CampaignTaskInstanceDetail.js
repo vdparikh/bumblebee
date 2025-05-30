@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import {
     getCampaignTaskInstanceById,
@@ -11,7 +11,7 @@ import {
     updateCampaignTaskInstance,
     executeCampaignTaskInstance, // New API for execution
     getCampaignTaskInstanceResults, // New API for results
-} from '../services/api';
+} from '../services/api'; // Assuming getStatusColor is imported if not already
 import Card from 'react-bootstrap/Card';
 import Alert from 'react-bootstrap/Alert';
 import Badge from 'react-bootstrap/Badge';
@@ -48,8 +48,12 @@ import {
     FaPoll // For results icon
 } from 'react-icons/fa';
 import { ListGroupItem } from 'react-bootstrap';
+import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils'; // Assuming this is the path
+import { useAuth } from '../contexts/AuthContext';
+
 
 function CampaignTaskInstanceDetail() {
+    const { currentUser } = useAuth();
     const { instanceId } = useParams();
     const location = useLocation(); // Get location object
     const [taskInstance, setTaskInstance] = useState(null);
@@ -75,6 +79,22 @@ function CampaignTaskInstanceDetail() {
     const [executionError, setExecutionError] = useState(''); // New
     const [executionSuccess, setExecutionSuccess] = useState(''); // New
     const [loadingResults, setLoadingResults] = useState(false); // New
+
+    // User can edit basic task details (like status) if they are admin, auditor, or the assigned user.
+    const canUpdateTaskStatus = useMemo(() => {
+        if (!currentUser || !taskInstance) return false;
+        return currentUser.role === 'admin' ||
+               currentUser.role === 'auditor' ||
+               (currentUser.role === 'user' && taskInstance.assignee_user_id === currentUser.id);
+    }, [currentUser, taskInstance]);
+
+    // Only admin/auditor can manage evidence and execute automated tasks.
+    const canManageEvidenceAndExecution = useMemo(() => {
+        if (!currentUser || !taskInstance) return false;
+        return currentUser.role === 'admin' ||
+               currentUser.role === 'auditor' ||
+               (currentUser.role === 'user' && taskInstance.owner_user_id === currentUser.id);
+    }, [currentUser, taskInstance]);
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -157,8 +177,7 @@ function CampaignTaskInstanceDetail() {
         }
         setCommentError('');
         try {
-            const loggedInUserId = "36a95829-f890-43dc-aff3-289c50ce83c2"; // Placeholder for auth user
-            const commentData = { text: newComment, userId: loggedInUserId };
+            const commentData = { text: newComment, userId: currentUser.id };
             const response = await addCommentToCampaignTaskInstance(instanceId, commentData);
             setComments(prevComments => [...prevComments, response.data]);
             setNewComment('');
@@ -299,9 +318,9 @@ function CampaignTaskInstanceDetail() {
 
     return (
         <div>
-            <Button as={Link} to={backLinkTarget} variant="outline-dark" size="sm" className="mb-3">
+            {/* <Button as={Link} to={backLinkTarget} variant="outline-dark" size="sm" className="mb-3">
                 <FaArrowLeft className="me-1" /> {backButtonText}
-            </Button>
+            </Button> */}
 
             <Row>
                 <Col md={12}>
@@ -313,7 +332,7 @@ function CampaignTaskInstanceDetail() {
                                 <Dropdown.Toggle variant={getStatusColor(taskInstance.status)} id="dropdown-status" size="sm" className="fs-6">
                                     {taskInstance.status}
                                 </Dropdown.Toggle>
-                                <Dropdown.Menu>
+                                <Dropdown.Menu disabled={!canUpdateTaskStatus}>
                                     <Dropdown.Item onClick={() => handleStatusUpdate('Open')} active={taskInstance.status === 'Open'}>Open</Dropdown.Item>
                                     <Dropdown.Item onClick={() => handleStatusUpdate('In Progress')} active={taskInstance.status === 'In Progress'}>In Progress</Dropdown.Item>
                                     <Dropdown.Item onClick={() => handleStatusUpdate('Pending Review')} active={taskInstance.status === 'Pending Review'}>Pending Review</Dropdown.Item>
@@ -354,48 +373,55 @@ function CampaignTaskInstanceDetail() {
                         </Tab>
                         <Tab eventKey="evidence" title={<><FaFileUpload className="me-1" />Evidence</>}>
                             <Card><Card.Body>
-                                {addEvidenceError && <Alert variant="danger" onClose={() => setAddEvidenceError('')} dismissible>{addEvidenceError}</Alert>}
-                                <div className='bg-light p-3 rounded-3 mb-3'>
-                                    <h5 className="mb-3">Add New Evidence</h5>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Evidence Type:</Form.Label>
-                                        <div>
-                                            <Form.Check inline label="File" name="evidenceType" type="radio" id="evidence-type-file" value="file" checked={evidenceType === 'file'} onChange={(e) => setEvidenceType(e.target.value)} />
-                                            <Form.Check inline label="Link (URL)" name="evidenceType" type="radio" id="evidence-type-link" value="link" checked={evidenceType === 'link'} onChange={(e) => setEvidenceType(e.target.value)} />
-                                            <Form.Check inline label="Text" name="evidenceType" type="radio" id="evidence-type-text" value="text" checked={evidenceType === 'text'} onChange={(e) => setEvidenceType(e.target.value)} />
+                                {canManageEvidenceAndExecution ? (
+                                    <>
+                                        {addEvidenceError && <Alert variant="danger" onClose={() => setAddEvidenceError('')} dismissible>{addEvidenceError}</Alert>}
+                                        <div className='bg-light p-3 rounded-3 mb-3'>
+                                            <h5 className="mb-3">Add New Evidence</h5>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Evidence Type:</Form.Label>
+                                                <div>
+                                                    <Form.Check inline label="File" name="evidenceType" type="radio" id="evidence-type-file" value="file" checked={evidenceType === 'file'} onChange={(e) => setEvidenceType(e.target.value)} />
+                                                    <Form.Check inline label="Link (URL)" name="evidenceType" type="radio" id="evidence-type-link" value="link" checked={evidenceType === 'link'} onChange={(e) => setEvidenceType(e.target.value)} />
+                                                    <Form.Check inline label="Text" name="evidenceType" type="radio" id="evidence-type-text" value="text" checked={evidenceType === 'text'} onChange={(e) => setEvidenceType(e.target.value)} />
+                                                </div>
+                                            </Form.Group>
+
+                                            {evidenceType === 'file' && (
+                                                <Form.Group controlId="evidenceFile" className="mb-3">
+                                                    <Form.Label><FaFileUpload className="me-1"/>Select File</Form.Label>
+                                                    <Form.Control type="file" onChange={handleFileChange} />
+                                                </Form.Group>
+                                            )}
+                                            {evidenceType === 'link' && (
+                                                <Form.Group controlId="evidenceLink" className="mb-3">
+                                                    <Form.Label>Link URL</Form.Label>
+                                                    <Form.Control type="url" placeholder="https://example.com/evidence" value={evidenceLink} onChange={(e) => setEvidenceLink(e.target.value)} />
+                                                </Form.Group>
+                                            )}
+                                            {evidenceType === 'text' && (
+                                                <Form.Group controlId="evidenceText" className="mb-3">
+                                                    <Form.Label>Evidence Text/Details</Form.Label>
+                                                    <Form.Control as="textarea" rows={3} placeholder="Describe the evidence or paste text here..." value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} />
+                                                </Form.Group>
+                                            )}
+                                            <Form.Group controlId="evidenceDescription" className="mb-3">
+                                                <Form.Label>General Description (Optional)</Form.Label>
+                                                <Form.Control as="textarea" rows={2} placeholder="Optional: Describe this piece of evidence..." value={evidenceDescription} onChange={(e) => setEvidenceDescription(e.target.value)} />
+                                            </Form.Group>
+
+                                            <Button variant='success' onClick={handleAddEvidence} className="w-100 mb-3">Add Evidence</Button>
                                         </div>
-                                    </Form.Group>
-
-                                    {evidenceType === 'file' && (
-                                        <Form.Group controlId="evidenceFile" className="mb-3">
-                                            <Form.Label><FaFileUpload className="me-1"/>Select File</Form.Label>
-                                            <Form.Control type="file" onChange={handleFileChange} />
-                                        </Form.Group>
-                                    )}
-                                    {evidenceType === 'link' && (
-                                        <Form.Group controlId="evidenceLink" className="mb-3">
-                                            <Form.Label>Link URL</Form.Label>
-                                            <Form.Control type="url" placeholder="https://example.com/evidence" value={evidenceLink} onChange={(e) => setEvidenceLink(e.target.value)} />
-                                        </Form.Group>
-                                    )}
-                                    {evidenceType === 'text' && (
-                                        <Form.Group controlId="evidenceText" className="mb-3">
-                                            <Form.Label>Evidence Text/Details</Form.Label>
-                                            <Form.Control as="textarea" rows={3} placeholder="Describe the evidence or paste text here..." value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} />
-                                        </Form.Group>
-                                    )}
-                                     <Form.Group controlId="evidenceDescription" className="mb-3">
-                                        <Form.Label>General Description (Optional)</Form.Label>
-                                        <Form.Control as="textarea" rows={2} placeholder="Optional: Describe this piece of evidence..." value={evidenceDescription} onChange={(e) => setEvidenceDescription(e.target.value)} />
-                                    </Form.Group>
-
-                                    <Button variant='success' onClick={handleAddEvidence} className="w-100 mb-3">Add Evidence</Button>
-                                </div>
+                                    </>
+                                ) : (
+                                    <Alert variant="info">Evidence management is restricted.</Alert>
+                                )}
+                                        
                                 </Card.Body>
                                 
                                 {evidenceList.length > 0 ? (
                                     <ListGroup variant="flush">
-                                        <ListGroupItem><b>Existing Evidence:</b></ListGroupItem>
+                                        <ListGroupItem><b>Existing Evidences:</b></ListGroupItem>
                                         {evidenceList.map(evidence => {
                                             let icon = <FaFileAlt className="me-2 text-muted"/>;
                                             let mainDisplay = evidence.file_name || evidence.id; // Default
@@ -403,16 +429,16 @@ function CampaignTaskInstanceDetail() {
 
                                             if (evidence.mime_type === 'text/url') {
                                                 icon = <FaLink className="me-2 text-primary"/>;
-                                                const linkText = evidence.description || evidence.file_name || evidence.file_path;
-                                                mainDisplay = <a href={evidence.file_path} target="_blank" rel="noopener noreferrer">{linkText}</a>;
+                                                const linkText = evidence.description || evidence.fileName || evidence.filePath;
+                                                mainDisplay = <a href={evidence.filePath} target="_blank" rel="noopener noreferrer">{linkText}</a>;
                                                 showSeparateDescription = !evidence.description; // Only show separate if description wasn't used as link text
-                                            } else if (evidence.mime_type === 'text/plain') {
+                                            } else if (evidence.mimeType === 'text/plain') {
                                                 icon = <FaAlignLeft className="me-2 text-info"/>; 
                                                 mainDisplay = <span style={{ whiteSpace: 'pre-wrap' }}>{evidence.description || 'No text content'}</span>;
                                                 showSeparateDescription = false; 
-                                            } else if (evidence.file_path) { // Assumed to be a file
+                                            } else if (evidence.filePath) { // Assumed to be a file
                                                 // Icon remains default FaFileAlt or could be more specific based on actual mime_type
-                                                mainDisplay = <a href={`http://localhost:8080/${evidence.file_path}`} target="_blank" rel="noopener noreferrer">{evidence.file_name || evidence.id}</a>;
+                                                mainDisplay = <a href={`http://localhost:8080/${evidence.filePath}`} target="_blank" rel="noopener noreferrer">{evidence.fileName || evidence.id}</a>;
                                             }
 
                                             return (
@@ -425,7 +451,7 @@ function CampaignTaskInstanceDetail() {
                                             );
                                         })}
                                     </ListGroup>
-                                ) : <p className="text-muted">No evidence uploaded yet.</p>}
+                                ) : <p className="m-3 alert alert-info text-muted">No evidence uploaded yet.</p>}
                             </Card>
                         </Tab>
                         <Tab eventKey="execution" title={<><FaPlayCircle className="me-1" />Execution</>}>
@@ -433,13 +459,17 @@ function CampaignTaskInstanceDetail() {
                                 {executionError && <Alert variant="danger" onClose={() => setExecutionError('')} dismissible>{executionError}</Alert>}
                                 {executionSuccess && <Alert variant="success" onClose={() => setExecutionSuccess('')} dismissible>{executionSuccess}</Alert>}
                                 
-                                {taskInstance.check_type ? (
+                                {canManageEvidenceAndExecution && taskInstance.check_type ? (
                                     <>
                                         <p>This task instance is configured for automated execution.</p>
                                         <Button onClick={handleExecuteInstance} disabled={loadingResults}>
                                             {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1"/> Executing...</> : <><FaPlayCircle className="me-1"/>Execute Task</>}
                                         </Button>
                                     </>
+                                ) : !canManageEvidenceAndExecution ? (
+                                    <Alert variant="info">Task execution is restricted.</Alert>
+                                ) : !taskInstance.check_type ? (
+                                    <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
                                 ) : (
                                     <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
                                 )}
@@ -455,7 +485,7 @@ function CampaignTaskInstanceDetail() {
                                         {executionResults.map(res => (
                                             <ListGroup.Item key={res.id}>
                                                 <small><strong>Timestamp:</strong> {new Date(res.timestamp).toLocaleString()}</small><br/>
-                                                <small><strong>Status:</strong> <Badge bg={res.status === 'Success' ? 'success' : 'danger'}>{res.status}</Badge></small><br/>
+                                            <small><strong>Status:</strong> <Badge bg={getStatusColorUtil(res.status)}>{res.status}</Badge></small><br/>
                                                 <small><strong>Output:</strong></small>
                                                 <pre className="bg-dark text-light p-2 rounded mt-1" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em'}}>{res.output}</pre>
                                             </ListGroup.Item>
@@ -492,6 +522,7 @@ function CampaignTaskInstanceDetail() {
                 </Col>
             </Row>
         </div>
+        
     );
 }
 

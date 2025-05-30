@@ -172,27 +172,38 @@ function Standards() {
                 <Tab eventKey="existing" title={<><FaListUl className="me-1"/>Existing Standards</>}>
                     {/* <h3 className="mb-3">Existing Standards</h3> */}
                     {standards.length === 0 && <Alert variant="info">No standards found.</Alert>}
-                    <ListGroup variant="flush">
+                    <div >
                         {standards.map(std => (
-                            <ListGroup.Item key={std.id} className=" p-3">
-                                <Row className="align-items-start">
-                                    <Col xs="auto" className="pe-2 pt-1">
+<Card key={std.id} className="mb-3 shadow-sm">
+                                <Card.Header>
+                                    <div className="d-flex w-100 justify-content-between">
                                         <FaShieldAlt size="1.5em" className="text-info"/>
-                                    </Col>
+                                        <div className="d-flex ms-2 w-100 justify-content-between">
+                                               <h5 className="mb-1">{std.name} ({std.shortName})</h5>
+                                            <small className="text-muted">ID: {std.id}</small>
+                                            </div>
+                                        </div>
+                                </Card.Header>
+                                <Card.Body className=''>
+                                <Row className="align-items-start">
+                                    {/* <Col xs="auto" className="pe-2 pt-1">
+                                        <FaShieldAlt size="1.5em" className="text-info"/>
+                                    </Col> */}
                                     <Col >
-                                        <div className="d-flex w-100 justify-content-between">
+                                        {/* <div className="d-flex w-100 justify-content-between">
                                             <h5 className="mb-1">{std.name} ({std.shortName})</h5>
                                             <small className="text-muted">ID: {std.id}</small>
-                                        </div>
+                                        </div> */}
                                         <p className="mb-1">{std.description || "No description provided."}</p>
                                     </Col>
                                     <Col xs="auto" className="d-flex align-items-center">
                                         <Button variant="outline-warning" size="sm" onClick={() => handleEditStandard(std)} title="Edit Standard"><FaEdit/></Button>
                                     </Col>
                                 </Row>
-                            </ListGroup.Item>
+                                </Card.Body>                                
+                            </Card>
                         ))}
-                    </ListGroup>
+                    </div>
                 </Tab>
             </Tabs>
 

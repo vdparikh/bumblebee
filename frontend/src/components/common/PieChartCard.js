@@ -17,7 +17,7 @@ const PieChartCard = ({ title, chartRef, chartData, onClickHandler, options, sty
 
     return (
         <Card>
-            <Card.Header>{title}</Card.Header>
+            <Card.Header  as="h5">{title}</Card.Header>
             <Card.Body style={style || { maxHeight: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 {chartData && chartData.labels && chartData.labels.length > 0 ? (
                     <Pie ref={chartRef} data={chartData} options={mergedOptions} onClick={onClickHandler} />

@@ -64,6 +64,7 @@ import UserDisplay from './common/UserDisplay'; // Import reusable component
 import PieChartCard from './common/PieChartCard';
 import BarChartCard from './common/BarChartCard';
 import KeyMetricsCard from './common/KeyMetricsCard';
+import { useAuth } from '../contexts/AuthContext'; // Import useAuth
 import { getStatusColor } from '../utils/displayUtils'; // Import utility
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
@@ -72,6 +73,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 function CampaignDetail() {
     const { campaignId } = useParams();
     const navigate = useNavigate();
+    const { currentUser } = useAuth(); // Get current user for role-based access
     const [campaign, setCampaign] = useState(null);
     const [selectedRequirements, setSelectedRequirements] = useState([]);
     const [taskInstances, setTaskInstances] = useState([]);
@@ -99,6 +101,11 @@ function CampaignDetail() {
     const [activeCategoryFilter, setActiveCategoryFilter] = useState(null); // From chart
     const [filteredTaskInstances, setFilteredTaskInstances] = useState([]);
 
+    // Determine if the current user can edit campaign details
+    const canEditCampaign = useMemo(() => {
+        if (!currentUser) return false;
+        return currentUser.role === 'admin' || currentUser.role === 'auditor';
+    }, [currentUser]);
 
     const fetchCampaignData = useCallback(async () => {
         if (!campaignId) return;
@@ -389,22 +396,28 @@ function CampaignDetail() {
                 title={`Campaign: ${campaign.name}`}
                 actions={
                     <>
-                        <Dropdown className="d-inline me-2">
-                            <Dropdown.Toggle variant={getStatusColor(campaign.status)} id="dropdown-campaign-status" size="sm">
-                                {campaign.status}
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu>
-                                <Dropdown.Item onClick={() => handleCampaignStatusChange('Draft')} active={campaign.status === 'Draft'}>Draft</Dropdown.Item>
-                                <Dropdown.Item onClick={() => handleCampaignStatusChange('Active')} active={campaign.status === 'Active'}>Active</Dropdown.Item>
-                                <Dropdown.Item onClick={() => handleCampaignStatusChange('In Progress')} active={campaign.status === 'In Progress'}>In Progress</Dropdown.Item>
-                                <Dropdown.Item onClick={() => handleCampaignStatusChange('Pending Review')} active={campaign.status === 'Pending Review'}>Pending Review</Dropdown.Item>
-                                <Dropdown.Item onClick={() => handleCampaignStatusChange('Completed')} active={campaign.status === 'Completed'}>Completed</Dropdown.Item>
-                                <Dropdown.Item onClick={() => handleCampaignStatusChange('Archived')} active={campaign.status === 'Archived'}>Archived</Dropdown.Item>
-                            </Dropdown.Menu>
-                        </Dropdown>
-                        <Button variant="outline-danger" size="sm" onClick={() => setShowDeleteConfirmModal(true)} title="Delete Campaign" className="ms-1">
-                            <FaTrashAlt />
-                        </Button>
+                        {canEditCampaign ? (
+                            <>
+                                <Dropdown className="d-inline me-2">
+                                    <Dropdown.Toggle variant={getStatusColor(campaign.status)} id="dropdown-campaign-status" size="sm">
+                                        {campaign.status}
+                                    </Dropdown.Toggle>
+                                    <Dropdown.Menu>
+                                        <Dropdown.Item onClick={() => handleCampaignStatusChange('Draft')} active={campaign.status === 'Draft'} disabled={!canEditCampaign}>Draft</Dropdown.Item>
+                                        <Dropdown.Item onClick={() => handleCampaignStatusChange('Active')} active={campaign.status === 'Active'} disabled={!canEditCampaign}>Active</Dropdown.Item>
+                                        <Dropdown.Item onClick={() => handleCampaignStatusChange('In Progress')} active={campaign.status === 'In Progress'} disabled={!canEditCampaign}>In Progress</Dropdown.Item>
+                                        <Dropdown.Item onClick={() => handleCampaignStatusChange('Pending Review')} active={campaign.status === 'Pending Review'} disabled={!canEditCampaign}>Pending Review</Dropdown.Item>
+                                        <Dropdown.Item onClick={() => handleCampaignStatusChange('Completed')} active={campaign.status === 'Completed'} disabled={!canEditCampaign}>Completed</Dropdown.Item>
+                                        <Dropdown.Item onClick={() => handleCampaignStatusChange('Archived')} active={campaign.status === 'Archived'} disabled={!canEditCampaign}>Archived</Dropdown.Item>
+                                    </Dropdown.Menu>
+                                </Dropdown>
+                                <Button variant="outline-danger" size="sm" onClick={() => setShowDeleteConfirmModal(true)} title="Delete Campaign" className="ms-1">
+                                    <FaTrashAlt />
+                                </Button>
+                            </>
+                        ) : (
+                            <Badge bg={getStatusColor(campaign.status)} className="p-2 fs-6">{campaign.status}</Badge>
+                        )}
                     </>
                 }
             />
@@ -414,9 +427,11 @@ function CampaignDetail() {
                 <Card.Body>
                     <div className="d-flex justify-content-between align-items-center mb-2">
                         <Card.Title className="mb-0">Campaign Details</Card.Title>
-                        <Button variant="outline-secondary" size="sm" onClick={handleOpenRequirementsModal} disabled={campaign.status !== 'Draft'}>
-                            <FaEdit className="me-1" /> Edit Requirements Scope
-                        </Button>
+                        {canEditCampaign && (
+                            <Button variant="outline-secondary" size="sm" onClick={handleOpenRequirementsModal} disabled={campaign.status !== 'Draft'}>
+                                <FaEdit className="me-1" /> Edit Requirements Scope
+                            </Button>
+                        )}
                     </div>
                     <p><strong>Description:</strong> {campaign.description || 'N/A'}</p>
                     <p><strong>Standard:</strong> {campaign.standard_name || 'N/A'}</p>
@@ -505,7 +520,7 @@ function CampaignDetail() {
                                 >
                                     <div>
                                         <strong>{req.control_id_reference}</strong>
-                                        <small className="d-block text-muted">{req.requirement_text?.substring(0, 70)}...</small>
+                                        <small className="d-block">{req.requirement_text?.substring(0, 70)}...</small>
                                     </div>
                                     <Badge bg={req.is_applicable ? "success" : "secondary"} pill>
                                         {req.is_applicable ? "Applicable" : "N/A"}
@@ -532,8 +547,10 @@ function CampaignDetail() {
                                                         <FaEllipsisV size="1.2em" />
                                                     </Dropdown.Toggle>
                                                     <Dropdown.Menu align="end">
-                                                        <Dropdown.Item as={Link} to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }} className="small">View Details</Dropdown.Item>
-                                                        <Dropdown.Item onClick={() => handleOpenAssignModal(task)} className="small">Assign Users & Due Date</Dropdown.Item>
+                                                        <Dropdown.Item as={Link} to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }} className="small">View/Edit Task Details</Dropdown.Item>
+                                                        {canEditCampaign && (
+                                                            <Dropdown.Item onClick={() => handleOpenAssignModal(task)} className="small">Assign Users & Due Date</Dropdown.Item>
+                                                        )}
                                                     </Dropdown.Menu>
                                                 </Dropdown>
                                             </div>
@@ -592,7 +609,7 @@ function CampaignDetail() {
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowAssignModal(false)}>Cancel</Button>
-                    <Button variant="primary" onClick={handleAssignTask}>Save Assignments</Button>
+                    <Button variant="primary" onClick={handleAssignTask} disabled={!canEditCampaign}>Save Assignments</Button>
                 </Modal.Footer>
             </Modal>
 
@@ -603,7 +620,7 @@ function CampaignDetail() {
                 body={<>Are you sure you want to delete the campaign "<strong>{campaign?.name}</strong>"? This action cannot be undone and will also delete all associated task instances.</>}
                 onConfirm={handleDeleteCampaign}
                 onCancel={() => setShowDeleteConfirmModal(false)}
-                confirmButtonText="Delete Campaign"
+                confirmButtonText={canEditCampaign ? "Delete Campaign" : "Cannot Delete"}
                 confirmVariant="danger"
             />
 
@@ -644,7 +661,7 @@ function CampaignDetail() {
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowRequirementsModal(false)}>Cancel</Button>
-                    <Button variant="primary" onClick={handleSaveRequirementsUpdate}>Save Changes</Button>
+                    <Button variant="primary" onClick={handleSaveRequirementsUpdate} disabled={!canEditCampaign}>Save Changes</Button>
                 </Modal.Footer>
             </Modal>
         </Container>

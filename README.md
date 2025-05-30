@@ -284,6 +284,20 @@ ADD CONSTRAINT fk_campaign_task_instance_evidence
     REFERENCES campaign_task_instances (id)
     ON DELETE CASCADE; -- Or ON DELETE SET NULL, depending on desired behavior
 
+
+
+-- Assuming your users table already exists.
+-- If not, you'll need a CREATE TABLE statement.
+
+-- Add a 'role' column to store user personas
+ALTER TABLE users
+ADD COLUMN role VARCHAR(50) NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'auditor', 'user'));
+
+-- Add a 'hashed_password' column to store securely hashed passwords
+ALTER TABLE users
+ADD COLUMN hashed_password VARCHAR(255) NOT NULL DEFAULT '';
+
+
 ```
 
 
@@ -298,3 +312,15 @@ TODO
 
 docker cp sample_data.sql mypostgres:/tmp/sample_data.sql
 docker exec -it mypostgres psql -U postgres -d compliance -f /tmp/sample_data.sql
+
+
+-- Example: If you need to create the table from scratch (adjust columns as needed)
+-- CREATE TABLE IF NOT EXISTS users (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     name VARCHAR(255) NOT NULL,
+--     email VARCHAR(255) UNIQUE NOT NULL,
+--     role VARCHAR(50) NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'auditor', 'user')),
+--     hashed_password VARCHAR(255) NOT NULL,
+--     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+-- );

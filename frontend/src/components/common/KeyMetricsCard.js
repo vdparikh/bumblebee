@@ -4,7 +4,7 @@ import Card from 'react-bootstrap/Card';
 const KeyMetricsCard = ({ title, metrics = [] }) => {
     return (
         <Card className="text-center h-100">
-            <Card.Header>{title}</Card.Header>
+            <Card.Header  as="h5">{title}</Card.Header>
             <Card.Body className="d-flex flex-column justify-content-around">
                 {metrics.map((metric, index) => (
                     <div key={index} className={index < metrics.length -1 ? "mb-3" : ""}>

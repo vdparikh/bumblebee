@@ -234,30 +234,44 @@ function Requirements() {
                     </Row>
 
                     {filteredRequirements.length === 0 && <Alert variant="info">{selectedStandardIdForFilter ? 'No requirements found for the selected standard.' : 'No requirements found.'}</Alert>}
-                    <ListGroup variant="flush">
+                    <div variant="flush">
                         {filteredRequirements.map(req => (
-                            <ListGroup.Item key={req.id} className=" p-3">
-                                <Row className="align-items-start">
-                                    <Col xs="auto" className="pe-2 pt-1">
-                                        <FaBookOpen size="1.5em" className="text-secondary"/>
-                                    </Col>
-                                    <Col >
-                                        <div className="d-flex w-100 justify-content-between">
+                            <Card key={req.id} className="mb-3 shadow-sm">
+                                <Card.Header>
+                                    <div className="d-flex w-100 justify-content-between">
+                                        <FaBookOpen size="1.5em" className="text-secondary "/>
+                                        <div className="d-flex ms-2 w-100 justify-content-between">
                                             <h5 className="mb-1">{req.controlIdReference}</h5>
                                             <small className="text-muted">ID: {req.id}</small>
+                                            </div>
                                         </div>
+                                </Card.Header>
+                                <Card.Body className=''>
+                                <Row className="align-items-start">
+                                    {/* <Col xs="auto" className="pe-2 pt-1">
+                                        <FaBookOpen size="1.5em" className="text-secondary"/>
+                                    </Col> */}
+                                    <Col >
+                                        {/* <div className="d-flex w-100 justify-content-between">
+                                            <h5 className="mb-1">{req.controlIdReference}</h5>
+                                            <small className="text-muted">ID: {req.id}</small>
+                                        </div> */}
                                         <p className="mb-1">{req.requirementText}</p>
-                                        <small className="text-muted">
-                                            Standard: {getStandardNameById(req.standardId)}
-                                        </small>
+                                       
                                     </Col>
                                     <Col xs="auto" className="d-flex align-items-center">
                                         <Button variant="outline-warning" size="sm" onClick={() => handleEditRequirement(req)} title="Edit Requirement"><FaEdit/></Button>
                                     </Col>
                                 </Row>
-                            </ListGroup.Item>
+                                </Card.Body>
+                                <Card.Footer className='border-none border-top-0'>
+                                     <small className="text-muted">
+                                            Standard: {getStandardNameById(req.standardId)}
+                                        </small>
+                                </Card.Footer>
+                            </Card>
                         ))}
-                    </ListGroup>
+                    </div>
                 </Tab>
             </Tabs>
 

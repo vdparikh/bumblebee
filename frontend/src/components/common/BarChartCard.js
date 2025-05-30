@@ -17,7 +17,7 @@ const BarChartCard = ({ title, chartRef, chartData, onClickHandler, options, sty
 
     return (
         <Card>
-            <Card.Header>Bar {title}</Card.Header>
+            <Card.Header as="h5">{title}</Card.Header>
             <Card.Body style={style || { maxHeight: '300px' }}>
                  {chartData && chartData.labels && chartData.labels.length > 0 ? (
                     <Bar ref={chartRef} data={chartData} options={mergedOptions} onClick={onClickHandler} />

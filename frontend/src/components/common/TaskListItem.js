@@ -27,14 +27,24 @@ const TaskListItem = ({
 
     return (
         <ListGroup.Item action as={linkTo ? Link : 'div'} to={linkTo} state={linkState} className={className}>
+            <Row>
+                <Col>
+                 <h6 className="m-0 p-0 mb-1">
+                        <div className='d-flex w-100 justify-content-between'>
+{linkTo ? <Link to={linkTo} state={linkState} className="text-decoration-none text-dark">{task.title}</Link> : task.title}
+                        <Badge bg={getStatusColor(task.status)}>{task.status}</Badge>
+
+                        </div>
+                        
+                    </h6>
+                    </Col>
+            </Row>
             <Row className="align-items-center">
                 <Col xs="auto" className="pe-2 d-flex align-items-center">
                     <StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1.8em" />
                 </Col>
                 <Col>
-                    <h6 className="m-0 p-0 mb-1">
-                        {linkTo ? <Link to={linkTo} state={linkState} className="text-decoration-none text-dark">{task.title}</Link> : task.title}
-                    </h6>
+                   
                     <p className="mb-1 text-muted small">
                         {showOwnerInfo && <><FaUserShield className="me-1" />Owner: <UserDisplay userId={task.owner_user_id} userName={task.owner_user_name} allUsers={allUsers} /> <span className="mx-2">|</span></>}
                         {showAssigneeInfo && <><FaUserCheck className="me-1" />Assignee: <UserDisplay userId={task.assignee_user_id} userName={task.assignee_user_name} allUsers={allUsers} /> <span className="mx-2">|</span></>}
@@ -52,9 +62,7 @@ const TaskListItem = ({
                     </div>
                 </Col>
                 <Col xs="auto" className="text-end">
-                    <div className="mb-1">
-                        <Badge bg={getStatusColor(task.status)}>{task.status}</Badge>
-                    </div>
+                   
                     {actionMenu ? actionMenu : (linkTo && <FaExternalLinkAlt size="1em" className="text-muted mt-1" title="View Details" />)}
                 </Col>
             </Row>

@@ -11,6 +11,7 @@ import Spinner from 'react-bootstrap/Spinner';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
+import { useAuth } from '../contexts/AuthContext';
 
 import {
     FaTasks,
@@ -39,6 +40,10 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 function MyTasks() {
     defaults.font.family = 'Lato';
 
+    const { currentUser } = useAuth();
+    const loggedInUserId = currentUser?.id; // Use actual user ID
+
+
     const [myTasks, setMyTasks] = useState([]);
     const [users, setUsers] = useState([]);
     const [filteredTasks, setFilteredTasks] = useState([]);
@@ -53,7 +58,7 @@ function MyTasks() {
     const [error, setError] = useState('');
     const [viewMode, setViewMode] = useState('list');
 
-    const loggedInUserId = "36a95829-f890-43dc-aff3-289c50ce83c2";
+    // const loggedInUserId = "36a95829-f890-43dc-aff3-289c50ce83c2";
     const statusChartRef = useRef(null);
     const categoryChartRef = useRef(null);
 
@@ -332,15 +337,18 @@ function MyTasks() {
                 </Row>
             )}
 
-            <Row className="mb-3 gx-2">
+            <Row className="mb-4 gx-2">
                 <Col md={12}>
-                    <Form.Control
+
+                    <div className='bg-white rounded-2 p-3'>
+                        <Form.Control
                         type="search"
                         placeholder="Search tasks by title, campaign..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="h-100"
+                        className="h-100 border-0"
                     />
+                    </div>
                 </Col>
             </Row>
 

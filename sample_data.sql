@@ -26,8 +26,8 @@ INSERT INTO tasks (requirement_id, title, description, category, owner_user_id, 
     'Implement Asset Inventory System', -- title
     'Deploy and configure a centralized asset inventory system to track all enterprise hardware and software assets.', -- description
     'Asset Management', -- category
-    'c8aae66e-976f-4c12-a62f-f590d4a741de', -- owner_user_id
-    'c8aae66e-976f-4c12-a62f-f590d4a741de', -- assignee_user_id
+    '4b89e39d-eec8-4e52-b933-dd17508fb980', -- owner_user_id
+    '4b89e39d-eec8-4e52-b933-dd17508fb980', -- assignee_user_id
     'Open', -- status
     '2024-08-31', -- due_date
     NOW(), -- created_at
@@ -41,8 +41,8 @@ INSERT INTO tasks (requirement_id, title, description, category, owner_user_id, 
     'Develop Server Hardening Guidelines', -- title
     'Create and document server hardening guidelines based on CIS benchmarks for Windows and Linux servers.', -- description
     'Configuration Management', -- category
-    'c8aae66e-976f-4c12-a62f-f590d4a741de', -- owner_user_id
-    'c8aae66e-976f-4c12-a62f-f590d4a741de', -- assignee_user_id
+    '4b89e39d-eec8-4e52-b933-dd17508fb980', -- owner_user_id
+    '4b89e39d-eec8-4e52-b933-dd17508fb980', -- assignee_user_id
     'In Progress', -- status
     '2024-07-15', -- due_date
     NOW(), -- created_at
@@ -56,8 +56,8 @@ INSERT INTO tasks (requirement_id, title, description, category, owner_user_id, 
     'Review Data Encryption Policies', -- title
     'Review and update policies for encryption of personal data at rest and in transit. Ensure all PII databases are encrypted.', -- description
     'Data Security', -- category
-    'c8aae66e-976f-4c12-a62f-f590d4a741de', -- owner_user_id
-    'c8aae66e-976f-4c12-a62f-f590d4a741de', -- assignee_user_id
+    '4b89e39d-eec8-4e52-b933-dd17508fb980', -- owner_user_id
+    '4b89e39d-eec8-4e52-b933-dd17508fb980', -- assignee_user_id
     'Pending Review', -- status
     '2024-06-30', -- due_date
     NOW(), -- created_at
@@ -71,8 +71,8 @@ INSERT INTO tasks (requirement_id, title, description, category, owner_user_id, 
     'Automated Vulnerability Scan of PII Systems', -- title
     'Perform a weekly automated vulnerability scan on all systems processing PII.', -- description
     'Vulnerability Management', -- category
-    'c8aae66e-976f-4c12-a62f-f590d4a741de', -- owner_user_id
-    'c8aae66e-976f-4c12-a62f-f590d4a741de', -- assignee_user_id
+    '4b89e39d-eec8-4e52-b933-dd17508fb980', -- owner_user_id
+    '4b89e39d-eec8-4e52-b933-dd17508fb980', -- assignee_user_id
     'Open', -- status
     '2024-09-15', -- due_date
     NOW(), -- created_at

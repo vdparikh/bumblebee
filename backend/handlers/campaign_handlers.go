@@ -11,6 +11,7 @@ import (
 	// "time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vdparikh/compliance-automation/backend/auth" // Import for auth claims
 	"github.com/vdparikh/compliance-automation/backend/models"
 	"github.com/vdparikh/compliance-automation/backend/store"
 )
@@ -376,8 +377,19 @@ func (h *CampaignHandler) GetCampaignTaskInstanceCommentsHandler(c *gin.Context)
 
 func (h *CampaignHandler) UploadCampaignTaskInstanceEvidenceHandler(c *gin.Context) {
 	instanceID := c.Param("id")
-	// In a real app, get UserID from authenticated session/token
-	uploaderUserID := "36a95829-f890-43dc-aff3-289c50ce83c2" // Placeholder
+
+	// Get uploaderUserID from authenticated user claims
+	claimsValue, exists := c.Get(string(auth.ContextKeyClaims))
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	claims, ok := claimsValue.(*auth.Claims)
+	if !ok || claims == nil || claims.UserID == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error processing user authentication claims"})
+		return
+	}
+	uploaderUserID := claims.UserID
 
 	evidence := models.Evidence{
 		CampaignTaskInstanceID: &instanceID,

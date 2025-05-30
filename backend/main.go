@@ -2,12 +2,16 @@ package main
 
 import (
 	"log"
-	"os" // For environment variables
+	"net/http"      // For http.Dir
+	"os"            // For environment variables
+	"path/filepath" // For clean paths
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/vdparikh/compliance-automation/backend/handlers" // Adjust import path
-	"github.com/vdparikh/compliance-automation/backend/store"    // Adjust import path
+	"github.com/vdparikh/compliance-automation/backend/handlers"   // Adjust import path// Adjust path
+	"github.com/vdparikh/compliance-automation/backend/middleware" // Adjust path
+	"github.com/vdparikh/compliance-automation/backend/store"      // Adjust import path
+	// Adjust path
 )
 
 func main() {
@@ -52,9 +56,34 @@ func main() {
 	standardHandler := handlers.NewStandardHandler(dbStore)
 	userHandler := handlers.NewUserHandler(dbStore)
 	campaignHandler := handlers.NewCampaignHandler(dbStore) // New Campaign Handler
+	authAPI := handlers.NewAuthAPI(dbStore)
 
-	api := router.Group("/api")
+	apiV1 := router.Group("/api")
+
+	// Authentication routes (public)
+	authRoutes := apiV1.Group("/auth")
 	{
+		authRoutes.POST("/login", authAPI.Login)
+		authRoutes.POST("/register", authAPI.Register) // Add register route
+
+	}
+
+	// Authenticated routes
+	api := apiV1.Group("")               // Group for routes requiring authentication
+	api.Use(middleware.AuthMiddleware()) // Apply AuthMiddleware to this group
+	{
+		api.GET("/auth/me", authAPI.GetCurrentUser)
+
+		// Example of a route requiring 'admin' or 'auditor' role
+		// managementRoutes := authedAPI.Group("/management") // Example group
+		// managementRoutes.Use(middleware.RoleAuthMiddleware([]string{"admin", "auditor"}))
+		// {
+		// managementRoutes.POST("/campaigns", campaignAPI.CreateCampaign) // Example
+		// }
+
+		// Example of a route accessible by any authenticated user
+		// authedAPI.GET("/campaigns", campaignAPI.GetCampaigns)
+
 		api.POST("/tasks", taskHandler.CreateTaskHandler) // Was CreateCheckDefinitionHandler
 		api.GET("/tasks", taskHandler.GetTasksHandler)    // Was GetCheckDefinitionsHandler
 		api.GET("/tasks/:id", taskHandler.GetTaskHandler)
@@ -95,6 +124,16 @@ func main() {
 		api.POST("/campaign-task-instances/:id/execute", campaignHandler.ExecuteCampaignTaskInstanceHandler)
 		api.GET("/campaign-task-instances/:id/results", campaignHandler.GetCampaignTaskInstanceResultsHandler)
 	}
+
+	// Serve static files from the "uploads" directory
+	// This makes files under ./uploads/ accessible via /uploads/
+	// For example, ./uploads/campaign_tasks/some_id/file.jpg will be at /uploads/campaign_tasks/some_id/file.jpg
+	uploadsDir := "./uploads"
+	absUploadsDir, err := filepath.Abs(uploadsDir)
+	if err != nil {
+		log.Fatalf("Could not get absolute path for uploads directory: %v", err)
+	}
+	router.StaticFS("/uploads", http.Dir(absUploadsDir))
 
 	log.Println("Starting server on :8080...")
 	if err = router.Run(":8080"); err != nil {

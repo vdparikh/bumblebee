@@ -6,10 +6,10 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #E5E9F8; /* A light grey background for the whole page */
+  background-color: #F2F5F9; /* Your original light theme background */
   font-size: 0.9em;
   font-weight: 400;
-  color: #444;
+  color: var(--bs-body-color); /* Use Bootstrap variable for body text color */
 }
 
 form, select, input, .form-control, .form-select {
@@ -33,17 +33,17 @@ code {
   --custom-theme-color: #EC5100;
   --custom-header-font: 'Ancizar Sans', sans-serif;
   --custom-body-font: 'Lato', sans-serif;
-  --bs-primary: #616FC6!important;
+  --bs-primary: #4D51A1; /* Define your primary color. Avoid !important here if Bootstrap uses it. */
   
 }
-
+/* If you want --bs-primary to be different in dark mode, you'd define it in [data-bs-theme="dark"] */
 .bg-info {
   background-color: #ff9610!important;
 }
 /* Apply custom fonts */
 h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   font-family: var(--custom-header-font);
-  color: #333; /* Darker color for headers */
+  color: var(--bs-heading-color); /* Use Bootstrap variable for heading colors */
 }
 
 h2 { 
@@ -55,13 +55,15 @@ h3 {
 }
 
 .card {
-  border: 1px solid #E5E9F8!important;
-  box-shadow: none!important;
+  border: 1px solid var(--bs-border-color-translucent); /* Use Bootstrap variable */
+  box-shadow: none; /* If you want no shadow, otherwise use Bootstrap shadow variables */
+}
+
+.tab-content {
 }
 
 .card .card-header {
-  background-color: #E5E9F8 !important;
-  /* color: #fff!important; */
+  background-color: var(--bs-tertiary-bg); /* Use Bootstrap variable */
   font-size: 1.1em;
   border: 0px;
 }
@@ -69,56 +71,100 @@ h3 {
 .navbar-brand, .nav-link { /* Targeting specific Bootstrap components */
   font-family: var(--custom-header-font);
   font-size: 1.1em;
-  font-weight: 200;
+  font-weight: 500;
 }
 
 a { 
-  color: var(--custom-primary) !important;
+  color: var(--bs-link-color); /* Use Bootstrap's link color variable */
+}
+a:hover {
+  color: var(--bs-link-hover-color);
 }
 
 .list-group-item.active {
-    background-color: #616FC6;
-    border-color: #616FC6;
+    background-color: var(--bs-primary); /* Use your defined --bs-primary */
+    border-color: var(--bs-primary);
 }
 
-.navbar-brand, .nav-link svg {
+.navbar-brand, .sidebar .nav-link svg {
   margin-right: 5px!important;
-  color: var(--custom-theme-color) !important;
+  color: rgba(255, 255, 255, 0.5) /* Or a specific color if desired, avoid !important */
 }
 
-.navbar-brand, .nav-pills .nav-link.active {
-  font-weight: 400;
-  background-color: #fff;
+.navbar-brand,  .sidebar .nav-link.active svg {
+  color: var(--bs-white); /* Or a specific color if desired, avoid !important */
+}
+
+.nav-pills .nav-link {
+  color: var(--bs-light) !important; /* Ensure icon color is light on dark sidebar */
+  border-radius: 0rem; /* Standard Bootstrap border-radius */
+  transition: background-color 0.15s ease-in-out;
+}
+
+.nav-pills .nav-link.active { /* Sidebar active link */
+  font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.2) !important; /* Lighter background for active icon */
+  color: var(--bs-white) !important; /* Ensure active icon is white */
+}
+
+.nav-pills .nav-link:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.1) !important; /* Subtle hover for non-active icons */
+    color: var(--bs-white) !important;
+}
+
+.tab-content {
+  padding: 10px 0px;
+}
+
+.sidebar { /* Sidebar itself */
+  background-color: var(--bs-primary);
+  color: var(--bs-light); /* Text color for items in the sidebar */
 }
 
 .nav-tabs .nav-link {
-  color: #000!important;
+  color: var(--bs-body-color); /* General text color for inactive tabs */
 }
 
 .nav-tabs .nav-link.active {
-  font-weight: 400!important;
+  font-weight: 600;
+  color: var(--bs-primary); /* Or your theme's active color */
+  border-color: var(--bs-gray-300) var(--bs-gray-300) var(--bs-white); /* Example from Bootstrap */
+}
+
+[data-bs-theme="dark"] .nav-tabs .nav-link.active {
+  color: var(--bs-primary); /* Ensure it stands out in dark mode */
+  border-color: var(--bs-gray-700) var(--bs-gray-700) var(--bs-body-bg);
 }
 
 .nav-line-tabs .nav-link {
   border: none;
   border-bottom: 2px solid transparent;
+  background-color: transparent!important;
   margin-bottom: -1px; /* Align with tab content border */
+  font-weight: 400;
+  color: var(--bs-secondary); /* Use Bootstrap nav link color */
 }
 .nav-line-tabs .nav-link.active {
   border-bottom-color: var(--bs-primary); /* Or your theme's active color */
-  color: var(--bs-primary);
+  color: var(--bs-primary) !important; /* Keep important if it's a very specific override for active state */
+  font-weight: 600 !important; /* Keep important for active state emphasis */
 }
-
 
 /* Example of using custom primary color for buttons */
 .btn-primary {
-  background-color: var(--custom-primary) !important; /* Important to override Bootstrap */
-  border-color: var(--custom-primary) !important;
+  /* If --custom-primary is different from --bs-primary, define it here.
+     Otherwise, Bootstrap's .btn-primary will use --bs-primary by default.
+     If you defined --bs-primary: #4D51A1; above, this is not strictly needed
+     unless --custom-primary is different.
+  */
+  /* background-color: var(--custom-primary); */
+  /* border-color: var(--custom-primary); */
 }
 
 .btn-primary:hover {
-  background-color: #004a80 !important; /* A slightly darker shade for hover */
-  border-color: #004a80 !important;
+  /* Let Bootstrap handle hover, or define specific hover for --custom-primary if used */
+  /* background-color: #004a80; */
+  /* border-color: #004a80; */
 }
 
 /* You can add more custom styles here */
@@ -127,4 +173,71 @@ a {
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Subtle shadow */
 }
 
+/* Specific dark theme overrides if needed */
+[data-bs-theme="dark"] {
+  body {
+    background-color: #1e1e1e; /* A dark gray for the dark theme background */
+    color: var(--bs-body-color); /* Ensure text color contrasts well */
+  }
 
+
+.topnav {
+  background-color: #000!important;
+}
+
+  /* Example: If your custom --bs-primary is too light for dark mode text */
+  /* .sidebar {
+    background-color: var(--bs-dark);
+  }
+  .nav-pills .nav-link {
+    color: var(--bs-gray-400);
+  }
+  .nav-pills .nav-link.active {
+    background-color: var(--bs-gray-700);
+    color: var(--bs-light);
+  } */
+}
+.sidebar .navbar-brand {
+  margin-right: 5px!important;
+  color: rgba(255, 255, 255, 0.5) /* Or a specific color if desired, avoid !important */
+}
+
+.sidebar .navbar-brand {
+  color: var(--bs-white); /* Or a specific color if desired, avoid !important */
+}
+
+
+.details-pane, .topnav {
+  background-color: #fff!important;
+}
+
+/* Page transition styles */
+.page-slide-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+.page-slide-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 350ms ease-out, transform 350ms ease-out;
+}
+.page-slide-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+.page-slide-exit-active {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 300ms ease-in, transform 300ms ease-in;
+}
+
+/* Styles for the new requirements panel in CampaignTaskInstanceDetail */
+.requirements-panel .list-group-item.active {
+  background-color: var(--bs-primary-bg-subtle); /* Bootstrap 5.3 variable */
+  color: var(--bs-primary-text-emphasis);
+  border-left: 3px solid var(--bs-primary);
+}
+
+[data-bs-theme="dark"] .requirements-panel .list-group-item.active {
+  background-color: var(--bs-dark-bg-subtle);
+}

@@ -19,6 +19,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Badge from 'react-bootstrap/Badge';
 import Modal from 'react-bootstrap/Modal'; // For selecting requirements/tasks
+import { useAuth } from '../contexts/AuthContext';
 
 import {
     FaBullhorn, // Campaign icon
@@ -31,6 +32,8 @@ import {
 } from 'react-icons/fa';
 
 function Campaigns() {
+   const { currentUser } = useAuth();
+
     const location = useLocation(); // For receiving navigation state
     const [campaigns, setCampaigns] = useState([]);
     const [error, setError] = useState('');

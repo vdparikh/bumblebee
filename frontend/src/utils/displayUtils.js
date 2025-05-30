@@ -1,14 +1,25 @@
 export const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-        case 'draft': return 'secondary';
-        case 'active': return 'success'; // Campaign status
-        case 'in progress': return 'info'; // Task/Campaign status
-        case 'pending review': return 'warning';
-        case 'completed': return 'primary'; // Campaign status
-        case 'archived': return 'dark'; // Campaign status
-        case 'closed': return 'success'; // Task status
-        case 'open': return 'dark'; // Task status (MyTasks uses dark, Tasks.js uses primary for icon)
-        case 'failed': return 'danger';
-        default: return 'light'; // A more neutral default
+    if (!status) return 'secondary';
+    const lowerStatus = status.toLowerCase();
+    switch (lowerStatus) {
+        case 'closed':
+        case 'active':
+        case 'completed':
+        case 'success': // Added for execution results
+            return 'success';
+        case 'open':
+            return 'primary';
+        case 'in progress':
+            return 'info';
+        case 'pending review':
+            return 'warning';
+        case 'failed': // For tasks and execution results
+        case 'error':
+            return 'danger';
+        case 'draft':
+        case 'archived':
+            return 'secondary';
+        default:
+            return 'secondary';
     }
 };

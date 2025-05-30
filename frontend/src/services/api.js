@@ -9,66 +9,104 @@ const apiClient = axios.create({
     },
 });
 
+const getToken = () => localStorage.getItem('authToken');
+
+// Add a request interceptor to include the token in all requests
+apiClient.interceptors.request.use(config => {
+    const token = getToken();
+    if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+}, error => {
+    return Promise.reject(error);
+});
+
+export const getCampaigns = async (status) => {
+    // The interceptor will add the Authorization header
+    let url = `/campaigns`;
+    if (status) {
+        url += `?status=${encodeURIComponent(status)}`;
+    }
+    // Using apiClient which now has the interceptor
+    const response = await apiClient.get(url);
+    return response; // Axios responses have data in response
+};
+
+
 // Get tasks, optionally filtered by userID and userField ("owner" or "assignee")
-export const getTasks = (userId, userField) => {
+export const getTasks = async (userId, userField) => {
     let url = '/tasks';
     if (userId && userField) {
         url += `?userId=${userId}&userField=${userField}`;
     }
-    return apiClient.get(url);
+    const response = await apiClient.get(url);
+    return response;
 };
-export const getTaskById = (taskId) => {
-    return apiClient.get(`/tasks/${taskId}`);
+export const getTaskById = async (taskId) => {
+    const response = await apiClient.get(`/tasks/${taskId}`);
+    return response;
 };
 
     // Renamed from createCheckDefinition, payload is now a Task
-    export const createTask = (taskData) => {
-        return apiClient.post('/tasks', taskData);
+    export const createTask = async (taskData) => {
+        const response = await apiClient.post('/tasks', taskData);
+        return response;
 };
 
     // Will operate on a Task ID
-    export const executeTask = (taskId) => {
-        return apiClient.post(`/tasks/${taskId}/execute`);
+    export const executeTask = async (taskId) => {
+        const response = await apiClient.post(`/tasks/${taskId}/execute`);
+        return response;
 };
 
     // Will get results for a Task ID
-    export const getTaskResults = (taskId) => {
-        return apiClient.get(`/tasks/${taskId}/results`);
+    export const getTaskResults = async (taskId) => {
+        const response = await apiClient.get(`/tasks/${taskId}/results`);
+        return response;
 };
 
 // --- Requirement API calls ---
-export const getRequirements = () => {
-    return apiClient.get('/requirements');
+export const getRequirements = async () => {
+    const response = await apiClient.get('/requirements');
+    return response;
 };
 
-export const getRequirementById = (id) => {
-    return apiClient.get(`/requirements/${id}`);
+export const getRequirementById = async (id) => {
+    const response = await apiClient.get(`/requirements/${id}`);
+    return response;
 };
 
-export const createRequirement = (requirementData) => {
-    return apiClient.post('/requirements', requirementData);
+export const createRequirement = async (requirementData) => {
+    const response = await apiClient.post('/requirements', requirementData);
+    return response;
 };
 
-export const updateRequirement = (requirementId, requirementData) => {
-    return apiClient.put(`/requirements/${requirementId}`, requirementData);
+export const updateRequirement = async (requirementId, requirementData) => {
+    const response = await apiClient.put(`/requirements/${requirementId}`, requirementData);
+    return response;
 };
 
 // --- ComplianceStandard API calls ---
-export const getComplianceStandards = () => {
-    return apiClient.get('/standards');
+export const getComplianceStandards = async () => {
+    const response = await apiClient.get('/standards');
+    return response;
 };
 
-export const createComplianceStandard = (standardData) => {
-    return apiClient.post('/standards', standardData);
+export const createComplianceStandard = async (standardData) => {
+    const response = await apiClient.post('/standards', standardData);
+    return response;
 };
 
-export const updateStandard = (standardId, standardData) => {
-    return apiClient.put(`/standards/${standardId}`, standardData);
+export const updateStandard = async (standardId, standardData) => {
+    const response = await apiClient.put(`/standards/${standardId}`, standardData);
+    return response;
 };
 
 // --- User API calls ---
-export const getUsers = () => {
-    return apiClient.get('/users');
+export const getUsers = async () => {
+    const response = await apiClient.get('/users');
+    return response;
 };
 
 
@@ -78,58 +116,68 @@ export const getUsers = () => {
 
 // --- Task Comments ---
 // For Master Tasks
-export const getCommentsByMasterTaskId = (masterTaskId) => {
-    return apiClient.get(`/tasks/${masterTaskId}/comments`);
+export const getCommentsByMasterTaskId = async (masterTaskId) => {
+    const response = await apiClient.get(`/tasks/${masterTaskId}/comments`);
+    return response;
 };
 
-export const addCommentToMasterTask = (masterTaskId, commentData) => {
+export const addCommentToMasterTask = async (masterTaskId, commentData) => {
     // commentData should be like { text: "...", userId: "..." }
-    return apiClient.post(`/tasks/${masterTaskId}/comments`, commentData);
+    const response = await apiClient.post(`/tasks/${masterTaskId}/comments`, commentData);
+    return response;
 };
 
 // For Campaign Task Instances
-export const getCommentsByCampaignTaskInstanceId = (instanceId) => {
-    return apiClient.get(`/campaign-task-instances/${instanceId}/comments`);
+export const getCommentsByCampaignTaskInstanceId = async (instanceId) => {
+    const response = await apiClient.get(`/campaign-task-instances/${instanceId}/comments`);
+    return response;
 };
 
-export const addCommentToCampaignTaskInstance = (instanceId, commentData) => {
-    return apiClient.post(`/campaign-task-instances/${instanceId}/comments`, commentData);
+export const addCommentToCampaignTaskInstance = async (instanceId, commentData) => {
+    const response = await apiClient.post(`/campaign-task-instances/${instanceId}/comments`, commentData);
+    return response;
 };
 
 
 
 // --- Task Evidence ---
-export const getEvidenceByTaskId = (taskId) => {
-    return apiClient.get(`/tasks/${taskId}/evidence`);
+export const getEvidenceByTaskId = async (taskId) => {
+    const response = await apiClient.get(`/tasks/${taskId}/evidence`);
+    return response;
 };
 
-export const uploadEvidenceToTask = (taskId, formData) => {
+export const uploadEvidenceToTask = async (taskId, formData) => {
     // formData is a FormData object, typically containing a file
-    return apiClient.post(`/tasks/${taskId}/evidence`, formData, {
+    const response = await apiClient.post(`/tasks/${taskId}/evidence`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
         },
     });
+    return response;
 };
 
 // For Campaign Task Instances
-export const getEvidenceByCampaignTaskInstanceId = (instanceId) => {
-    return apiClient.get(`/campaign-task-instances/${instanceId}/evidence`);
+export const getEvidenceByCampaignTaskInstanceId = async (instanceId) => {
+    const response = await apiClient.get(`/campaign-task-instances/${instanceId}/evidence`);
+    return response;
 };
-export const uploadEvidenceToCampaignTaskInstance = (instanceId, formData) => {
-    return apiClient.post(`/campaign-task-instances/${instanceId}/evidence`, formData, {
+export const uploadEvidenceToCampaignTaskInstance = async (instanceId, formData) => {
+    const response = await apiClient.post(`/campaign-task-instances/${instanceId}/evidence`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
     });
+    return response;
 };
 
 // For Campaign Task Instances - Text/Link Evidence
-export const addGenericEvidenceToCampaignTaskInstance = (instanceId, evidenceData) => {
+export const addGenericEvidenceToCampaignTaskInstance = async (instanceId, evidenceData) => {
     // evidenceData is a JSON object, e.g., { type: 'link', file_path: 'url', description: '...' } or { type: 'text', description: '...' }
-    return apiClient.post(`/campaign-task-instances/${instanceId}/evidence`, evidenceData);
+    const response = await apiClient.post(`/campaign-task-instances/${instanceId}/evidence`, evidenceData);
+    return response;
 };
 // --- Update Task (can be used for status or other fields) ---
-export const updateTask = (taskId, taskData) => {
-    return apiClient.put(`/tasks/${taskId}`, taskData);
+export const updateTask = async (taskId, taskData) => {
+    const response = await apiClient.put(`/tasks/${taskId}`, taskData);
+    return response;
 };
 
 // You might also want a more specific one if only status is updated from TaskDetail:
@@ -139,67 +187,72 @@ export const updateTask = (taskId, taskData) => {
 // };
 
 // --- Campaign API Calls ---
-export const getCampaigns = (campaignStatus) => {
-        let url = `/campaigns`;
 
-    if (campaignStatus) {
-        url += `?campaignStatus=${encodeURIComponent(campaignStatus)}`; // Ensure status is URL encoded
-    }
-    
-    return apiClient.get(url);
+export const getCampaignById = async (campaignId) => {
+    const response = await apiClient.get(`/campaigns/${campaignId}`);
+    return response;
 };
 
-export const getCampaignById = (campaignId) => {
-    return apiClient.get(`/campaigns/${campaignId}`);
-};
-
-export const createCampaign = (campaignData) => {
+export const createCampaign = async (campaignData) => {
     // campaignData includes name, description, standard_id, start_date, end_date, selected_requirements
-    return apiClient.post('/campaigns', campaignData);
+    const response = await apiClient.post('/campaigns', campaignData);
+    return response;
 };
 
-export const updateCampaign = (campaignId, campaignData) => {
-    return apiClient.put(`/campaigns/${campaignId}`, campaignData);
+export const updateCampaign = async (campaignId, campaignData) => {
+    const response = await apiClient.put(`/campaigns/${campaignId}`, campaignData);
+    return response;
 };
 
-export const deleteCampaign = (campaignId) => {
-    return apiClient.delete(`/campaigns/${campaignId}`);
+export const deleteCampaign = async (campaignId) => {
+    const response = await apiClient.delete(`/campaigns/${campaignId}`);
+    return response; // Or handle based on expected response (e.g., status code)
 };
 
-export const getCampaignSelectedRequirements = (campaignId) => {
-    return apiClient.get(`/campaigns/${campaignId}/requirements`);
+export const getCampaignSelectedRequirements = async (campaignId) => {
+    const response = await apiClient.get(`/campaigns/${campaignId}/requirements`);
+    return response;
 };
 
-export const getCampaignTaskInstances = (campaignId) => {
-    return apiClient.get(`/campaigns/${campaignId}/task-instances`);
+export const getCampaignTaskInstances = async (campaignId) => {
+    const response = await apiClient.get(`/campaigns/${campaignId}/task-instances`);
+    return response;
 };
 
 
 // --- Campaign Task Instance API Calls ---
-export const getCampaignTaskInstanceById = (instanceId) => {
-    return apiClient.get(`/campaign-task-instances/${instanceId}`);
+export const getCampaignTaskInstanceById = async (instanceId) => {
+    const response = await apiClient.get(`/campaign-task-instances/${instanceId}`);
+    return response;
 };
 
-export const updateCampaignTaskInstance = (campaignTaskInstanceId, taskInstanceData) => {
-    return apiClient.put(`/campaign-task-instances/${campaignTaskInstanceId}`, taskInstanceData);
+export const updateCampaignTaskInstance = async (campaignTaskInstanceId, taskInstanceData) => {
+    const response = await apiClient.put(`/campaign-task-instances/${campaignTaskInstanceId}`, taskInstanceData);
+    return response;
 };
 
 // --- User Specific Campaign Tasks ---
-export const getUserCampaignTasks = (userId, userField, campaignStatus) => {
+export const getUserCampaignTasks = async (userId, userField, campaignStatus) => {
     // userField should be "owner" or "assignee"
     if (!userId || !userField) {
         return Promise.reject(new Error("User ID and user field (owner/assignee) are required."));
     }
-    // return apiClient.get(`/user-campaign-tasks?userId=${userId}&userField=${userField}`);
     let url = `/user-campaign-tasks?userId=${userId}&userField=${userField}`;
     if (campaignStatus) {
         url += `&campaignStatus=${encodeURIComponent(campaignStatus)}`; // Ensure status is URL encoded
     }
-    return apiClient.get(url);
+    const response = await apiClient.get(url);
+    return response;
 };
 
-export const executeCampaignTaskInstance = (instanceId) => apiClient.post(`/campaign-task-instances/${instanceId}/execute`);
-export const getCampaignTaskInstanceResults = (instanceId) => apiClient.get(`/campaign-task-instances/${instanceId}/results`);
+export const executeCampaignTaskInstance = async (instanceId) => {
+    const response = await apiClient.post(`/campaign-task-instances/${instanceId}/execute`);
+    return response;
+};
+export const getCampaignTaskInstanceResults = async (instanceId) => {
+    const response = await apiClient.get(`/campaign-task-instances/${instanceId}/results`);
+    return response;
+};
 
 
 // ... rest of your API functions ...

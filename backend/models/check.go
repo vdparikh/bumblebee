@@ -4,13 +4,13 @@ import (
 	"time"
 )
 
-// User represents an individual interacting with the system.
-type User struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Role  string `json:"role"` // e.g., "auditor", "admin", "owner"
-}
+// // User represents an individual interacting with the system.
+// type User struct {
+// 	ID    string `json:"id"`
+// 	Name  string `json:"name"`
+// 	Email string `json:"email"`
+// 	Role  string `json:"role"` // e.g., "auditor", "admin", "owner"
+// }
 
 // ComplianceStandard represents a regulatory standard like NYDFS, SOX, PCI.
 type ComplianceStandard struct {
