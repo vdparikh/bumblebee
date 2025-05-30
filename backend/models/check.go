@@ -31,23 +31,22 @@ type ComplianceStandard struct {
 // Task represents an actionable item created by an auditor based on a Requirement.
 // This now incorporates the aspects of the previous CheckDefinition.
 type Task struct {
-	ID             string    `json:"id"`
-	RequirementID  string    `json:"requirementId"` // Link to a specific compliance requirement
-	Title          string    `json:"title"`
-	Description    string    `json:"description"`
-	Category       string    `json:"category"`
-	OwnerUserID    string    `json:"ownerUserId"`    // User responsible for this task
-	AssigneeUserID string    `json:"assigneeUserId"` // User assigned to perform the task
-	Status         string    `json:"status"`         // e.g., "Open", "In Progress", "Pending Review", "Closed", "Failed"
-	DueDate        time.Time `json:"dueDate"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	ID            string    `json:"id"`
+	RequirementID string    `json:"requirementId"` // Link to a specific compliance requirement.
+	Title         string    `json:"title"`
+	Description   string    `json:"description"`
+	Category      string    `json:"category"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 
 	// Fields for automated checks (if applicable to the task)
-	// CheckType could be "automated_script", "manual_review", "api_check", etc.
-	CheckType  *string                `json:"checkType,omitempty"`
+	CheckType  *string                `json:"checkType,omitempty"`  // e.g., "automated_script", "manual_review", "api_check"
 	Target     *string                `json:"target,omitempty"`     // e.g., server IP, API endpoint, system name
 	Parameters map[string]interface{} `json:"parameters,omitempty"` // e.g., {"filePath": "/etc/passwd"}
+
+	// New fields for master task templates
+	EvidenceTypesExpected []string `json:"evidenceTypesExpected,omitempty" db:"evidence_types_expected"` // List of expected evidence types
+	DefaultPriority       *string  `json:"defaultPriority,omitempty" db:"default_priority"`              // Default priority for instances
 }
 
 // TaskExecutionResult stores the outcome of a task's execution (especially for automated parts).

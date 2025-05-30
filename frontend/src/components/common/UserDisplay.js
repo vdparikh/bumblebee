@@ -1,4 +1,5 @@
 import React from 'react';
+import { Badge } from 'react-bootstrap';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Popover from 'react-bootstrap/Popover';
 import { FaUserCircle, FaEnvelope, FaUserTag } from 'react-icons/fa';
@@ -35,8 +36,9 @@ const UserDisplay = ({ userId, userName, allUsers = [], defaultText = 'N/A' }) =
     return (
         <OverlayTrigger placement="top" overlay={userPopover} delay={{ show: 250, hide: 400 }} rootClose>
             {/* Simplified for more general use, can be styled by parent or with specific classes */}
-            <span className='user-display fw-medium text-dark' style={{cursor: 'pointer'}}>
-                 {displayName}</span>
+            <Badge pill bg="light" text="dark" className="fw-normal border" style={{cursor: 'pointer'}}>
+                <FaUserCircle className="me-1 opacity-75" />
+                 {displayName}</Badge>
         </OverlayTrigger>
     );
 };

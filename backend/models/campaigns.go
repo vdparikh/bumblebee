@@ -63,6 +63,9 @@ type CampaignTaskInstance struct {
 	AssigneeUserName              *string                `json:"assignee_user_name,omitempty"`               // For display
 	RequirementControlIDReference *string                `json:"requirement_control_id_reference,omitempty"` // For display
 
+	DefaultPriority       *string  `json:"defaultPriority,omitempty"`
+	EvidenceTypesExpected []string `json:"evidenceTypesExpected,omitempty"`
+
 	RequirementText         *string `json:"requirement_text,omitempty" db:"requirement_text"`                   // New: Full text of the requirement
 	RequirementStandardName *string `json:"requirement_standard_name,omitempty" db:"requirement_standard_name"` // New: Name of the standard for the requirement
 

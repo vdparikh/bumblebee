@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -474,6 +475,28 @@ func (h *CampaignHandler) UploadCampaignTaskInstanceEvidenceHandler(c *gin.Conte
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save evidence metadata"})
 		return
 	}
+
+	// Log evidence upload as a comment for the activity feed
+	uploaderUserName := "User" // Fallback
+	if claims != nil && claims.Email != "" {
+		uploaderUserName = claims.Email
+	}
+
+	commentText := fmt.Sprintf("%s uploaded evidence: %s", uploaderUserName, evidence.FileName)
+	if evidence.Description != nil && *evidence.Description != "" {
+		commentText = fmt.Sprintf("%s uploaded evidence '%s': %s", uploaderUserName, *evidence.Description, evidence.FileName)
+	}
+
+	activityComment := models.Comment{
+		CampaignTaskInstanceID: &instanceID,
+		UserID:                 uploaderUserID, // User who performed the action
+		Text:                   commentText,
+	}
+	if err := h.Store.CreateCampaignTaskInstanceComment(&activityComment); err != nil {
+		log.Printf("Failed to log evidence upload comment for CTI %s: %v", instanceID, err)
+		// This is a non-critical error for the evidence upload itself, so we don't return an error to the client for this.
+	}
+
 	c.JSON(http.StatusCreated, evidence)
 }
 

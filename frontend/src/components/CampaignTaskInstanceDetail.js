@@ -45,7 +45,9 @@ import {
     FaBullhorn,
     FaPlayCircle, // For execute icon
     FaPoll, // For results icon
-    // FaRegComment, // Moved to CommentSection
+    FaExclamationCircle, // For Priority
+    FaFileMedicalAlt, // For Evidence Types
+
 } from 'react-icons/fa';
 import { ListGroupItem } from 'react-bootstrap';
 import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils'; // Assuming this is the path
@@ -304,6 +306,17 @@ function CampaignTaskInstanceDetail() {
         backButtonText = taskInstance.campaign_id ? "Back to Campaign" : "Back to My Tasks";
     }
 
+        const getPriorityBadgeColor = (priority) => {
+        switch (priority?.toLowerCase()) {
+            case 'critical': return 'danger';
+            case 'high': return 'warning';
+            case 'medium': return 'info';
+            case 'low': return 'secondary';
+            default: return 'light';
+        }
+    };
+
+
     return (
         <div>
             {/* <Button as={Link} to={backLinkTarget} variant="outline-dark" size="sm" className="mb-3">
@@ -344,9 +357,6 @@ function CampaignTaskInstanceDetail() {
                             </Card.Body>
                                 <ListGroup variant='flush'>
 
-                                    <ListGroupItem><FaInfoCircle className="me-2 text-muted" /><strong>Instance ID:</strong> {taskInstance.id}</ListGroupItem>
-
-
                                     <ListGroupItem>
                                         <FaTag className="me-2 text-muted" /><strong>Category:</strong> 
                                         
@@ -374,6 +384,21 @@ function CampaignTaskInstanceDetail() {
                                         <UserDisplay userId={taskInstance.assignee_user_id} userName={taskInstance.assignee_user_id} allUsers={users} />
                                         {/* renderUserWithPopover is replaced by UserDisplay */}
 
+                                    </ListGroupItem>
+                                    <ListGroupItem>
+                                        <FaExclamationCircle className="me-2 text-muted" /><strong>Priority:</strong>
+                                        {taskInstance.defaultPriority ? <Badge bg={getPriorityBadgeColor(taskInstance.defaultPriority)} className="ms-2">{taskInstance.defaultPriority}</Badge> : ' N/A'}
+                                    </ListGroupItem>
+                                    <ListGroupItem>
+                                        <FaFileMedicalAlt className="me-2 text-muted" /><strong>Expected Evidence:</strong>
+                                             {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
+                                            taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
+                                                <React.Fragment key={evidenceType}>
+                                                
+                                                 <Badge variant="info" className='me-1 ms-1'>{evidenceType}</Badge>
+                                                    
+                                                </React.Fragment>
+                                            )) : ' N/A'}
                                     </ListGroupItem>
                                     <ListGroupItem><FaCalendarAlt className="me-2 text-muted" /><strong>Due Date:</strong> {taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</ListGroupItem>
                                     <ListGroupItem>
@@ -411,16 +436,35 @@ function CampaignTaskInstanceDetail() {
                                         </>
                                     )}
                                 </ListGroup>
+                                <Card.Footer>
+                                    <strong>Instance ID:</strong> {taskInstance.id}
+
+                                </Card.Footer>
                             </Card>
                         </Tab>
                         <Tab eventKey="evidence" title={<><FaFileUpload className="me-1" />Evidence</>}>
-                            <Card><Card.Body>
+
+                        
+                            <Card>
+                                <Card.Header as="h5">Add New Evidence</Card.Header>
+                                <Card.Body>
                                 {canManageEvidenceAndExecution ? (
                                     <>
                                         {addEvidenceError && <Alert variant="danger" onClose={() => setAddEvidenceError('')} dismissible>{addEvidenceError}</Alert>}
-                                        <div className='bg-light p-3 rounded-3 mb-3'>
-                                            <h5 className="mb-3">Add New Evidence</h5>
-                                            <Form.Group className="mb-3">
+                                        <div className=''>
+                                            
+
+<FaFileMedicalAlt className="me-2 text-muted" /><strong>Expected Evidence:</strong>
+                                             {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
+                                            taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
+                                                <React.Fragment key={evidenceType}>
+                                                
+                                                 <Badge variant="info" className='me-1 ms-1'>{evidenceType}</Badge>
+                                                    
+                                                </React.Fragment>
+                                            )) : ' N/A'}
+
+                                            <Form.Group className="mt-3 mb-3">
                                                 <Form.Label>Evidence Type:</Form.Label>
                                                 <div>
                                                     <Form.Check inline label="File" name="evidenceType" type="radio" id="evidence-type-file" value="file" checked={evidenceType === 'file'} onChange={(e) => setEvidenceType(e.target.value)} />

@@ -33,13 +33,9 @@ func (h *TaskHandler) CreateTaskHandler(c *gin.Context) {
 	}
 
 	// Basic validation (add more as needed)
-	if newTask.Title == "" || newTask.OwnerUserID == "" || newTask.Status == "" {
+	if newTask.Title == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Title, OwnerUserID, and Status are required"})
 		return
-	}
-	// Default status if not provided, or validate against allowed statuses
-	if newTask.Status == "" {
-		newTask.Status = "Open"
 	}
 
 	if err := h.Store.CreateTask(&newTask); err != nil {

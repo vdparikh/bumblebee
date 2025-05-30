@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { getUserCampaignTasks, getCampaigns, getUsers } from '../services/api';
+import { getUserCampaignTasks, getCampaigns, getUsers, getUserFeed } from '../services/api'; // Added getUserFeed
 import { Row, Col, Card, Spinner, Alert, ListGroup, Badge, ProgressBar } from 'react-bootstrap';
-import { FaTachometerAlt, FaTasks, FaBullhorn, FaExclamationTriangle, FaClipboardList } from 'react-icons/fa';
+import { FaTachometerAlt, FaTasks, FaBullhorn, FaExclamationTriangle, FaClipboardList, FaCommentAlt, FaComment } from 'react-icons/fa';
 
 import PageHeader from './common/PageHeader'; // Assuming BarChartCard is not used elsewhere in this component
 import KeyMetricsCard from './common/KeyMetricsCard';
@@ -10,7 +10,9 @@ import PieChartCard from './common/PieChartCard';
 import BarChartCard from './common/BarChartCard'; // Assuming you might want this later
 import TaskListItem from './common/TaskListItem';
 import { getStatusColor } from '../utils/displayUtils';
+import UserDisplay from './common/UserDisplay'; // For feed item user display
 import { useAuth } from '../contexts/AuthContext';
+import { LineIcon } from "lineicons-react";
 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
@@ -18,6 +20,8 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 function Dashboard() {
     const [myTasks, setMyTasks] = useState([]);
     const [activeCampaigns, setActiveCampaigns] = useState([]);
+    const [userFeed, setUserFeed] = useState([]); // New state for user feed
+    const [loadingFeed, setLoadingFeed] = useState(true); // New state for feed loading
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -41,10 +45,11 @@ function Dashboard() {
             // Fetch open/in-progress tasks for the user
             const tasksPromise = getUserCampaignTasks(loggedInUserId, "owner"); // Fetch all tasks for now, filter later
             const campaignsPromise = getCampaigns("Active"); // Fetch active campaigns
+            const feedPromise = getUserFeed({ limit: 7 }); // Fetch recent 7 feed items
             const usersPromise = getUsers();
 
-            const [tasksResponse, campaignsResponse, usersResponse] = await Promise.allSettled([
-                tasksPromise, campaignsPromise, usersPromise
+            const [tasksResponse, campaignsResponse, usersResponse, feedResponse] = await Promise.allSettled([
+                tasksPromise, campaignsPromise, usersPromise, feedPromise
             ]);
 
             if (tasksResponse.status === 'fulfilled' && tasksResponse.value.data) {
@@ -68,6 +73,13 @@ function Dashboard() {
                 setUsers([]);
             }
 
+            if (feedResponse.status === 'fulfilled' && feedResponse.value.data) {
+                setUserFeed(Array.isArray(feedResponse.value.data) ? feedResponse.value.data : []);
+            } else {
+                console.warn("Failed to fetch user feed or no feed data:", feedResponse.reason || "No data");
+                setUserFeed([]);
+            }
+
         } catch (err) {
             console.error("Error fetching dashboard data:", err);
             setError('Failed to fetch dashboard data. ' + (err.response?.data?.error || err.message));
@@ -75,6 +87,7 @@ function Dashboard() {
             setLoading(false);
         }
     }, [loggedInUserId]);
+
 
     useEffect(() => {
         fetchData();
@@ -157,8 +170,10 @@ function Dashboard() {
             {/* Welcome Message - Placeholder */}
             <Row className="mb-4">
                 <Col>
-                    <h4>Good morning, {/* {users.find(u => u.id === loggedInUserId)?.name || 'User'}! */} User!</h4>
-                    <p className="text-muted">Here's what's happening with your compliance activities.</p>
+                    <h4>
+                        Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {currentUser?.name || 'User'}!
+                    </h4>
+                    <p className="text-muted">Here's a quick overview of your compliance activities.</p>
                 </Col>
             </Row>
 
@@ -212,7 +227,7 @@ function Dashboard() {
             </Row>
 
             {/* Task and Campaign Summaries */}
-            <Row>
+            <Row className="mb-4">
                 <Col md={6} className="mb-4">
                         <div className="d-flex justify-content-between small mb-1 p-2">
                                                 <h6>My Recent Open Tasks</h6>
@@ -259,8 +274,36 @@ function Dashboard() {
                             <Link to="/campaigns">View All Campaigns</Link>
                         </Card.Footer>
                     </Card>
+
+                    <Card className='mt-3'>
+                        <Card.Header as="h5"><FaComment className="me-2"/>Recent Activity</Card.Header>
+                        {userFeed.length > 0 ? (
+                            <ListGroup variant="flush" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                {userFeed.map(item => (
+                                    <ListGroup.Item key={item.id} className="py-2 px-3">
+                                        <div className="d-flex w-100 justify-content-between">
+                                            <small className="text-muted">
+                                                <UserDisplay userId={item.userId} userName={item.userName} allUsers={users} />
+                                                {item.campaignTaskInstanceId && item.taskTitle && (
+                                                    <> on task <Link to={`/campaign-task/${item.campaignTaskInstanceId}`}>{item.taskTitle.substring(0,30)}...</Link></>
+                                                )}
+                                            </small>
+                                            <small className="text-muted">{new Date(item.createdAt).toLocaleString()}</small>
+                                        </div>
+                                        <p className="mb-0 mt-1 small" style={{whiteSpace: "pre-wrap"}}>{item.text}</p>
+                                    </ListGroup.Item>
+                                ))}
+                            </ListGroup>
+                        ) : (
+                            <Card.Body><p className="text-muted">No recent activity to display.</p></Card.Body>
+                        )}
+                        {/* Optionally add a "View All Activity" link here */}
+                    </Card>
+
                 </Col>
             </Row>
+
+           
         </div>
     );
 }

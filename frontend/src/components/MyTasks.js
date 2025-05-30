@@ -406,11 +406,11 @@ function MyTasks() {
                         <Row className="kanban-board gx-3">
                             {kanbanColumns.map(column => (
                                 <Col key={column.id} md={6} lg className="kanban-column mb-3">
-                                    <Card>
-                                        <Card.Header className="fw-bold text-center" style={{ backgroundColor: getStatusColor(column.id) + '33' }}>
+                                    <div>
+                                        <div className="fw-bold text-center" style={{ backgroundColor: getStatusColor(column.id) + '33' }}>
                                             {column.title} ({tasksByStatus[column.id]?.length || 0})
-                                        </Card.Header>
-                                        <Card.Body style={{ minHeight: '200px', maxHeight: 'calc(60vh - 50px)', overflowY: 'auto' }} className="p-2">
+                                        </div>
+                                        <div style={{ minHeight: '200px', maxHeight: 'calc(60vh - 50px)', overflowY: 'auto' }} className="p-2">
                                             {(tasksByStatus[column.id] || []).map(task => (
                                                 <Card key={task.id} className="mb-4 kanban-card">
                                                     <Card.Body as={Link} to={`/campaign-task/${task.id}`} state={{ from: '/my-tasks' }} className="text-decoration-none p-2">
@@ -431,8 +431,8 @@ function MyTasks() {
                                                 </Card>
                                             ))}
                                             {(!tasksByStatus[column.id] || tasksByStatus[column.id].length === 0) && <p className="text-muted text-center small mt-3">No tasks</p>}
-                                        </Card.Body>
-                                    </Card>
+                                        </div>
+                                    </div>
                                 </Col>
                             ))}
                         </Row>

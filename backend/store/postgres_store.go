@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -65,11 +66,29 @@ func (s *DBStore) CreateTask(task *models.Task) error {
 		paramsJSON = []byte("{}") // Default to empty JSON object if nil
 	}
 
+	// Convert EvidenceTypesExpected to a string that can be inserted into TEXT[]
+	var evidenceTypesArray sql.NullString
+	if len(task.EvidenceTypesExpected) > 0 {
+		// Format as a PostgreSQL array literal, e.g., '{"type1","type2"}'
+		// Ensure proper escaping if types can contain special characters, though unlikely for simple type names.
+		var sb strings.Builder
+		sb.WriteString("{")
+		for i, et := range task.EvidenceTypesExpected {
+			if i > 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString(`"`)
+			sb.WriteString(strings.ReplaceAll(et, `"`, `\"`)) // Basic escaping for double quotes
+			sb.WriteString(`"`)
+		}
+		sb.WriteString("}")
+		evidenceTypesArray = sql.NullString{String: sb.String(), Valid: true}
+	}
 	query := `
-		INSERT INTO tasks (id, requirement_id, title, description, category, owner_user_id, assignee_user_id, status, due_date, created_at, updated_at, check_type, target, parameters)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		INSERT INTO tasks (id, requirement_id, title, description, category, created_at, updated_at, check_type, target, parameters, evidence_types_expected, default_priority)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
-	_, err = s.DB.Exec(query, task.ID, task.RequirementID, task.Title, task.Description, task.Category, task.OwnerUserID, task.AssigneeUserID, task.Status, task.DueDate, task.CreatedAt, task.UpdatedAt, checkType, target, paramsJSON)
+	_, err = s.DB.Exec(query, task.ID, task.RequirementID, task.Title, task.Description, task.Category, task.CreatedAt, task.UpdatedAt, checkType, target, paramsJSON, evidenceTypesArray, task.DefaultPriority)
 	if err != nil {
 		return fmt.Errorf("failed to insert task: %w", err)
 	}
@@ -79,24 +98,16 @@ func (s *DBStore) CreateTask(task *models.Task) error {
 // GetTasks retrieves tasks. If userID is provided, filters by owner_user_id or assignee_user_id based on userField.
 func (s *DBStore) GetTasks(userID, userField string) ([]models.Task, error) {
 	baseQuery := `
-		SELECT id, requirement_id, title, description, category, owner_user_id, assignee_user_id, status, due_date, created_at, updated_at, check_type, target, parameters
+		SELECT id, requirement_id, title, description, category, created_at, updated_at, check_type, target, parameters, evidence_types_expected, default_priority
 		FROM tasks
 	`
 	var args []interface{}
 	var fullQuery string
 
-	if userID != "" {
-		if userField == "owner" {
-			fullQuery = baseQuery + " WHERE owner_user_id = $1 ORDER BY created_at DESC"
-		} else if userField == "assignee" {
-			fullQuery = baseQuery + " WHERE assignee_user_id = $1 ORDER BY created_at DESC"
-		} else { // Default to all tasks if userField is invalid but userID is present (or handle error)
-			fullQuery = baseQuery + " ORDER BY created_at DESC"
-		}
-		args = append(args, userID)
-	} else {
-		fullQuery = baseQuery + " ORDER BY created_at DESC"
-	}
+	// Filtering by userID and userField (owner/assignee) is removed as these fields are gone from Task model
+	// If filtering by other criteria is needed for master tasks, it should be added here.
+	// For now, it just gets all tasks.
+	fullQuery = baseQuery + " ORDER BY created_at DESC"
 
 	rows, err := s.DB.Query(fullQuery, args...)
 	if err != nil {
@@ -107,8 +118,9 @@ func (s *DBStore) GetTasks(userID, userField string) ([]models.Task, error) {
 	var tasks []models.Task
 	for rows.Next() {
 		var t models.Task
-		var paramsJSON []byte // For scanning JSONB from DB
-		if err := rows.Scan(&t.ID, &t.RequirementID, &t.Title, &t.Description, &t.Category, &t.OwnerUserID, &t.AssigneeUserID, &t.Status, &t.DueDate, &t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target, &paramsJSON); err != nil {
+		var paramsJSON []byte       // For scanning JSONB from DB
+		var evidenceTypesRaw []byte // For TEXT[]
+		if err := rows.Scan(&t.ID, &t.RequirementID, &t.Title, &t.Description, &t.Category, &t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target, &paramsJSON, &evidenceTypesRaw, &t.DefaultPriority); err != nil {
 			return nil, fmt.Errorf("failed to scan task row: %w", err)
 		}
 		if len(paramsJSON) > 0 && string(paramsJSON) != "null" { // Check for actual JSON data
@@ -119,6 +131,10 @@ func (s *DBStore) GetTasks(userID, userField string) ([]models.Task, error) {
 			}
 		} else {
 			t.Parameters = make(map[string]interface{}) // Initialize if null or empty
+		}
+		t.EvidenceTypesExpected, err = parsePostgresTextArray(evidenceTypesRaw)
+		if err != nil {
+			log.Printf("Warning: failed to parse evidence_types_expected for task %s: %v", t.ID, err)
 		}
 		tasks = append(tasks, t)
 	}
@@ -131,14 +147,15 @@ func (s *DBStore) GetTasks(userID, userField string) ([]models.Task, error) {
 // GetTaskByID retrieves a single task by its ID.
 func (s *DBStore) GetTaskByID(taskID string) (*models.Task, error) {
 	query := `
-		SELECT id, requirement_id, title, description, category, owner_user_id, assignee_user_id, status, due_date, created_at, updated_at, check_type, target, parameters
+		SELECT id, requirement_id, title, description, category, created_at, updated_at, check_type, target, parameters, evidence_types_expected, default_priority
 		FROM tasks WHERE id = $1
 	`
 	row := s.DB.QueryRow(query, taskID)
 
 	var t models.Task
 	var paramsJSON []byte
-	err := row.Scan(&t.ID, &t.RequirementID, &t.Title, &t.Description, &t.Category, &t.OwnerUserID, &t.AssigneeUserID, &t.Status, &t.DueDate, &t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target, &paramsJSON)
+	var evidenceTypesRaw []byte
+	err := row.Scan(&t.ID, &t.RequirementID, &t.Title, &t.Description, &t.Category, &t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target, &paramsJSON, &evidenceTypesRaw, &t.DefaultPriority)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Or a specific "not found" error
@@ -153,6 +170,10 @@ func (s *DBStore) GetTaskByID(taskID string) (*models.Task, error) {
 		}
 	} else {
 		t.Parameters = make(map[string]interface{})
+	}
+	t.EvidenceTypesExpected, err = parsePostgresTextArray(evidenceTypesRaw)
+	if err != nil {
+		log.Printf("Warning: failed to parse evidence_types_expected for task %s: %v", t.ID, err)
 	}
 
 	return &t, nil
@@ -178,13 +199,27 @@ func (s *DBStore) UpdateTask(task *models.Task) error {
 		return fmt.Errorf("failed to marshal task parameters for update: %w", err)
 	}
 
+	var evidenceTypesArray sql.NullString
+	if len(task.EvidenceTypesExpected) > 0 {
+		var sb strings.Builder
+		sb.WriteString("{")
+		for i, et := range task.EvidenceTypesExpected {
+			if i > 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString(`"`)
+			sb.WriteString(strings.ReplaceAll(et, `"`, `\"`))
+			sb.WriteString(`"`)
+		}
+		sb.WriteString("}")
+		evidenceTypesArray = sql.NullString{String: sb.String(), Valid: true}
+	}
 	query := `
 		UPDATE tasks
-		SET requirement_id = $2, title = $3, description = $4, category = $5, owner_user_id = $6, 
-		    assignee_user_id = $7, status = $8, due_date = $9, updated_at = $10, 
-		    check_type = $11, target = $12, parameters = $13
+		SET requirement_id = $2, title = $3, description = $4, category = $5, updated_at = $6, 
+		    check_type = $7, target = $8, parameters = $9, evidence_types_expected = $10, default_priority = $11
 		WHERE id = $1`
-	_, err = s.DB.Exec(query, task.ID, task.RequirementID, task.Title, task.Description, task.Category, task.OwnerUserID, task.AssigneeUserID, task.Status, task.DueDate, task.UpdatedAt, checkType, target, paramsJSON)
+	_, err = s.DB.Exec(query, task.ID, task.RequirementID, task.Title, task.Description, task.Category, task.UpdatedAt, checkType, target, paramsJSON, evidenceTypesArray, task.DefaultPriority)
 	if err != nil {
 		return fmt.Errorf("failed to update task with id %s: %w", task.ID, err)
 	}
@@ -194,7 +229,7 @@ func (s *DBStore) UpdateTask(task *models.Task) error {
 // GetTasksByRequirementID retrieves all master tasks associated with a specific requirement ID.
 func (s *DBStore) GetTasksByRequirementID(requirementID string) ([]models.Task, error) {
 	query := `
-		SELECT id, requirement_id, title, description, category, owner_user_id, assignee_user_id, status, due_date, created_at, updated_at, check_type, target, parameters
+		SELECT id, requirement_id, title, description, category, created_at, updated_at, check_type, target, parameters, evidence_types_expected, default_priority
 		FROM tasks
 		WHERE requirement_id = $1
 	`
@@ -208,7 +243,8 @@ func (s *DBStore) GetTasksByRequirementID(requirementID string) ([]models.Task, 
 	for rows.Next() {
 		var t models.Task
 		var paramsJSON []byte
-		if err := rows.Scan(&t.ID, &t.RequirementID, &t.Title, &t.Description, &t.Category, &t.OwnerUserID, &t.AssigneeUserID, &t.Status, &t.DueDate, &t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target, &paramsJSON); err != nil {
+		var evidenceTypesRaw []byte
+		if err := rows.Scan(&t.ID, &t.RequirementID, &t.Title, &t.Description, &t.Category, &t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target, &paramsJSON, &evidenceTypesRaw, &t.DefaultPriority); err != nil {
 			return nil, fmt.Errorf("failed to scan task row for requirement_id %s: %w", requirementID, err)
 		}
 		if len(paramsJSON) > 0 && string(paramsJSON) != "null" {
@@ -219,9 +255,39 @@ func (s *DBStore) GetTasksByRequirementID(requirementID string) ([]models.Task, 
 		} else {
 			t.Parameters = make(map[string]interface{}) // Initialize if null or empty
 		}
+		t.EvidenceTypesExpected, err = parsePostgresTextArray(evidenceTypesRaw)
+		if err != nil {
+			log.Printf("Warning: failed to parse evidence_types_expected for task %s: %v", t.ID, err)
+		}
 		tasks = append(tasks, t)
 	}
 	return tasks, rows.Err()
+}
+
+// parsePostgresTextArray converts a raw byte slice from a TEXT[] column to a []string.
+func parsePostgresTextArray(dbValue []byte) ([]string, error) {
+	if dbValue == nil || len(dbValue) == 0 {
+		return []string{}, nil
+	}
+	// The format is like "{item1,item2,\"item with spaces, and quotes\"}"
+	s := string(dbValue)
+	if s == "NULL" || s == "{}" { // Handle empty array or NULL
+		return []string{}, nil
+	}
+	if !strings.HasPrefix(s, "{") || !strings.HasSuffix(s, "}") {
+		return nil, errors.New("invalid array format: missing braces")
+	}
+	// Trim braces
+	s = s[1 : len(s)-1]
+	if s == "" { // Empty array after trimming braces
+		return []string{}, nil
+	}
+
+	// This is a simplified parser. For robust parsing of TEXT[], especially with escaped quotes/commas,
+	// you might need a more sophisticated approach or a library. pq.Array can handle this.
+	// For now, assuming simple, unescaped comma-separated values or quoted values.
+	// A proper CSV parser might be better if values can contain commas.
+	return strings.Split(s, ","), nil // This is a naive split, pq.Array(&slice) is better.
 }
 
 // --- Requirement Methods ---
@@ -1083,33 +1149,54 @@ func (s *DBStore) GetCampaignTaskInstances(campaignID string, userID string, use
 }
 
 func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTaskInstance, error) {
-	query := `
-		SELECT 
-			cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id, cti.campaign_selected_requirement_id, 
-			cti.title, cti.description, cti.category, cti.assignee_user_id, 
-			cti.status, cti.due_date, cti.created_at, cti.updated_at, 
-			cti.check_type, cti.target, cti.parameters,
-			assignee.name as assignee_user_name,
-			req.control_id_reference as requirement_control_id_reference,
-			req.requirement_text as requirement_text,
-			std.name as requirement_standard_name
-		FROM campaign_task_instances cti
-		LEFT JOIN campaigns c ON cti.campaign_id = c.id
-		LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
-		LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
-		LEFT JOIN requirements req ON csr.requirement_id = req.id
-		LEFT JOIN compliance_standards std ON req.standard_id = std.id
-		WHERE cti.id = $1
-	`
+	// query := `
+	// 	SELECT
+	// 		cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id, cti.campaign_selected_requirement_id,
+	// 		cti.title, cti.description, cti.category, cti.assignee_user_id,
+	// 		cti.status, cti.due_date, cti.created_at, cti.updated_at,
+	// 		cti.check_type, cti.target, cti.parameters,
+	// 		assignee.name as assignee_user_name,
+	// 		req.control_id_reference as requirement_control_id_reference,
+	// 		req.requirement_text as requirement_text,
+	// 		std.name as requirement_standard_name
+	// 	FROM campaign_task_instances cti
+	// 	LEFT JOIN campaigns c ON cti.campaign_id = c.id
+	// 	LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
+	// 	LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
+	// 	LEFT JOIN requirements req ON csr.requirement_id = req.id
+	// 	LEFT JOIN compliance_standards std ON req.standard_id = std.id
+	// 	WHERE cti.id = $1
+	// `
+	query := `SELECT
+    cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id,campaign_selected_requirement_id,
+	cti.title, cti.description, cti.category, cti.assignee_user_id,
+	cti.status, cti.due_date, cti.created_at, cti.updated_at,
+	cti.check_type, cti.target, cti.parameters,
+    assignee.name as assignee_user_name,
+    req.control_id_reference as requirement_control_id_reference,
+    req.requirement_text as requirement_text,
+    std.name as requirement_standard_name,
+    mt.default_priority,       
+    mt.evidence_types_expected 
+	FROM campaign_task_instances cti
+	LEFT JOIN campaigns c ON cti.campaign_id = c.id
+	LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
+	LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
+	LEFT JOIN requirements req ON csr.requirement_id = req.id
+	LEFT JOIN compliance_standards std ON req.standard_id = std.id
+	LEFT JOIN tasks mt ON cti.master_task_id = mt.id -- Join with master tasks
+	WHERE cti.id = $1
+`
 	row := s.DB.QueryRow(query, ctiID)
 	var cti models.CampaignTaskInstance
 	var paramsJSON []byte
+	var evidenceTypesRaw []byte // Intermediate variable for raw bytes of evidence_types_expected
 	err := row.Scan(
 		&cti.ID, &cti.CampaignID, &cti.CampaignName, &cti.MasterTaskID, &cti.CampaignSelectedRequirementID,
 		&cti.Title, &cti.Description, &cti.Category, &cti.AssigneeUserID,
 		&cti.Status, &cti.DueDate, &cti.CreatedAt, &cti.UpdatedAt,
 		&cti.CheckType, &cti.Target, &paramsJSON,
-		&cti.AssigneeUserName, &cti.RequirementControlIDReference, &cti.RequirementText, &cti.RequirementStandardName,
+		&cti.AssigneeUserName, &cti.RequirementControlIDReference, &cti.RequirementText, &cti.RequirementStandardName, &cti.DefaultPriority, &evidenceTypesRaw,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan campaign task instance by ID %s: %w", ctiID, err)
@@ -1122,6 +1209,12 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
 		}
 	} else {
 		cti.Parameters = make(map[string]interface{})
+	}
+
+	// Parse evidence_types_expected from raw bytes
+	cti.EvidenceTypesExpected, err = parsePostgresTextArray(evidenceTypesRaw)
+	if err != nil {
+		log.Printf("Warning: failed to parse evidence_types_expected for CTI %s: %v", cti.ID, err)
 	}
 
 	// Fetch owners
@@ -1238,13 +1331,16 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 			assignee.name as assignee_user_name,
 			req.control_id_reference as requirement_control_id_reference,
 			req.requirement_text as requirement_text,
-			std.name as requirement_standard_name
+			std.name as requirement_standard_name,
+			mt.default_priority,
+			mt.evidence_types_expected
 		FROM campaign_task_instances cti
 		LEFT JOIN campaigns c ON cti.campaign_id = c.id
 		LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
 		LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
 		LEFT JOIN requirements req ON csr.requirement_id = req.id
 		LEFT JOIN compliance_standards std ON req.standard_id = std.id
+		LEFT JOIN tasks mt ON cti.master_task_id = mt.id
     	`
 	// Note: owner_user_name is removed from here as owners are now a list.
 	conditions := []string{}
@@ -1286,12 +1382,15 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 	for rows.Next() {
 		var i models.CampaignTaskInstance
 		var paramsJSON []byte
+		var evidenceTypesRaw []byte // For scanning TEXT[]
 		// Add campaign_name to scan targets
 		err = rows.Scan( // Assign to err to check it
 			&i.ID, &i.CampaignID, &i.CampaignName, &i.MasterTaskID, &i.CampaignSelectedRequirementID, // Removed OwnerUserID from scan
 			&i.Title, &i.Description, &i.Category, &i.AssigneeUserID,
 			&i.Status, &i.DueDate, &i.CreatedAt, &i.UpdatedAt,
-			&i.CheckType, &i.Target, &paramsJSON, &i.AssigneeUserName, &i.RequirementControlIDReference, &i.RequirementText, &i.RequirementStandardName,
+			&i.CheckType, &i.Target, &paramsJSON,
+			&i.AssigneeUserName, &i.RequirementControlIDReference, &i.RequirementText, &i.RequirementStandardName,
+			&i.DefaultPriority, &evidenceTypesRaw, // Scan new fields
 		)
 
 		if err != nil {
@@ -1305,6 +1404,12 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 			}
 		} else {
 			i.Parameters = make(map[string]interface{})
+		}
+		// Parse evidence_types_expected
+		i.EvidenceTypesExpected, err = parsePostgresTextArray(evidenceTypesRaw)
+		if err != nil {
+			log.Printf("Warning: failed to parse evidence_types_expected for CTI %s in GetCampaignTaskInstancesForUser: %v", i.ID, err)
+			// Decide if this is a fatal error or if you can continue with empty/nil EvidenceTypesExpected
 		}
 		// Fetch owners for this instance
 		owners, err := s.getCampaignTaskInstanceOwners(i.ID)
@@ -1409,4 +1514,56 @@ func (s *DBStore) UpdateUserPassword(userID string, newHashedPassword string) er
 	query := `UPDATE users SET hashed_password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
 	_, err := s.DB.Exec(query, newHashedPassword, userID)
 	return err
+}
+
+// GetUserActivityFeed retrieves a feed of comments related to tasks the user owns or is assigned to.
+func (s *DBStore) GetUserActivityFeed(userID string, limit, offset int) ([]models.Comment, error) {
+	query := `
+		SELECT
+			tc.id,
+			tc.task_id,
+			tc.campaign_task_instance_id,
+			tc.user_id,
+			u.name AS user_name, -- Name of the commenter
+			tc.text,
+			tc.created_at,
+			cti.title AS task_title -- Title of the task the comment is on
+		FROM task_comments tc
+		JOIN users u ON tc.user_id = u.id
+		JOIN campaign_task_instances cti ON tc.campaign_task_instance_id = cti.id
+		WHERE tc.campaign_task_instance_id IS NOT NULL AND tc.campaign_task_instance_id IN (
+			-- Tasks where the user is an owner
+			SELECT cto.campaign_task_instance_id
+			FROM campaign_task_instance_owners cto
+			WHERE cto.user_id = $1
+			UNION
+			-- Tasks where the user is an assignee
+			SELECT cti_assignee.id
+			FROM campaign_task_instances cti_assignee
+			WHERE cti_assignee.assignee_user_id = $1
+		)
+		ORDER BY tc.created_at DESC
+		LIMIT $2 OFFSET $3;
+	`
+
+	rows, err := s.DB.Query(query, userID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user activity feed for user %s: %w", userID, err)
+	}
+	defer rows.Close()
+
+	var comments []models.Comment
+	for rows.Next() {
+		var c models.Comment
+		var taskTitle sql.NullString
+		if err := rows.Scan(&c.ID, &c.TaskID, &c.CampaignTaskInstanceID, &c.UserID, &c.UserName, &c.Text, &c.CreatedAt, &taskTitle); err != nil {
+			log.Printf("Error scanning activity feed row: %v", err)
+			continue
+		}
+		if taskTitle.Valid {
+			c.TaskTitle = &taskTitle.String
+		}
+		comments = append(comments, c)
+	}
+	return comments, rows.Err()
 }

@@ -21,6 +21,7 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Popover from 'react-bootstrap/Popover';
 import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
+import Select from 'react-select'; // Import react-select
 import Badge from 'react-bootstrap/Badge';
 import Dropdown from 'react-bootstrap/Dropdown'; // Added for action menu
 
@@ -77,10 +78,13 @@ function Tasks() {
     const [newCheckType, setNewCheckType] = useState(''); 
     const [newCheckTarget, setNewCheckTarget] = useState(''); 
     const [newCheckParams, setNewCheckParams] = useState(''); 
+    const [newEvidenceTypesExpected, setNewEvidenceTypesExpected] = useState([]); // For react-select
+    const [newDefaultPriority, setNewDefaultPriority] = useState('');
     
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     
+    // Available options for EvidenceTypesExpected
     const [allStandards, setAllStandards] = useState([]);
     const [allRequirements, setAllRequirements] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
@@ -91,6 +95,14 @@ function Tasks() {
 
     const [editingTaskId, setEditingTaskId] = useState(null);
     const [activeTabKey, setActiveTabKey] = useState('existing');
+
+    const evidenceTypeOptions = [
+        { value: 'screenshot', label: 'Screenshot' },
+        { value: 'log_file', label: 'Log File' },
+        { value: 'configuration_snippet', label: 'Configuration Snippet' },
+        { value: 'policy_document', label: 'Policy Document' },
+        { value: 'interview_notes', label: 'Interview Notes' },
+    ];
 
     const fetchTasks = useCallback(async () => {
         try {
@@ -163,14 +175,14 @@ function Tasks() {
         setNewCheckType('');
         setNewCheckTarget('');
         setNewCheckParams('');
+        setNewEvidenceTypesExpected([]);
+        setNewDefaultPriority('');
     };
 
     const handleSubmitTask = async (e) => {
         e.preventDefault();
-        const title = newTitle.trim();
-        const ownerUserId = newOwnerUserId.trim();
-        if (!title || !ownerUserId || !newStatus.trim()) {
-            setError("Title, Owner User ID, and Status are required.");
+        if (!newTitle.trim()) { // OwnerUserID and Status are removed from master task
+            setError("Title is required.");
             setSuccess('');
             return;
         }
@@ -186,17 +198,19 @@ function Tasks() {
         }
 
         const taskData = {
-            title: title,
+            title: newTitle.trim(),
             description: newDescription.trim(),
             category: newCategory, // Category is now from dropdown
-            ownerUserId: ownerUserId,
-            assigneeUserId: newAssigneeUserId.trim() || null,
-            status: newStatus.trim(),
-            dueDate: newDueDate ? new Date(newDueDate).toISOString() : null, 
+            // ownerUserId: ownerUserId, // Removed
+            // assigneeUserId: newAssigneeUserId.trim() || null, // Removed
+            // status: newStatus.trim(), // Removed
+            // dueDate: newDueDate ? new Date(newDueDate).toISOString() : null,  // Removed
             requirementId: newRequirementId.trim() || null,
             checkType: newCheckType.trim() || null,
             target: newCheckTarget.trim() || null,
             parameters: params, 
+            evidenceTypesExpected: newEvidenceTypesExpected.map(option => option.value), // Get array of strings
+            defaultPriority: newDefaultPriority.trim() || null,
         };
         
         try {
@@ -225,14 +239,17 @@ function Tasks() {
         setNewTitle(task.title || '');
         setNewDescription(task.description || '');
         setNewCategory(task.category || ''); // Set to existing category or default
-        setNewOwnerUserId(task.ownerUserId || '');
-        setNewAssigneeUserId(task.assigneeUserId || '');
-        setNewStatus(task.status || 'Open');
-        setNewDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '');
+        // setNewOwnerUserId(task.ownerUserId || ''); // Removed
+        // setNewAssigneeUserId(task.assigneeUserId || ''); // Removed
+        // setNewStatus(task.status || 'Open'); // Removed
+        // setNewDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''); // Removed
         setNewRequirementId(task.requirementId || '');
         setNewCheckType(task.checkType || '');
         setNewCheckTarget(task.target || '');
         setNewCheckParams(task.parameters ? JSON.stringify(task.parameters, null, 2) : '');
+        // Convert string array from task.evidenceTypesExpected to {value, label} for react-select
+        setNewEvidenceTypesExpected(task.evidenceTypesExpected ? task.evidenceTypesExpected.map(et => ({ value: et, label: evidenceTypeOptions.find(opt => opt.value === et)?.label || et })) : []);
+        setNewDefaultPriority(task.defaultPriority || '');
         setActiveTabKey('create');
         setError('');
         setSuccess('');
@@ -373,6 +390,19 @@ function Tasks() {
                     <Card className="mb-4">
                         <Card.Body>
                             <Form onSubmit={handleSubmitTask}>
+
+
+                                <FloatingLabel controlId="floatingRequirementId" label={<><FaClipboardList className="me-1"/>Requirement</>} className="mb-3">
+                                    <Form.Select value={newRequirementId} onChange={(e) => setNewRequirementId(e.target.value)} aria-label="Select associated requirement">
+                                        <option value="">Select Requirement</option>
+                                        {allRequirements.map(req => (
+                                            <option key={req.id} value={req.id}>
+                                                {req.controlIdReference} - {req.requirementText.substring(0, 50)}...
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                </FloatingLabel>
+                                
                                 <Row className="mb-3">
                                     <Form.Group as={Col} md="6" controlId="floatingTaskTitle">
                                         <FloatingLabel label={<><FaInfoCircle className="me-1"/>Task Title*</>}>
@@ -399,61 +429,38 @@ function Tasks() {
                                 </FloatingLabel>
         
                                 <Row className="mb-3">
-                                    <Form.Group as={Col} md="6" controlId="floatingTaskOwner">
-                                        <FloatingLabel label={<><FaUserShield className="me-1"/>Owner*</>}>
-                                            <Form.Select value={newOwnerUserId} onChange={(e) => setNewOwnerUserId(e.target.value)} required aria-label="Select task owner">
-                                                <option value="">Select Owner</option>
-                                                {allUsers.map(user => (
-                                                    <option key={user.id} value={user.id}>
-                                                        {user.name} ({user.email})
-                                                    </option>
-                                                ))}
+                                    <Form.Group as={Col} md="6" controlId="evidenceTypesExpected">
+                                        <Form.Label>Evidence Types Expected</Form.Label>
+                                        <Select
+                                            isMulti
+                                            options={evidenceTypeOptions}
+                                            value={newEvidenceTypesExpected}
+                                            onChange={setNewEvidenceTypesExpected}
+                                            placeholder="Select or type to add evidence types..."
+                                            isClearable
+                                            isSearchable
+                                            // To allow creating new tags (if desired, requires more setup with CreatableSelect from react-select)
+                                            // components={{ DropdownIndicator: null }} // Example for tag-like input
+                                        />
+                                        <Form.Text muted>Specify the types of evidence typically required for this task.</Form.Text>
+                                    </Form.Group>
+                                    <Form.Group as={Col} md="6" controlId="defaultPriority">
+                                        <FloatingLabel label="Default Priority">
+                                            <Form.Select
+                                                value={newDefaultPriority}
+                                                onChange={(e) => setNewDefaultPriority(e.target.value)}
+                                            >
+                                                <option value="">Select Default Priority</option>
+                                                <option value="Low">Low</option>
+                                                <option value="Medium">Medium</option>
+                                                <option value="High">High</option>
+                                                <option value="Critical">Critical</option>
                                             </Form.Select>
                                         </FloatingLabel>
-                                    </Form.Group>
-                                     <Form.Group as={Col} md="6" controlId="floatingTaskAssignee">
-                                        <FloatingLabel label={<><FaUserCheck className="me-1"/>Assignee</>}>
-                                             <Form.Select value={newAssigneeUserId} onChange={(e) => setNewAssigneeUserId(e.target.value)} aria-label="Select task assignee">
-                                                <option value="">Select Assignee (Optional)</option>
-                                                {allUsers.map(user => (
-                                                    <option key={user.id} value={user.id}>
-                                                        {user.name} ({user.email})
-                                                    </option>
-                                                ))}
-                                            </Form.Select>
-                                        </FloatingLabel>
-                                    </Form.Group>
-                                </Row>
-                                
-                                <Row className="mb-3">
-                                    <Form.Group as={Col} md="6" controlId="floatingStatus">
-                                        <FloatingLabel label={<><FaInfoCircle className="me-1"/>Status*</>}>
-                                            <Form.Select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} required aria-label="Select task status">
-                                                <option value="Open">Open</option>
-                                                <option value="In Progress">In Progress</option>
-                                                <option value="Pending Review">Pending Review</option>
-                                                <option value="Closed">Closed</option>
-                                                <option value="Failed">Failed</option>
-                                            </Form.Select>
-                                        </FloatingLabel>
-                                    </Form.Group>
-                                    <Form.Group as={Col} md="6" controlId="floatingDueDate">
-                                        <FloatingLabel label={<><FaCalendarAlt className="me-1"/>Due Date</>}>
-                                            <Form.Control type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} />
-                                        </FloatingLabel>
+                                        <Form.Text muted>Set a default priority for instances created from this task template.</Form.Text>
                                     </Form.Group>
                                 </Row>
         
-                                <FloatingLabel controlId="floatingRequirementId" label={<><FaClipboardList className="me-1"/>Requirement</>} className="mb-3">
-                                    <Form.Select value={newRequirementId} onChange={(e) => setNewRequirementId(e.target.value)} aria-label="Select associated requirement">
-                                        <option value="">Select Requirement (Optional)</option>
-                                        {allRequirements.map(req => (
-                                            <option key={req.id} value={req.id}>
-                                                {req.controlIdReference} - {req.requirementText.substring(0, 50)}...
-                                            </option>
-                                        ))}
-                                    </Form.Select>
-                                </FloatingLabel>
         
                                 <Accordion className="mb-3">
                                     <Accordion.Item eventKey="0">
@@ -528,6 +535,14 @@ function Tasks() {
                                                         </OverlayTrigger>
                                                         {standardName && ` (${standardName.split('(')[1]?.replace(')','') || standardName})`}
                                                     </>
+                                                )}
+                                                {task.defaultPriority && (
+                                                    <>
+                                                        <span className="mx-1">|</span> Priority: <Badge bg="secondary">{task.defaultPriority}</Badge>
+                                                    </>
+                                                )}
+                                                {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 && (
+                                                    <><span className="mx-1">|</span> Expected Evidence: {task.evidenceTypesExpected.join(', ')}</>
                                                 )}
                                             </small>
                                             

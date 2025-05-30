@@ -33,6 +33,20 @@ export const getCampaigns = async (status) => {
     return response; // Axios responses have data in response
 };
 
+export const getUserFeed = async (params) => {
+    console.log(getToken)
+    // The interceptor will add the Authorization header
+    let url = `/user-feed`;
+    
+    // Using apiClient which now has the interceptor
+    const response = await apiClient.get(url, params);
+    return response; // Axios responses have data in response
+};
+
+
+// export const getUserFeed = (params) => apiClient.get('/user-feed', { params }); // params for limit, offset
+
+
 
 // Get tasks, optionally filtered by userID and userField ("owner" or "assignee")
 export const getTasks = async (userId, userField) => {
@@ -262,6 +276,9 @@ export const changePassword = async (passwordData) => {
     // passwordData: { currentPassword, newPassword, confirmPassword }
     return apiClient.post('/auth/change-password', passwordData);
 };
+
+
+
 // Add more functions for other endpoints as needed
 // export const getEvidenceForTask = (taskId) => apiClient.get(`/tasks/${taskId}/evidence`);
 // export const addCommentToTask = (taskId, commentData) => apiClient.post(`/tasks/${taskId}/comments`, commentData);

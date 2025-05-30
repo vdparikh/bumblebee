@@ -28,7 +28,8 @@ import {
     Form,
     Modal,
     OverlayTrigger, // Added for popovers
-    Dropdown, // For status change    
+    Dropdown,
+    ListGroupItem, // For status change    
     // ButtonGroup // For view toggle (though not used in this request, good to have if needed later)
 } from 'react-bootstrap';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
@@ -437,15 +438,17 @@ function CampaignDetail() {
                             </Button>
                         )}
                     </div>
-                    <p><strong>Description:</strong> {campaign.description || 'N/A'}</p>
-                    <p><strong>Standard:</strong> {campaign.standard_name || 'N/A'}</p>
-                    <p>
+                    </Card.Body>
+                    <ListGroup>
+                    <ListGroupItem><strong>Description:</strong> {campaign.description || 'N/A'}</ListGroupItem>
+                    <ListGroupItem><strong>Standard:</strong> {campaign.standard_name || 'N/A'}</ListGroupItem>
+                    <ListGroupItem>
                         <strong>Dates: </strong>
                         {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString() : 'N/A'} -
                         {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : 'N/A'}
-                    </p>
+                    </ListGroupItem>
                     {/* Add more campaign metadata as needed */}
-                </Card.Body>
+                </ListGroup>
             </Card>
 
             {/* Charts and Metrics Section */}

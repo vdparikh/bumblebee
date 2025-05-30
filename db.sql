@@ -245,3 +245,16 @@ CREATE TABLE IF NOT EXISTS campaign_task_instance_owners (
 -- Optional: Add indexes for performance
 CREATE INDEX IF NOT EXISTS idx_cti_owners_instance_id ON campaign_task_instance_owners(campaign_task_instance_id);
 CREATE INDEX IF NOT EXISTS idx_cti_owners_user_id ON campaign_task_instance_owners(user_id);
+
+
+-- Remove columns from the tasks table
+ALTER TABLE tasks
+DROP COLUMN IF EXISTS owner_user_id,
+DROP COLUMN IF EXISTS assignee_user_id,
+DROP COLUMN IF EXISTS status,
+DROP COLUMN IF EXISTS due_date;
+
+-- Add new suggested columns for master task templates
+ALTER TABLE tasks
+ADD COLUMN IF NOT EXISTS evidence_types_expected TEXT[], -- Array of strings, e.g., {'screenshot', 'log_file'}
+ADD COLUMN IF NOT EXISTS default_priority VARCHAR(50);   -- e.g., 'High', 'Medium', 'Low'

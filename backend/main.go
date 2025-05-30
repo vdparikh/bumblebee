@@ -124,6 +124,9 @@ func main() {
 		// New routes for executing campaign task instances and getting results
 		api.POST("/campaign-task-instances/:id/execute", campaignHandler.ExecuteCampaignTaskInstanceHandler)
 		api.GET("/campaign-task-instances/:id/results", campaignHandler.GetCampaignTaskInstanceResultsHandler)
+
+		// User Feed Route
+		api.GET("/user-feed", handlers.GetUserFeedHandler(dbStore))
 	}
 
 	// Serve static files from the "uploads" directory

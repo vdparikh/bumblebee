@@ -16,7 +16,7 @@ import Requirements from './components/Requirements';
 import Standards from './components/Standards';
 import MyTasks from './components/MyTasks';
 // import TaskDetail from './components/TaskDetail'; // Not currently used
-import { FaBullhorn, FaCheckDouble, FaList, FaTasks, FaUser, FaTachometerAlt, FaFileContract, FaShieldAlt, FaColumns, FaAngleDoubleRight, FaAngleDoubleLeft } from 'react-icons/fa'; // Added FaTachometerAlt
+import { FaBullhorn, FaCheckDouble, FaList, FaTasks, FaUser, FaTachometerAlt, FaFileContract, FaShieldAlt, FaColumns, FaAngleDoubleRight, FaAngleDoubleLeft, FaQuestionCircle, FaRegQuestionCircle } from 'react-icons/fa'; // Added FaTachometerAlt
 import Campaigns from './components/Campaigns'; // Import Campaigns component
 import CampaignDetail from './components/CampaignDetail'; // Import CampaignDetail component
 import Dashboard from './components/Dashboard'; // Import the new Dashboard component
@@ -199,7 +199,7 @@ function Layout() { // Create a new component that can use useLocation
                           onClick={() => setShowDetailsPanel(!showDetailsPanel)}
                           className="ms-2 d-none d-md-inline-block border-0 p-0 m-0"
                           title={showDetailsPanel ? "Hide Details Panel" : "Show Details Panel"}
-                        > {showDetailsPanel ? <FaAngleDoubleRight size="1.5em" /> : <FaAngleDoubleLeft size="1.5em" />} </Button>
+                        > {showDetailsPanel ? <FaQuestionCircle size="1.5em" /> : <FaRegQuestionCircle size="1.5em" />} </Button>
 
                       </Nav>
                     </Navbar.Collapse>
