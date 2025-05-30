@@ -29,6 +29,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'; // Import AuthPr
 import LoginPage from './components/auth/LoginPage'; // Import LoginPage
 import ProtectedRoute from './components/auth/ProtectedRoute'; // Import ProtectedRoute
 import RegisterPage from './components/auth/RegisterPage'; // Import RegisterPage
+import UserProfilePage from './components/auth/UserProfilePage'; // Import UserProfilePage
 
 function DynamicHeader() {
   const location = useLocation();
@@ -62,6 +63,9 @@ function DynamicHeader() {
         // Add more cases for other routes
         // Optional: handle unknown paths or set a generic title
         headerText = "Home";
+      }
+      if (location.pathname === "/profile") {
+        headerText = "User Profile";
       }
   }
   return <Navbar.Brand><span className='text-dark fw-bold'>/ {headerText}</span></Navbar.Brand>; 
@@ -98,7 +102,7 @@ function Layout() { // Create a new component that can use useLocation
                     }
                     id="user-nav-dropdown"
                     align="end">
-                    <NavDropdown.Item href="#profile">Profile</NavDropdown.Item>
+                    <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
                      {/* Add ThemeSwitcher here or nearby */}
                     {currentUser?.role === 'admin' && <NavDropdown.Item href="#admin-settings">Admin Settings</NavDropdown.Item>}
                     <NavDropdown.Divider />
@@ -206,6 +210,7 @@ function Layout() { // Create a new component that can use useLocation
                           <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
                           <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
                           <Route path="/campaign-task/:instanceId" element={<ProtectedRoute><CampaignTaskInstanceDetail /></ProtectedRoute>} />
+                          <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
                           <Route path="/campaigns/:campaignId" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
                         </Routes>
                     </main>

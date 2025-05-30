@@ -1258,3 +1258,21 @@ func (s *DBStore) GetTaskComments(taskID string, campaignTaskInstanceID string) 
 }
 
 // Apply similar logic to GetTaskEvidence and GetTaskExecutionResults
+
+// GetUserByID retrieves a user by their ID, including the hashed password.
+// func (s *DBStore) GetUserByID(id uuid.UUID) (*models.User, error) {
+// 	user := &models.User{}
+// 	query := `SELECT id, name, email, role, hashed_password, created_at, updated_at FROM users WHERE id = $1`
+// 	err := s.DB.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.HashedPassword, &user.CreatedAt, &user.UpdatedAt)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return user, nil
+// }
+
+// UpdateUserPassword updates the hashed password for a given user ID.
+func (s *DBStore) UpdateUserPassword(userID string, newHashedPassword string) error {
+	query := `UPDATE users SET hashed_password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
+	_, err := s.DB.Exec(query, newHashedPassword, userID)
+	return err
+}

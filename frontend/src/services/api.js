@@ -257,6 +257,11 @@ export const getCampaignTaskInstanceResults = async (instanceId) => {
 
 // ... rest of your API functions ...
 
+// --- Auth API calls (beyond login/register if handled by AuthContext) ---
+export const changePassword = async (passwordData) => {
+    // passwordData: { currentPassword, newPassword, confirmPassword }
+    return apiClient.post('/auth/change-password', passwordData);
+};
 // Add more functions for other endpoints as needed
 // export const getEvidenceForTask = (taskId) => apiClient.get(`/tasks/${taskId}/evidence`);
 // export const addCommentToTask = (taskId, commentData) => apiClient.post(`/tasks/${taskId}/comments`, commentData);

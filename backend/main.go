@@ -73,6 +73,7 @@ func main() {
 	api.Use(middleware.AuthMiddleware()) // Apply AuthMiddleware to this group
 	{
 		api.GET("/auth/me", authAPI.GetCurrentUser)
+		api.POST("/auth/change-password", authAPI.ChangePasswordHandler) // New route for changing password
 
 		// Example of a route requiring 'admin' or 'auditor' role
 		// managementRoutes := authedAPI.Group("/management") // Example group

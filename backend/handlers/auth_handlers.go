@@ -151,3 +151,64 @@ func (a *AuthAPI) Register(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"token": tokenString, "user": newUser, "message": "User registered successfully"})
 }
+
+func (a *AuthAPI) ChangePasswordHandler(c *gin.Context) {
+	claimsValue, exists := c.Get(string(auth.ContextKeyClaims))
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	claims, ok := claimsValue.(*auth.Claims)
+	if !ok || claims == nil || claims.UserID == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error processing user authentication claims"})
+		return
+	}
+
+	var req struct {
+		CurrentPassword string `json:"currentPassword" binding:"required"`
+		NewPassword     string `json:"newPassword" binding:"required,min=8"` // Add password complexity rules if needed
+		ConfirmPassword string `json:"confirmPassword" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	if req.NewPassword != req.ConfirmPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "New passwords do not match"})
+		return
+	}
+
+	// Fetch user from DB
+	userIDUUID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+	user, err := a.UserStore.GetUserByID(userIDUUID) // Assuming GetUserByID exists and returns hashed_password
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Verify current password
+	if !auth.CheckPasswordHash(req.CurrentPassword, user.HashedPassword) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect current password"})
+		return
+	}
+
+	// Hash new password and update
+	newHashedPassword, err := auth.HashPassword(req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash new password"})
+		return
+	}
+
+	if err := a.UserStore.UpdateUserPassword(claims.UserID, newHashedPassword); err != nil { // You'll need to implement UpdateUserPassword in your store
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+}
