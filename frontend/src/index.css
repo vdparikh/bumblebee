@@ -176,11 +176,23 @@ a:hover {
 /* Specific dark theme overrides if needed */
 [data-bs-theme="dark"] {
   body {
-    background-color: #1e1e1e; /* A dark gray for the dark theme background */
+    background-color: #27252B; /* A dark gray for the dark theme background */
     color: var(--bs-body-color); /* Ensure text color contrasts well */
   }
 
+  .card, .details-pane {
+    background-color: #141316!important;
+  }
 
+  /* .sidebar {
+    background-color: #50428B!important;
+  } */
+
+  .bg-light, .bg-white {
+    background-color: rgba(0, 0, 0, 0.075)!important;
+  }
+
+  .text-dark { color: #fff!important; }
 .topnav {
   background-color: #000!important;
 }

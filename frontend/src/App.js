@@ -1,5 +1,5 @@
 import './App.css';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, NavLink, Navigate } from 'react-router-dom';
 import Container from 'react-bootstrap/Container';
@@ -68,7 +68,12 @@ function DynamicHeader() {
         headerText = "User Profile";
       }
   }
-  return <Navbar.Brand><span className='text-dark fw-bold'>/ {headerText}</span></Navbar.Brand>; 
+
+  useEffect(() => {
+    document.title = `Bumblebee - ${headerText}`;
+  }, [headerText]);
+
+  return <Navbar.Brand><span className='text-dark fw-bold'>{headerText}</span></Navbar.Brand>;
 }
 
 function Layout() { // Create a new component that can use useLocation
@@ -81,48 +86,7 @@ function Layout() { // Create a new component that can use useLocation
       <Row className="g-0">
 
         <Col md={12}>
-          
-          <Navbar expand="lg" className=" border-bottom shadow-sm topnav">
-            <Container fluid className=''>
-              <Navbar.Toggle aria-controls="top-navbar-nav" />
-              <Navbar.Brand as={Link} to="/" className="p-0 m-0 d-block text-decoration-none">
-                <Image height={44} src={process.env.PUBLIC_URL + '/logo.webp'} />
-              </Navbar.Brand>
 
-              <DynamicHeader /> {/* Use the new DynamicHeader component */}
-              <Navbar.Collapse id="top-navbar-nav" className="justify-content-end">
-                <Nav>
-                  {/* Placeholder for user info and logout */}
-                  <NavDropdown
-                    title={
-                      <>
-                        <FaUser className='me-1' />
-                        {currentUser?.name || 'User'}
-                      </>
-                    }
-                    id="user-nav-dropdown"
-                    align="end">
-                    <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
-                     {/* Add ThemeSwitcher here or nearby */}
-                    {currentUser?.role === 'admin' && <NavDropdown.Item href="#admin-settings">Admin Settings</NavDropdown.Item>}
-                    <NavDropdown.Divider />
-                    <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
-                  </NavDropdown>
-
-<ThemeSwitcher />
-
-                  <Button 
-                    variant="" 
-                    size="sm" 
-                    onClick={() => setShowDetailsPanel(!showDetailsPanel)} 
-                    className="ms-2 d-none d-md-inline-block border-0 p-0 m-0"
-                    title={showDetailsPanel ? "Hide Details Panel" : "Show Details Panel"}
-                  > {showDetailsPanel ? <FaAngleDoubleRight size="1.5em"  /> : <FaAngleDoubleLeft size="1.5em"  /> } </Button>
-
-                </Nav>
-              </Navbar.Collapse>
-            </Container>
-          </Navbar>
 
 
           {/* <div className='bg-dark text-white p-4 ps-5 pe-5'>
@@ -134,65 +98,114 @@ function Layout() { // Create a new component that can use useLocation
             <Row>
               {/* Updated Sidebar Column */}
               <Col className="p-0 sidebar d-flex flex-column align-items-center" style={{ maxWidth: "60px" /* Fixed width for icon-only sidebar */ }}>
-                <Nav variant='pills' activeKey={location.pathname} className="flex-column w-100 mt-3">
+                <Nav variant='pills' activeKey={location.pathname} className="flex-column w-100 mt-6">
+
+                  <Navbar.Brand as={Link} to="/" className="text-center mt-3 mb-3">
+                    <Image height={44} src={process.env.PUBLIC_URL + '/logo.webp'} />
+                  </Navbar.Brand>
+
                   {[
                     { to: "/", eventKey: "/", icon: <FaTachometerAlt size="1.5em" />, label: "Dashboard", roles: ['admin', 'auditor', 'user'] },
                     // { type: 'divider', label: 'Users', key: 'nav-div-user' },
                     { to: "/my-tasks", eventKey: "/my-tasks", icon: <FaUser size="1.5em" />, label: "My Tasks", roles: ['admin', 'auditor', 'user'] },
                     // { type: 'divider', label: 'Auditors', key: 'nav-div-auditor' },
                     { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.5em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
-                    
+
                     // Admin/Auditor specific section
                     (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management' },
                     { to: "/tasks", eventKey: "/tasks", icon: <FaTasks size="1.5em" />, label: "Manage Tasks", roles: ['admin', 'auditor'] },
                     { to: "/requirements", eventKey: "/requirements", icon: <FaFileContract size="1.5em" />, label: "Manage Requirements", roles: ['admin', 'auditor'] },
                     { to: "/standards", eventKey: "/standards", icon: <FaShieldAlt size="1.5em" />, label: "Manage Standards", roles: ['admin', 'auditor'] },
                   ]
-                  .filter(Boolean) // Remove any false values from conditional rendering
-                  .map((item, index) => {
-                    if (item.type === 'divider') {
-                      return (
-                        <Nav.Item key={item.key || `divider-${index}`} className='text-center mt-3 mb-1'>
-                          {/* Optionally show a small label or just a visual divider */}
-                          {/* <small className="text-light text-opacity-75">{item.label}</small> */}
-                           <hr className="border-light border-opacity-25 w-75 mx-auto" />
-                        </Nav.Item>
-                      );
-                    }
-                    // Role-based rendering for sidebar items
-                    if (item.roles && !item.roles.includes(currentUser?.role)) {
+                    .filter(Boolean) // Remove any false values from conditional rendering
+                    .map((item, index) => {
+                      if (item.type === 'divider') {
+                        return (
+                          <Nav.Item key={item.key || `divider-${index}`} className='text-center mt-3 mb-1'>
+                            {/* Optionally show a small label or just a visual divider */}
+                            {/* <small className="text-light text-opacity-75">{item.label}</small> */}
+                            <hr className="border-light border-opacity-25 w-75 mx-auto" />
+                          </Nav.Item>
+                        );
+                      }
+                      // Role-based rendering for sidebar items
+                      if (item.roles && !item.roles.includes(currentUser?.role)) {
                         return null;
-                    }
-                    return (
-                      <OverlayTrigger
-                        key={item.eventKey}
-                        placement="right"
-                        delay={{ show: 250, hide: 100 }}
-                        overlay={
-                          <Tooltip id={`tooltip-${item.eventKey.replace(/\//g, '')}`}>
-                            {item.label}
-                          </Tooltip>
-                        }
-                      >
-                        <Nav.Link
-                          as={NavLink} // Use NavLink for better active state handling
-                          to={item.to}
-                          eventKey={item.eventKey}
-                          className="d-flex justify-content-center align-items-center p-3 mb-1" // Centering icon
-                          // active={item.activeCheck ? item.activeCheck() : location.pathname === item.eventKey} // NavLink handles this
-                          title={item.label} // For accessibility
+                      }
+                      return (
+                        <OverlayTrigger
+                          key={item.eventKey}
+                          placement="right"
+                          delay={{ show: 250, hide: 100 }}
+                          overlay={
+                            <Tooltip id={`tooltip-${item.eventKey.replace(/\//g, '')}`}>
+                              {item.label}
+                            </Tooltip>
+                          }
                         >
-                          {item.icon}
-                          {/* Text label is removed from direct display */}
-                        </Nav.Link>
-                      </OverlayTrigger>
-                    );
-                  })}
+                          <Nav.Link
+                            as={NavLink} // Use NavLink for better active state handling
+                            to={item.to}
+                            eventKey={item.eventKey}
+                            className="d-flex justify-content-center align-items-center p-3 mb-1" // Centering icon
+                            // active={item.activeCheck ? item.activeCheck() : location.pathname === item.eventKey} // NavLink handles this
+                            title={item.label} // For accessibility
+                          >
+                            {item.icon}
+                            {/* Text label is removed from direct display */}
+                          </Nav.Link>
+                        </OverlayTrigger>
+                      );
+                    })}
 
                 </Nav>
               </Col>
               {/* This Col now wraps the main content area and the new right details panel */}
               <Col className="p-0 "> {/* Removed padding to let child columns manage it */}
+
+
+                <Navbar expand="lg" className=" border-bottom shadow-0 topnav">
+                  <Container fluid className=''>
+                    <Navbar.Toggle aria-controls="top-navbar-nav" />
+                    {/* <Navbar.Brand as={Link} to="/" className="p-0 m-0 d-block text-decoration-none">
+                      <Image height={44} src={process.env.PUBLIC_URL + '/logo.webp'} />
+                    </Navbar.Brand> */}
+
+                    <DynamicHeader /> {/* Use the new DynamicHeader component */}
+                    <Navbar.Collapse id="top-navbar-nav" className="justify-content-end">
+                      <Nav>
+                        {/* Placeholder for user info and logout */}
+                        <NavDropdown
+                          title={
+                            <>
+                              <FaUser className='me-1' />
+                              {currentUser?.name || 'User'}
+                            </>
+                          }
+                          id="user-nav-dropdown"
+                          align="end">
+                          <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
+                          {/* Add ThemeSwitcher here or nearby */}
+                          {currentUser?.role === 'admin' && <NavDropdown.Item href="#admin-settings">Admin Settings</NavDropdown.Item>}
+                          <NavDropdown.Divider />
+                          <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
+                        </NavDropdown>
+
+                        <ThemeSwitcher />
+
+                        <Button
+                          variant=""
+                          size="sm"
+                          onClick={() => setShowDetailsPanel(!showDetailsPanel)}
+                          className="ms-2 d-none d-md-inline-block border-0 p-0 m-0"
+                          title={showDetailsPanel ? "Hide Details Panel" : "Show Details Panel"}
+                        > {showDetailsPanel ? <FaAngleDoubleRight size="1.5em" /> : <FaAngleDoubleLeft size="1.5em" />} </Button>
+
+                      </Nav>
+                    </Navbar.Collapse>
+                  </Container>
+                </Navbar>
+
                 <Row className="g-0 " style={{ height: 'calc(100vh - 60px)' /* Adjust 80px based on actual top navbar height */ }}>
                   {/* Main Content Area (Middle Column) */}
                   {/* Adjusted column sizes based on details panel visibility */}
@@ -213,13 +226,13 @@ function Layout() { // Create a new component that can use useLocation
                           <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
                           <Route path="/campaigns/:campaignId" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
                         </Routes>
-                    </main>
+                      </main>
                     </Container>
                   </Col>
                   {/* Right Details Panel (New Right Column) */}
-                  <Col 
-                    xs={12} md={4} xl={3} 
-                    className={`p-3 border-start details-pane ${showDetailsPanel ? 'd-md-block' : 'd-none'}`} 
+                  <Col
+                    xs={12} md={4} xl={3}
+                    className={`p-3 border-start details-pane ${showDetailsPanel ? 'd-md-block' : 'd-none'}`}
                     style={{ height: '100%', overflowY: 'auto', transition: 'display 0.3s ease-in-out' }}
                   >
                     <HelpSupportPanel />
@@ -263,7 +276,7 @@ function AppRoutes() {
   const { currentUser, loadingAuth } = useAuth();
 
   console.log(currentUser, loadingAuth)
-  
+
   if (loadingAuth) {
     return <div className="d-flex justify-content-center align-items-center" style={{ height: "100vh" }}><Spinner animation="border" /></div>;
   }

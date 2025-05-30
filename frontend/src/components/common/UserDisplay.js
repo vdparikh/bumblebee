@@ -1,6 +1,7 @@
 import React from 'react';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Popover from 'react-bootstrap/Popover';
+import { FaUserCircle, FaEnvelope, FaUserTag } from 'react-icons/fa'; // Import icons
 
 const UserDisplay = ({ userId, userName, allUsers = [], defaultText = 'N/A' }) => {
     if (!userId) return defaultText;
@@ -16,15 +17,24 @@ const UserDisplay = ({ userId, userName, allUsers = [], defaultText = 'N/A' }) =
         <Popover id={`popover-user-display-${userId}`}>
             <Popover.Header as="h3">{user?.name || userName}</Popover.Header>
             <Popover.Body>
-                <strong>Email:</strong> {user?.email || 'N/A'}<br />
-                <strong>ID:</strong> {user?.id || userId}
+                <div className="mb-1">
+                    <FaEnvelope className="me-2 text-muted" />
+                    <strong>Email:</strong> {user?.email || 'N/A'}
+                </div>
+                {user?.role && (
+                    <div className="mb-1">
+                        <FaUserTag className="me-2 text-muted" />
+                        <strong>Role:</strong> <span className="text-capitalize">{user.role}</span>
+                    </div>
+                )}
+                <small className="text-muted"><strong>ID:</strong> {user?.id || userId}</small>
             </Popover.Body>
         </Popover>
     );
 
     return (
         <OverlayTrigger placement="top" overlay={userPopover} delay={{ show: 250, hide: 400 }}>
-            <span>{displayName}</span>
+            <span><FaUserCircle className="me-1 text-muted" style={{ verticalAlign: 'middle' }} /> {displayName}</span>
         </OverlayTrigger>
     );
 };
