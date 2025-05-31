@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13-alpine
+    container_name: compliance_postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mysecretpassword} # Ensure this matches your backend config or .env
+      POSTGRES_DB: ${DB_NAME:-compliance}
+    ports:
+      - "5432:5432" # Map host port 5432 to container port 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: compliance_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-mysecretpassword} # Should match db service's POSTGRES_PASSWORD
+      DB_HOST: db # This refers to the service name 'db'
+      DB_NAME: ${DB_NAME:-compliance} # Should match db service's POSTGRES_DB
+      DB_PORT: ${DB_PORT:-5432}
+      GIN_MODE: ${GIN_MODE:-release} # Or debug
+    depends_on:
+      - db
+    volumes:
+      - ./backend/uploads:/app/uploads # Persist uploads, ensure /app/uploads is where backend saves them
+      # If your backend executable is in /root/ as per Dockerfile, and uploads are relative to executable:
+      # - ./backend/uploads:/root/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: compliance_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000" # Nginx in the frontend Dockerfile is set to expose 3000
+    depends_on:
+      - backend # Optional, but good for startup order visibility
+
+volumes:
+  postgres_data: # Persists PostgreSQL data
+
+# Note: For the backend volume for uploads, ensure the path inside the container
+# matches where your Go application expects to read/write files.
+# If your Go app uses "./uploads", and WORKDIR is /app, then /app/uploads is correct.
+# If WORKDIR is /root/, then /root/uploads.

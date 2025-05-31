@@ -31,6 +31,8 @@ import ProtectedRoute from './components/auth/ProtectedRoute'; // Import Protect
 import RegisterPage from './components/auth/RegisterPage'; // Import RegisterPage
 import ThreeColumnView from './components/views/ThreeColumnView'; // Import the new view
 import UserProfilePage from './components/auth/UserProfilePage'; // Import UserProfilePage
+import AdminSettingsPage from './pages/AdminSettingsPage'; // New Admin Page
+// import PrivateRoute from './components/auth/PrivateRoute';
 
 function DynamicHeader() {
   const location = useLocation();
@@ -191,7 +193,7 @@ function Layout() { // Create a new component that can use useLocation
                           align="end">
                           <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
                           {/* Add ThemeSwitcher here or nearby */}
-                          {currentUser?.role === 'admin' && <NavDropdown.Item href="#admin-settings">Admin Settings</NavDropdown.Item>}
+                          {currentUser?.role === 'admin' && <NavDropdown.Item as={NavLink} to="/admin-settings">Admin Settings</NavDropdown.Item>}
                           <NavDropdown.Divider />
                           <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
                         </NavDropdown>
@@ -229,6 +231,8 @@ function Layout() { // Create a new component that can use useLocation
                           <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
                           <Route path="/campaign-task/:instanceId" element={<ProtectedRoute><CampaignTaskInstanceDetail /></ProtectedRoute>} />
                           <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+                                                          <Route path="/admin-settings" element={<ProtectedRoute requiredRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
+
                           <Route path="/alt-view" element={<ProtectedRoute><ThreeColumnView /></ProtectedRoute>} />
                           <Route path="/campaigns/:campaignId" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
                         </Routes>

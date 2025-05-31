@@ -8,10 +8,17 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/vdparikh/compliance-automation/backend/handlers"   // Adjust import path// Adjust path
+	"github.com/vdparikh/compliance-automation/backend/handlers"   // Adjust import path
 	"github.com/vdparikh/compliance-automation/backend/middleware" // Adjust path
 	"github.com/vdparikh/compliance-automation/backend/store"      // Adjust import path
-	// Adjust path
+)
+
+const (
+	defaultDBUser     = "postgres"
+	defaultDBHost     = "localhost"
+	defaultDBPort     = "5432"
+	defaultDBName     = "compliance"
+	defaultServerPort = ":8080"
 )
 
 func main() {
@@ -19,7 +26,7 @@ func main() {
 	// Example: postgresql://user:password@host:port/database?sslmode=disable
 	dbUser := os.Getenv("DB_USER")
 	if dbUser == "" {
-		dbUser = "postgres" // Default user, replace if different
+		dbUser = defaultDBUser
 	}
 	dbPassword := os.Getenv("DB_PASSWORD") // Your 'mysecretpassword'
 	if dbPassword == "" {
@@ -28,8 +35,27 @@ func main() {
 	dbName := "compliance"
 	dbHost := "localhost" // Or your Docker container's IP if not localhost from Go app's perspective
 	dbPort := "5432"
+	dbNameEnv := os.Getenv("DB_NAME")
+	if dbNameEnv != "" {
+		dbName = dbNameEnv
+	} else {
+		dbName = defaultDBName
+	}
 
-	// dataSourceName := "postgres://postgres:mysecretpassword@localhost:5432/compliance?sslmode=disable"
+	dbHostEnv := os.Getenv("DB_HOST")
+	if dbHostEnv != "" {
+		dbHost = dbHostEnv
+	} else {
+		dbHost = defaultDBHost
+	}
+
+	dbPortEnv := os.Getenv("DB_PORT")
+	if dbPortEnv != "" {
+		dbPort = dbPortEnv
+	} else {
+		dbPort = defaultDBPort
+	}
+
 	dataSourceName := "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=disable"
 
 	dbStore, err := store.NewDBStore(dataSourceName)
@@ -140,8 +166,8 @@ func main() {
 	}
 	router.StaticFS("/uploads", http.Dir(absUploadsDir))
 
-	log.Println("Starting server on :8080...")
-	if err = router.Run(":8080"); err != nil {
+	log.Printf("Starting server on %s...", defaultServerPort)
+	if err = router.Run(defaultServerPort); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
 	}
 }

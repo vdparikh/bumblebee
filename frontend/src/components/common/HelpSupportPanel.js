@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, ListGroup, Button, Image, Row, Col } from 'react-bootstrap';
+import { Card, ListGroup, Button, Image, Row, Col, Accordion } from 'react-bootstrap';
 import { FaQuestionCircle, FaLink, FaSlack, FaBook, FaLifeRing, FaExternalLinkAlt } from 'react-icons/fa';
 
 const HelpSupportPanel = () => {
@@ -7,11 +7,12 @@ const HelpSupportPanel = () => {
         <div className="help-support-panel">
             <Card className="mb-3 shadow-sm">
                 <Card.Header as="h5" className="d-flex align-items-center">
-                    <FaLifeRing className="me-2 text-primary" /> Help & Support
+                    <FaLifeRing className="me-2 text-secondary" /> Help & Support
                 </Card.Header>
                 <Card.Body>
+                    <div className='text-center mb-2'><Image height={150} src={process.env.PUBLIC_URL + '/logo.webp'} /></div>
                     <p>
-                        Welcome to the Compliance Automation Platform! Find resources below to help you get started and troubleshoot any issues.
+                        Welcome to the <strong>Bumblebee</strong> - Your Compliance Automation Platform! Find resources below to help you get started and troubleshoot any issues.
                     </p>
                 </Card.Body>
             </Card>
@@ -20,12 +21,40 @@ const HelpSupportPanel = () => {
                 <Card.Header as="h6">
                     <FaQuestionCircle className="me-2 text-success" /> Frequently Asked Questions
                 </Card.Header>
-                <ListGroup variant="flush">
-                    <ListGroup.Item action href="#faq-1" onClick={(e) => e.preventDefault()}>How do I create a new campaign?</ListGroup.Item>
-                    <ListGroup.Item action href="#faq-2" onClick={(e) => e.preventDefault()}>Where can I find my assigned tasks?</ListGroup.Item>
-                    <ListGroup.Item action href="#faq-3" onClick={(e) => e.preventDefault()}>How to upload evidence?</ListGroup.Item>
-                    <ListGroup.Item action href="#faq-4" onClick={(e) => e.preventDefault()}>Understanding task statuses.</ListGroup.Item>
-                </ListGroup>
+                {/* Replace ListGroup with Accordion */}
+                <Accordion flush>
+                    <Accordion.Item eventKey="0">
+                        <Accordion.Header>How do I create a new campaign?</Accordion.Header>
+                        <Accordion.Body>
+                            To create a new campaign, navigate to the "Campaigns" section from the sidebar. Click on the "New Campaign" button. You'll be prompted to fill in details such as the campaign name, description, select a compliance standard, set start and end dates, and choose the specific requirements to include in the campaign. Once all necessary information is provided, save the campaign. Task instances will be automatically generated for applicable requirements.
+                        </Accordion.Body>
+                    </Accordion.Item>
+                    <Accordion.Item eventKey="1">
+                        <Accordion.Header>Where can I find my assigned tasks?</Accordion.Header>
+                        <Accordion.Body>
+                            You can find all tasks assigned to you or that you own by clicking on "My Tasks" in the sidebar. This page lists all your active and pending campaign task instances, allowing you to manage their status, due dates, and evidence.
+                        </Accordion.Body>
+                    </Accordion.Item>
+                    <Accordion.Item eventKey="2">
+                        <Accordion.Header>How to upload evidence?</Accordion.Header>
+                        <Accordion.Body>
+                            When viewing a specific task instance (from "My Tasks" or a Campaign's detail page), navigate to the "Evidence" tab. You can upload files directly, provide links to external resources, or add textual evidence. Ensure you provide a clear description for each piece of evidence. You can also copy evidence from other tasks if applicable.
+                        </Accordion.Body>
+                    </Accordion.Item>
+                    <Accordion.Item eventKey="3">
+                        <Accordion.Header>Understanding task statuses.</Accordion.Header>
+                        <Accordion.Body>
+                            Task statuses help track progress:
+                            <ul>
+                                <li><strong>Open:</strong> The task is new and work has not started.</li>
+                                <li><strong>In Progress:</strong> Work has begun on the task.</li>
+                                <li><strong>Pending Review:</strong> The task is completed and awaiting review/approval.</li>
+                                <li><strong>Closed:</strong> The task has been successfully completed and verified.</li>
+                                <li><strong>Failed:</strong> The task could not be completed successfully or did not meet requirements.</li>
+                            </ul>
+                        </Accordion.Body>
+                    </Accordion.Item>
+                </Accordion>
             </Card>
 
             <Card className="mb-3 shadow-sm">

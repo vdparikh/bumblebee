@@ -129,6 +129,16 @@ export const getUsers = async () => {
     return response;
 };
 
+export const updateUser = async (userId, userData) => {
+    // userData could be { role: "new_role" } or other updatable fields
+    const response = await apiClient.put(`/users/${userId}`, userData);
+    return response;
+};
+
+export const deleteUser = async (userId) => {
+    const response = await apiClient.delete(`/users/${userId}`);
+    return response;
+};
 
 // In frontend/src/services/api.js
 
