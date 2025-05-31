@@ -421,7 +421,7 @@ function CampaignTaskInstanceDetail() {
                                             taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
                                                 <React.Fragment key={evidenceType}>
                                                 
-                                                 <Badge variant="info" className='me-1 ms-1'>{evidenceType}</Badge>
+                                                 <Badge variant="secondary" className='bg-secondary me-1 ms-1'>{evidenceType}</Badge>
                                                     
                                                 </React.Fragment>
                                             )) : ' N/A'}
@@ -485,7 +485,7 @@ function CampaignTaskInstanceDetail() {
                                             taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
                                                 <React.Fragment key={evidenceType}>
                                                 
-                                                 <Badge variant="info" className='me-1 ms-1'>{evidenceType}</Badge>
+                                                 <Badge variant="secondary" className='bg-secondary me-1 ms-1'>{evidenceType}</Badge>
                                                     
                                                 </React.Fragment>
                                             )) : ' N/A'}
@@ -585,6 +585,28 @@ function CampaignTaskInstanceDetail() {
                                 {executionSuccess && <Alert variant="success" onClose={() => setExecutionSuccess('')} dismissible>{executionSuccess}</Alert>}
 
                                 {canManageEvidenceAndExecution && taskInstance.check_type ? (
+                                    // This block is shown if the task IS configured for automation
+                                    <>
+                                        <p>This task instance is configured for automated execution.</p>
+                                        <Button onClick={handleExecuteInstance} disabled={loadingResults}>
+                                            {/* ... button text ... */}
+                                        </Button>
+                                    </>
+                                ) : !canManageEvidenceAndExecution ? (
+                                    // This block is shown if the user doesn't have permission
+                                    <Alert variant="info">Task execution is restricted.</Alert>
+                                ) : !taskInstance.check_type ? (
+                                    // THIS IS THE KEY CONDITION:
+                                    // If taskInstance.check_type is null, undefined, or an empty string,
+                                    // this message is displayed.
+                                    <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
+                                ) : (
+                                    // Fallback, also shows the same message
+                                    <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
+                                )}
+
+
+                                {/* {canManageEvidenceAndExecution && taskInstance.check_type ? (
                                     <>
                                         <p>This task instance is configured for automated execution.</p>
                                         <Button onClick={handleExecuteInstance} disabled={loadingResults}>
@@ -597,7 +619,7 @@ function CampaignTaskInstanceDetail() {
                                     <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
                                 ) : (
                                     <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
-                                )}
+                                )} */}
                             </Card.Body></Card>
                         </Tab>
                         <Tab eventKey="results" title={<><FaPoll className="me-1" />Results</>}>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, ListGroup, ListGroupItem } from 'react-bootstrap';
-import { FaUsersCog, FaCogs } from 'react-icons/fa';
+import { FaUsersCog, FaCogs, FaPlug } from 'react-icons/fa'; // Added FaPlug
 import UserManagement from '../components/admin/UserManagement';
+import SystemIntegrations from '../components/admin/SystemIntegrations'; // Import the new component
 // import SystemSettings from '../components/admin/SystemSettings'; // Placeholder for future
 
 function AdminSettingsPage() {
@@ -11,6 +12,8 @@ function AdminSettingsPage() {
         switch (activeSetting) {
             case 'userManagement':
                 return <UserManagement />;
+            case 'systemIntegrations':
+                return <SystemIntegrations />;
             // case 'systemSettings':
             //     return <SystemSettings />; // Placeholder
             default:
@@ -34,14 +37,23 @@ function AdminSettingsPage() {
                             >
                                 <FaUsersCog className="me-2" />User Management
                             </ListGroup.Item>
+                            <ListGroup.Item
+                                action
+                                active={activeSetting === 'systemIntegrations'}
+                                onClick={() => setActiveSetting('systemIntegrations')}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <FaPlug className="me-2" />System Integrations
+                            </ListGroup.Item>
                             {/* Example for a future "System Settings" item:
                             <ListGroup.Item
                                 action
-                                    active={activeSetting === 'systemSettings'}
-                                    onClick={() => setActiveSetting('systemSettings')}
-                                style={{ cursor: 'pointer' }}                            >
-                                    <FaCogs className="me-2" />System Settings
-                            </ListGroup.Item> */}
+                                active={activeSetting === 'systemSettings'}
+                                onClick={() => setActiveSetting('systemSettings')}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <FaCogs className="me-2" />System Settings
+                            </ListGroup.Item>*/}
                         </ListGroup>
                     </Card>
                 </Col>

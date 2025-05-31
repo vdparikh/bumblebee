@@ -51,17 +51,25 @@ type CampaignTaskInstance struct {
 	OwnerUserIDs []string        `json:"owner_user_ids,omitempty"` // Used for input binding in handlers
 	Owners       []UserBasicInfo `json:"owners,omitempty"`         // Populated by store for output
 
-	AssigneeUserID                *string                `json:"assignee_user_id,omitempty"`
-	Status                        string                 `json:"status"`
-	DueDate                       *time.Time             `json:"due_date,omitempty"`
-	CreatedAt                     time.Time              `json:"created_at"`
-	UpdatedAt                     time.Time              `json:"updated_at"`
-	CheckType                     *string                `json:"check_type,omitempty"`
-	Target                        *string                `json:"target,omitempty"`
-	Parameters                    map[string]interface{} `json:"parameters,omitempty"`                       // Changed to interface{} for flexibility
-	OwnerUserName                 *string                `json:"owner_user_name,omitempty"`                  // For display
-	AssigneeUserName              *string                `json:"assignee_user_name,omitempty"`               // For display
-	RequirementControlIDReference *string                `json:"requirement_control_id_reference,omitempty"` // For display
+	AssigneeUserID *string    `json:"assignee_user_id,omitempty"`
+	Status         string     `json:"status"`
+	DueDate        *time.Time `json:"due_date,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	// UpdatedAt                     time.Time              `json:"updated_at"`
+	// CheckType                     *string                `json:"check_type,omitempty"`
+	// Target                        *string                `json:"target,omitempty"`
+	// Parameters                    map[string]interface{} `json:"parameters,omitempty"`                       // Changed to interface{} for flexibility
+
+	UpdatedAt       time.Time              `json:"updatedAt" db:"updated_at"`
+	CheckType       *string                `json:"checkType,omitempty" db:"check_type"`
+	Target          *string                `json:"target,omitempty" db:"target"`
+	Parameters      map[string]interface{} `json:"parameters,omitempty" db:"parameters"`             // Stored as JSONB
+	LastCheckedAt   *time.Time             `json:"lastCheckedAt,omitempty" db:"last_checked_at"`     // New field
+	LastCheckStatus *string                `json:"lastCheckStatus,omitempty" db:"last_check_status"` // New field
+
+	OwnerUserName                 *string `json:"owner_user_name,omitempty"`                  // For display
+	AssigneeUserName              *string `json:"assignee_user_name,omitempty"`               // For display
+	RequirementControlIDReference *string `json:"requirement_control_id_reference,omitempty"` // For display
 
 	DefaultPriority       *string  `json:"defaultPriority,omitempty"`
 	EvidenceTypesExpected []string `json:"evidenceTypesExpected,omitempty"`
@@ -69,6 +77,17 @@ type CampaignTaskInstance struct {
 	RequirementText         *string `json:"requirement_text,omitempty" db:"requirement_text"`                   // New: Full text of the requirement
 	RequirementStandardName *string `json:"requirement_standard_name,omitempty" db:"requirement_standard_name"` // New: Name of the standard for the requirement
 
+}
+
+// CampaignTaskInstanceResult represents the result of an automated task execution.
+type CampaignTaskInstanceResult struct {
+	ID                     string         `json:"id" db:"id"`
+	CampaignTaskInstanceID string         `json:"campaignTaskInstanceId" db:"campaign_task_instance_id"`
+	ExecutedByUserID       *string        `json:"executedByUserId,omitempty" db:"executed_by_user_id"` // Nullable if system executed
+	Timestamp              time.Time      `json:"timestamp" db:"timestamp"`
+	Status                 string         `json:"status" db:"status"`       // e.g., "Success", "Failed", "Error"
+	Output                 string         `json:"output" db:"output"`       // Can be JSON or plain text
+	ExecutedByUser         *UserBasicInfo `json:"executedByUser,omitempty"` // For display
 }
 
 // Modify TaskComment, TaskEvidence, TaskExecutionResult models if needed

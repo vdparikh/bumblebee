@@ -83,6 +83,7 @@ func main() {
 	userHandler := handlers.NewUserHandler(dbStore)
 	campaignHandler := handlers.NewCampaignHandler(dbStore) // New Campaign Handler
 	authAPI := handlers.NewAuthAPI(dbStore)
+	systemIntegrationHandler := handlers.NewSystemIntegrationHandler(dbStore) // New System Integration Handler
 
 	apiV1 := router.Group("/api")
 
@@ -154,6 +155,15 @@ func main() {
 
 		// User Feed Route
 		api.GET("/user-feed", handlers.GetUserFeedHandler(dbStore))
+
+		// System Integration Routes (Admin protected - consider adding RoleAuthMiddleware)
+		// For now, just under general auth. Add RoleAuthMiddleware(['admin']) for production.
+		systemRoutes := api.Group("/systems")
+		systemRoutes.POST("", systemIntegrationHandler.CreateConnectedSystemHandler)
+		systemRoutes.GET("", systemIntegrationHandler.GetAllConnectedSystemsHandler)
+		systemRoutes.GET("/:id", systemIntegrationHandler.GetConnectedSystemHandler)
+		systemRoutes.PUT("/:id", systemIntegrationHandler.UpdateConnectedSystemHandler)
+		systemRoutes.DELETE("/:id", systemIntegrationHandler.DeleteConnectedSystemHandler)
 	}
 
 	// Serve static files from the "uploads" directory

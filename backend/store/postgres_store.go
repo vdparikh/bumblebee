@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+
 	"github.com/google/uuid"
 	"github.com/lib/pq" // PostgreSQL driver, also for pq.Array
 	"github.com/vdparikh/compliance-automation/backend/models"
@@ -55,12 +57,12 @@ type Store interface {
 
 // DBStore holds the database connection.
 type DBStore struct {
-	DB *sql.DB
+	DB *sqlx.DB // Changed to sqlx.DB
 }
 
 // NewDBStore creates a new DBStore and pings the database.
 func NewDBStore(dataSourceName string) (*DBStore, error) {
-	db, err := sql.Open("postgres", dataSourceName)
+	db, err := sqlx.Open("postgres", dataSourceName) // Changed to sqlx.Open
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -1150,34 +1152,34 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
 	// 	LEFT JOIN compliance_standards std ON req.standard_id = std.id
 	// 	WHERE cti.id = $1
 	// `
-	query := `SELECT
-    cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id,campaign_selected_requirement_id,
-	cti.title, cti.description, cti.category, cti.assignee_user_id,
-	cti.status, cti.due_date, cti.created_at, cti.updated_at,
-	cti.check_type, cti.target, cti.parameters,
+	query := `SELECT cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id,
+	cti.campaign_selected_requirement_id, cti.title, cti.description, cti.category, cti.assignee_user_id, cti.last_checked_at, cti.last_check_status,
+    cti.status, cti.due_date, cti.created_at, cti.updated_at,
+    cti.check_type, cti.target, cti.parameters,
     assignee.name as assignee_user_name,
     req.control_id_reference as requirement_control_id_reference,
     req.requirement_text as requirement_text,
     std.name as requirement_standard_name,
-    mt.default_priority,       
-    mt.evidence_types_expected 
-	FROM campaign_task_instances cti
-	LEFT JOIN campaigns c ON cti.campaign_id = c.id
-	LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
-	LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
-	LEFT JOIN requirements req ON csr.requirement_id = req.id
-	LEFT JOIN compliance_standards std ON req.standard_id = std.id
-	LEFT JOIN tasks mt ON cti.master_task_id = mt.id -- Join with master tasks
-	WHERE cti.id = $1
+    mt.default_priority,
+    mt.evidence_types_expected
+    FROM campaign_task_instances cti
+    LEFT JOIN campaigns c ON cti.campaign_id = c.id
+    LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
+    LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
+    LEFT JOIN requirements req ON csr.requirement_id = req.id
+    LEFT JOIN compliance_standards std ON req.standard_id = std.id
+    LEFT JOIN tasks mt ON cti.master_task_id = mt.id -- Join with master tasks
+    WHERE cti.id = $1
 `
+
 	row := s.DB.QueryRow(query, ctiID)
 	var cti models.CampaignTaskInstance
 	var paramsJSON []byte
 	if err := row.Scan(
 		&cti.ID, &cti.CampaignID, &cti.CampaignName, &cti.MasterTaskID, &cti.CampaignSelectedRequirementID,
-		&cti.Title, &cti.Description, &cti.Category, &cti.AssigneeUserID,
+		&cti.Title, &cti.Description, &cti.Category, &cti.AssigneeUserID, &cti.LastCheckedAt, &cti.LastCheckStatus, // Added these
 		&cti.Status, &cti.DueDate, &cti.CreatedAt, &cti.UpdatedAt,
-		&cti.CheckType, &cti.Target, &paramsJSON,
+		&cti.CheckType, &cti.Target, &paramsJSON, // &cti.CheckType is scanned here
 		&cti.AssigneeUserName, &cti.RequirementControlIDReference, &cti.RequirementText, &cti.RequirementStandardName,
 		&cti.DefaultPriority, pq.Array(&cti.EvidenceTypesExpected),
 	); err != nil {
@@ -1593,4 +1595,90 @@ func (s *DBStore) CopyEvidenceToTaskInstance(targetInstanceID string, sourceEvid
 	}
 
 	return tx.Commit()
+}
+
+// --- ConnectedSystem Store Methods ---
+
+func (s *DBStore) CreateConnectedSystem(system *models.ConnectedSystem) error {
+	query := `INSERT INTO connected_systems (name, system_type, description, configuration, is_enabled)
+              VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at`
+	err := s.DB.QueryRow(query, system.Name, system.SystemType, system.Description, system.Configuration, system.IsEnabled).Scan(&system.ID, &system.CreatedAt, &system.UpdatedAt)
+	if err != nil {
+		log.Printf("Error creating connected system in DB: %v. System details: %+v", err, system)
+	}
+	return err
+}
+
+func (s *DBStore) GetConnectedSystemByID(id string) (*models.ConnectedSystem, error) {
+	var system models.ConnectedSystem
+	query := `SELECT id, name, system_type, description, configuration, is_enabled, last_checked_at, last_check_status, created_at, updated_at
+              FROM connected_systems WHERE id = $1`
+	err := s.DB.Get(&system, query, id)
+	if err == sql.ErrNoRows {
+		return nil, nil // Not found
+	}
+	return &system, err
+}
+
+func (s *DBStore) GetAllConnectedSystems() ([]models.ConnectedSystem, error) {
+	var systems []models.ConnectedSystem
+	query := `SELECT id, name, system_type, description, configuration, is_enabled, last_checked_at, last_check_status, created_at, updated_at
+              FROM connected_systems ORDER BY name ASC`
+	err := s.DB.Select(&systems, query)
+	return systems, err
+}
+
+func (s *DBStore) UpdateConnectedSystem(system *models.ConnectedSystem) error {
+	query := `UPDATE connected_systems
+              SET name = $1, system_type = $2, description = $3, configuration = $4, is_enabled = $5,
+                  last_checked_at = $6, last_check_status = $7, updated_at = NOW()
+              WHERE id = $8 RETURNING updated_at`
+	// Ensure LastCheckedAt and LastCheckStatus are handled correctly if they are nil
+	var lastCheckedAt sql.NullTime
+	if system.LastCheckedAt != nil {
+		lastCheckedAt = sql.NullTime{Time: *system.LastCheckedAt, Valid: true}
+	}
+
+	var lastCheckStatus sql.NullString
+	if system.LastCheckStatus != nil {
+		lastCheckStatus = sql.NullString{String: *system.LastCheckStatus, Valid: true}
+	}
+
+	err := s.DB.QueryRow(query, system.Name, system.SystemType, system.Description, system.Configuration, system.IsEnabled,
+		lastCheckedAt, lastCheckStatus, system.ID).Scan(&system.UpdatedAt)
+	if err != nil {
+		log.Printf("Error updating connected system in DB: %v. System ID: %s, Details: %+v", err, system.ID, system)
+	}
+	return err
+}
+
+func (s *DBStore) DeleteConnectedSystem(id string) error {
+	query := `DELETE FROM connected_systems WHERE id = $1`
+	_, err := s.DB.Exec(query, id)
+	return err
+}
+
+// UpdateConnectedSystemStatus is a more specific update for when an automated check runs
+func (s *DBStore) UpdateConnectedSystemStatus(id string, lastCheckedAt time.Time, status string) error {
+	query := `UPDATE connected_systems
+              SET last_checked_at = $1, last_check_status = $2, updated_at = NOW()
+              WHERE id = $3`
+	_, err := s.DB.Exec(query, lastCheckedAt, status, id)
+	if err != nil {
+		log.Printf("Error updating connected system status in DB: %v. System ID: %s", err, id)
+	}
+	return err
+}
+
+// --- CampaignTaskInstanceResult Store Methods ---
+
+func (s *DBStore) CreateCampaignTaskInstanceResult(result *models.CampaignTaskInstanceResult) error {
+	query := `INSERT INTO campaign_task_instance_results (campaign_task_instance_id, executed_by_user_id, timestamp, status, output)
+              VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	err := s.DB.QueryRow(query, result.CampaignTaskInstanceID, result.ExecutedByUserID, result.Timestamp, result.Status, result.Output).Scan(&result.ID)
+	if err != nil {
+		log.Printf("Error creating campaign task instance result in DB: %v. Result details: %+v", err, result)
+		return fmt.Errorf("failed to create campaign task instance result: %w", err)
+	}
+	return nil
 }

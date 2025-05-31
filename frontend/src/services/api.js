@@ -298,6 +298,31 @@ export const changePassword = async (passwordData) => {
     return apiClient.post('/auth/change-password', passwordData);
 };
 
+// --- Connected Systems API calls ---
+export const getConnectedSystems = async () => {
+    const response = await apiClient.get('/systems');
+    return response;
+};
+
+export const getConnectedSystemById = async (systemId) => {
+    const response = await apiClient.get(`/systems/${systemId}`);
+    return response;
+};
+
+export const createConnectedSystem = async (systemData) => {
+    const response = await apiClient.post('/systems', systemData);
+    return response;
+};
+
+export const updateConnectedSystem = async (systemId, systemData) => {
+    const response = await apiClient.put(`/systems/${systemId}`, systemData);
+    return response;
+};
+
+export const deleteConnectedSystem = async (systemId) => {
+    const response = await apiClient.delete(`/systems/${systemId}`);
+    return response;
+};
 
 
 // Add more functions for other endpoints as needed

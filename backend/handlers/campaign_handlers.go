@@ -1,15 +1,19 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	// "time"
 
@@ -511,12 +515,132 @@ func (h *CampaignHandler) ExecuteCampaignTaskInstanceHandler(c *gin.Context) {
 	instanceID := c.Param("id")
 	// TODO:
 	// 1. Retrieve the campaign task instance by instanceID from the store.
+	taskInstance, err := h.Store.GetCampaignTaskInstanceByID(instanceID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			sendError(c, http.StatusNotFound, "Campaign Task Instance not found", err)
+			return
+		}
+		sendError(c, http.StatusInternalServerError, "Failed to retrieve campaign task instance", err)
+		return
+	}
+
+	// 1. Retrieve the campaign task instance by instanceID from the store.
 	// 2. Check if it's an automated task (has check_type, target, parameters).
 	// 3. If automated, trigger the execution logic (e.g., call a script, API, etc.).
 	// 4. Store the execution result (status, output, timestamp) in a new table
 	//    (e.g., campaign_task_instance_results) linked to the instanceID.
 	// 5. Return a success response or an error.
-	c.JSON(http.StatusOK, gin.H{"message": "Execution triggered for instance " + instanceID}) // Placeholder
+	// c.JSON(http.StatusOK, gin.H{"message": "Execution triggered for instance " + instanceID}) // Placeholder
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in token"})
+		return
+	}
+	executedByUserID := userID.(string)
+
+	var executionOutput strings.Builder
+	executionStatus := "Failed" // Default to Failed
+
+	if taskInstance.CheckType != nil && *taskInstance.CheckType == "http_get_check" {
+		if taskInstance.Target == nil || *taskInstance.Target == "" {
+			executionOutput.WriteString("Error: Target URL is not defined for http_get_check.\n")
+		} else {
+			url := *taskInstance.Target
+			executionOutput.WriteString(fmt.Sprintf("Attempting HTTP GET request to: %s\n", url))
+
+			// Timeout context for the HTTP request
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // 10-second timeout
+			defer cancel()
+
+			req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+			if err != nil {
+				executionOutput.WriteString(fmt.Sprintf("Error creating request: %v\n", err))
+			} else {
+				client := &http.Client{}
+				resp, err := client.Do(req)
+				if err != nil {
+					executionOutput.WriteString(fmt.Sprintf("Error performing GET request: %v\n", err))
+					if ctx.Err() == context.DeadlineExceeded {
+						executionOutput.WriteString("Request timed out.\n")
+					}
+				} else {
+					defer resp.Body.Close()
+					executionOutput.WriteString(fmt.Sprintf("Response Status: %s\n", resp.Status))
+					executionOutput.WriteString(fmt.Sprintf("Response Code: %d\n", resp.StatusCode))
+
+					bodyBytes, readErr := ioutil.ReadAll(resp.Body)
+					if readErr != nil {
+						executionOutput.WriteString(fmt.Sprintf("Error reading response body: %v\n", readErr))
+					} else {
+						// Limit body size in output
+						bodySnippet := string(bodyBytes)
+						if len(bodySnippet) > 500 {
+							bodySnippet = bodySnippet[:500] + "...\n(body truncated)"
+						}
+						executionOutput.WriteString(fmt.Sprintf("Response Body Snippet:\n%s\n", bodySnippet))
+					}
+
+					// Check against expected status code if provided in parameters
+					expectedStatusCode := 200 // Default expected status
+					// taskInstance.Parameters is already map[string]interface{}, no need for type assertion
+					if taskInstance.Parameters != nil {
+						params := taskInstance.Parameters
+						if codeVal, ok := params["expected_status_code"]; ok {
+							// Try to parse as float64 (JSON numbers), then int
+							if codeFloat, ok := codeVal.(float64); ok {
+								expectedStatusCode = int(codeFloat)
+							} else if codeStr, ok := codeVal.(string); ok {
+								if parsedCode, err := strconv.Atoi(codeStr); err == nil {
+									expectedStatusCode = parsedCode
+								}
+							}
+						}
+					}
+
+					if resp.StatusCode == expectedStatusCode {
+						executionStatus = "Success"
+						executionOutput.WriteString(fmt.Sprintf("Check PASSED: Received expected status code %d.\n", expectedStatusCode))
+					} else {
+						executionStatus = "Failed"
+						executionOutput.WriteString(fmt.Sprintf("Check FAILED: Expected status code %d, but received %d.\n", expectedStatusCode, resp.StatusCode))
+					}
+				}
+			}
+		}
+	} else if taskInstance.CheckType != nil && *taskInstance.CheckType != "" {
+		executionOutput.WriteString(fmt.Sprintf("Execution logic for check type '%s' is not yet implemented.\n", *taskInstance.CheckType))
+	} else {
+		executionOutput.WriteString("This task is not configured for automated execution (no check_type defined).\n")
+		executionStatus = "Not Applicable"
+	}
+
+	// Store the result
+	result := models.CampaignTaskInstanceResult{
+		CampaignTaskInstanceID: instanceID,
+		ExecutedByUserID:       &executedByUserID,
+		Timestamp:              time.Now(),
+		Status:                 executionStatus,
+		Output:                 executionOutput.String(),
+	}
+
+	if err := h.Store.CreateCampaignTaskInstanceResult(&result); err != nil {
+		log.Printf("Error storing execution result for instance %s: %v", instanceID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store execution result", "details": err.Error()})
+		return
+	}
+
+	// Update the last_checked_at and last_check_status for the task instance itself
+	taskInstance.LastCheckedAt = &result.Timestamp
+	taskInstance.LastCheckStatus = &result.Status
+	if err := h.Store.UpdateCampaignTaskInstance(taskInstance); err != nil { // Assuming UpdateCampaignTaskInstance can handle these fields
+		log.Printf("Error updating task instance %s with last check status: %v", instanceID, err)
+		// Non-fatal, continue
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Task instance execution processed.", "status": executionStatus, "output": result.Output})
+
 }
 
 func (h *CampaignHandler) GetCampaignTaskInstanceResultsHandler(c *gin.Context) {

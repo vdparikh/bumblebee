@@ -258,3 +258,37 @@ DROP COLUMN IF EXISTS due_date;
 ALTER TABLE tasks
 ADD COLUMN IF NOT EXISTS evidence_types_expected TEXT[], -- Array of strings, e.g., {'screenshot', 'log_file'}
 ADD COLUMN IF NOT EXISTS default_priority VARCHAR(50);   -- e.g., 'High', 'Medium', 'Low'
+
+
+-- Table for Connected Systems / Integration Targets
+CREATE TABLE connected_systems (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL UNIQUE,
+    system_type VARCHAR(100) NOT NULL, -- e.g., 'aws', 'gcp', 'azure', 'github', 'nessus'
+    description TEXT,
+    -- IMPORTANT: Configuration data can contain sensitive information like API keys.
+    -- In a production environment, this data MUST be encrypted at rest and handled securely.
+    -- Consider using a dedicated secrets manager instead of storing raw secrets here.
+    configuration JSONB NOT NULL,
+    is_enabled BOOLEAN DEFAULT TRUE,
+    last_checked_at TIMESTAMPTZ,
+    last_check_status VARCHAR(100), -- e.g., 'connected', 'error_auth', 'error_timeout'
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE campaign_task_instance_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    campaign_task_instance_id UUID NOT NULL,
+    executed_by_user_id UUID, -- Can be NULL if system executed
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    status VARCHAR(50) NOT NULL, -- e.g., 'Success', 'Failed', 'Error'
+    output TEXT, -- Can store JSON, plain text, etc.
+    FOREIGN KEY (campaign_task_instance_id) REFERENCES campaign_task_instances(id) ON DELETE CASCADE,
+    FOREIGN KEY (executed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+ALTER TABLE campaign_task_instances
+ADD COLUMN last_checked_at TIMESTAMPTZ,
+ADD COLUMN last_check_status VARCHAR(50);
