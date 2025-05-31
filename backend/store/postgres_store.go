@@ -1567,3 +1567,60 @@ func (s *DBStore) GetUserActivityFeed(userID string, limit, offset int) ([]model
 	}
 	return comments, rows.Err()
 }
+
+// CopyEvidenceToTaskInstance copies specified evidence records to a target campaign task instance.
+// It creates new evidence records in the database, referencing the file paths of the source evidence.
+func (s *DBStore) CopyEvidenceToTaskInstance(targetInstanceID string, sourceEvidenceIDs []string, uploaderUserID string) error {
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction for copying evidence: %w", err)
+	}
+	defer tx.Rollback() // Rollback if not committed
+
+	for _, sourceEvidenceID := range sourceEvidenceIDs {
+		// 1. Fetch the source evidence record
+		var sourceEvidence models.Evidence
+		querySource := `
+			SELECT id, task_id, campaign_task_instance_id, uploader_user_id, 
+			       file_name, file_path, mime_type, file_size, description, uploaded_at
+			FROM task_evidence WHERE id = $1`
+		err := tx.QueryRow(querySource, sourceEvidenceID).Scan(
+			&sourceEvidence.ID, &sourceEvidence.TaskID, &sourceEvidence.CampaignTaskInstanceID,
+			&sourceEvidence.UploaderUserID, &sourceEvidence.FileName, &sourceEvidence.FilePath,
+			&sourceEvidence.MimeType, &sourceEvidence.FileSize, &sourceEvidence.Description,
+			&sourceEvidence.UploadedAt,
+		)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("source evidence with ID %s not found", sourceEvidenceID)
+			}
+			return fmt.Errorf("failed to fetch source evidence %s: %w", sourceEvidenceID, err)
+		}
+
+		// 2. Create a new evidence record for the target instance
+		newEvidence := models.Evidence{
+			ID:                     uuid.NewString(), // New ID for the copied evidence
+			CampaignTaskInstanceID: &targetInstanceID,
+			UploaderUserID:         uploaderUserID, // User performing the copy action
+			FileName:               sourceEvidence.FileName,
+			FilePath:               sourceEvidence.FilePath, // Reference the same file path
+			MimeType:               sourceEvidence.MimeType,
+			FileSize:               sourceEvidence.FileSize,
+			Description:            sourceEvidence.Description, // Copy description
+			UploadedAt:             time.Now(),                 // Set new upload time
+			// TaskID should be nil as this is for a campaign task instance
+		}
+
+		// Use the existing CreateTaskEvidence logic (which handles CampaignTaskInstanceID correctly)
+		// but ensure it's called within the transaction.
+		// For simplicity, directly inserting here.
+		queryInsert := `INSERT INTO task_evidence (id, campaign_task_instance_id, uploader_user_id, file_name, file_path, mime_type, file_size, description, uploaded_at)
+		                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+		_, err = tx.Exec(queryInsert, newEvidence.ID, newEvidence.CampaignTaskInstanceID, newEvidence.UploaderUserID, newEvidence.FileName, newEvidence.FilePath, newEvidence.MimeType, newEvidence.FileSize, newEvidence.Description, newEvidence.UploadedAt)
+		if err != nil {
+			return fmt.Errorf("failed to insert copied evidence record for source %s: %w", sourceEvidenceID, err)
+		}
+	}
+
+	return tx.Commit()
+}

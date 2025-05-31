@@ -188,6 +188,11 @@ export const uploadEvidenceToCampaignTaskInstance = async (instanceId, formData)
     return response;
 };
 
+export const copyEvidenceToCampaignTaskInstance = async (targetInstanceId, sourceEvidenceIds) => {
+    // sourceEvidenceIds should be an array: { source_evidence_ids: ["id1", "id2"] }
+    const response = await apiClient.post(`/campaign-task-instances/${targetInstanceId}/copy-evidence`, { source_evidence_ids: sourceEvidenceIds });
+    return response;
+};
 // For Campaign Task Instances - Text/Link Evidence
 export const addGenericEvidenceToCampaignTaskInstance = async (instanceId, evidenceData) => {
     // evidenceData is a JSON object, e.g., { type: 'link', file_path: 'url', description: '...' } or { type: 'text', description: '...' }

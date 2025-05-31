@@ -536,3 +536,42 @@ func (h *CampaignHandler) GetCampaignTaskInstanceResultsHandler(c *gin.Context) 
 	// 2. Return the results as JSON or an error if not found/other issues.
 	c.JSON(http.StatusOK, gin.H{"results": "Results for instance " + instanceID}) // Placeholder
 }
+
+func (h *CampaignHandler) CopyEvidenceHandler(c *gin.Context) {
+	targetInstanceID := c.Param("id")
+
+	claimsValue, exists := c.Get(string(auth.ContextKeyClaims))
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	claims, ok := claimsValue.(*auth.Claims)
+	if !ok || claims == nil || claims.UserID == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error processing user authentication claims"})
+		return
+	}
+	uploaderUserID := claims.UserID
+
+	var payload struct {
+		SourceEvidenceIDs []string `json:"source_evidence_ids" binding:"required,dive,uuid"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload: " + err.Error()})
+		return
+	}
+
+	if len(payload.SourceEvidenceIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "source_evidence_ids cannot be empty"})
+		return
+	}
+
+	err := h.Store.CopyEvidenceToTaskInstance(targetInstanceID, payload.SourceEvidenceIDs, uploaderUserID)
+	if err != nil {
+		log.Printf("Error copying evidence to CTI %s: %v", targetInstanceID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to copy evidence", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Evidence copied successfully"})
+}

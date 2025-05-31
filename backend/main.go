@@ -120,6 +120,7 @@ func main() {
 		api.GET("/campaign-task-instances/:id/comments", campaignHandler.GetCampaignTaskInstanceCommentsHandler)
 		api.POST("/campaign-task-instances/:id/evidence", campaignHandler.UploadCampaignTaskInstanceEvidenceHandler)
 		api.GET("/campaign-task-instances/:id/evidence", campaignHandler.GetCampaignTaskInstanceEvidenceHandler)
+		api.POST("/campaign-task-instances/:id/copy-evidence", campaignHandler.CopyEvidenceHandler)
 
 		// New routes for executing campaign task instances and getting results
 		api.POST("/campaign-task-instances/:id/execute", campaignHandler.ExecuteCampaignTaskInstanceHandler)

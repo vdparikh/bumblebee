@@ -9,7 +9,7 @@ import {
     addGenericEvidenceToCampaignTaskInstance, // New for text/link
     uploadEvidenceToCampaignTaskInstance,
     updateCampaignTaskInstance,
-    executeCampaignTaskInstance, // New API for execution
+    executeCampaignTaskInstance, copyEvidenceToCampaignTaskInstance, // New API for execution
     getCampaignTaskInstanceResults, // New API for results
 } from '../services/api'; // Assuming getStatusColor is imported if not already
 import Card from 'react-bootstrap/Card';
@@ -53,6 +53,7 @@ import { ListGroupItem } from 'react-bootstrap';
 import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils'; // Assuming this is the path
 import { useAuth } from '../contexts/AuthContext';
 import UserDisplay from './common/UserDisplay';
+import CopyEvidenceModal from './modals/CopyEvidenceModal'; // We will create this new component
 
 import CommentSection from './common/CommentSection'; // Import the new component
 
@@ -70,6 +71,7 @@ function CampaignTaskInstanceDetail() {
     const [evidenceLink, setEvidenceLink] = useState('');
     const [evidenceText, setEvidenceText] = useState('');
     const [evidenceDescription, setEvidenceDescription] = useState(''); // Common description field
+    const [showCopyEvidenceModal, setShowCopyEvidenceModal] = useState(false);
 
     // const [currentStatus, setCurrentStatus] = useState(''); // No longer needed as status is directly updated
     const [executionResults, setExecutionResults] = useState([]); // New state for execution results
@@ -110,6 +112,30 @@ function CampaignTaskInstanceDetail() {
             default: return 'secondary';
         }
     };
+
+    const handleOpenCopyEvidenceModal = () => {
+        setShowCopyEvidenceModal(true);
+    };
+
+    const handleCopyEvidenceSubmit = async (selectedEvidenceIds) => {
+        if (!instanceId || selectedEvidenceIds.length === 0) {
+            setError("Target task instance ID is missing or no evidence selected.");
+            return;
+        }
+        try {
+            await copyEvidenceToCampaignTaskInstance(instanceId, selectedEvidenceIds);
+            // Refresh evidence list for the current task instance
+            const evidenceResponse = await getEvidenceByCampaignTaskInstanceId(instanceId);
+            setEvidenceList(Array.isArray(evidenceResponse.data) ? evidenceResponse.data : []);
+            setShowCopyEvidenceModal(false);
+            // Optionally, show a success message
+        } catch (err) {
+            console.error("Error copying evidence:", err);
+            setError(`Failed to copy evidence. ${err.response?.data?.error || 'Please try again.'}`);
+            // Keep modal open or handle error display appropriately
+        }
+    };
+
 
     const fetchData = useCallback(async () => {
         if (!instanceId) {
@@ -496,7 +522,15 @@ function CampaignTaskInstanceDetail() {
                                                 <Form.Control as="textarea" rows={2} placeholder="Optional: Describe this piece of evidence..." value={evidenceDescription} onChange={(e) => setEvidenceDescription(e.target.value)} />
                                             </Form.Group>
 
-                                            <Button variant='success' onClick={handleAddEvidence} className="w-100 mb-3">Add Evidence</Button>
+                                            {/* <Button variant='success' onClick={handleAddEvidence} className="w-100 mb-3">Add Evidence</Button> */}
+
+                                             <Row>
+                                                <Col>
+                                                    <Button variant='success' onClick={handleAddEvidence} className="w-100 mb-3">Add New Evidence</Button>
+                                                </Col>
+                                                <Col><Button variant='outline-primary' onClick={handleOpenCopyEvidenceModal} className="w-100 mb-3">Copy Existing Evidence</Button></Col>
+                                            </Row>
+
                                         </div>
                                     </>
                                 ) : (
@@ -600,6 +634,16 @@ function CampaignTaskInstanceDetail() {
                     />
                 </Col>
             </Row>
+
+             {taskInstance && (
+                <CopyEvidenceModal
+                    show={showCopyEvidenceModal}
+                    onHide={() => setShowCopyEvidenceModal(false)}
+                    targetCampaignId={taskInstance.campaign_id} // Pass current campaign ID as a starting point
+                    onCopySubmit={handleCopyEvidenceSubmit}
+                />
+            )}
+            
         </div>
 
     );
