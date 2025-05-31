@@ -3,11 +3,11 @@ export const getStatusColor = (status) => {
     const lowerStatus = status.toLowerCase();
     switch (lowerStatus) {
         case 'closed':
-        case 'active':
         case 'completed':
         case 'success': // Added for execution results
             return 'success';
         case 'open':
+        case 'active':
             return 'secondary';
         case 'in progress':
             return 'info';

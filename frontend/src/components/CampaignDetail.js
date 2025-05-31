@@ -174,7 +174,7 @@ function CampaignDetail() {
         const currentOwnerIds = taskInstance.owners ? taskInstance.owners.map(owner => owner.id) : [];
         // For react-select, we need an array of { value: id, label: name }
         setSelectedOwnerIDs(allUsers.filter(u => currentOwnerIds.includes(u.id)).map(u => ({ value: u.id, label: u.name })));
-        setSelectedAssignee(taskInstance.assignee_user_id || '');
+        setSelectedAssignee(taskInstance.assignee_user_id || (currentUser ? currentUser.id : ''));
         // Format due date for the input type="date"
         setSelectedDueDate(taskInstance.due_date ? new Date(taskInstance.due_date).toISOString().split('T')[0] : '');
         setShowAssignModal(true);
@@ -505,8 +505,8 @@ function CampaignDetail() {
                 <Alert variant="info" className="d-flex justify-content-between align-items-center">
                     <span>
                         <FaFilter className="me-1" />Filtering by:
-                        {selectedRequirementFilterId && <Badge bg="purple" className="ms-2 me-1">Req: {selectedRequirements.find(r => r.id === selectedRequirementFilterId)?.control_id_reference || 'Selected Req'}</Badge>}
-                        {activeStatusFilter && <Badge bg="primary" className="ms-2 me-1">{activeStatusFilter}</Badge>}
+                        {selectedRequirementFilterId && <Badge bg="info" className="ms-2 me-1">Req: {selectedRequirements.find(r => r.id === selectedRequirementFilterId)?.control_id_reference || 'Selected Req'}</Badge>}
+                        {activeStatusFilter && <Badge bg="secondary" className="ms-2 me-1">{activeStatusFilter}</Badge>}
                         {activeCategoryFilter && <Badge bg="secondary" className="ms-2 me-1">{activeCategoryFilter}</Badge>}
                         {searchTerm && <Badge bg="dark" className="ms-2 me-1">Search: "{searchTerm}"</Badge>}
                     </span>

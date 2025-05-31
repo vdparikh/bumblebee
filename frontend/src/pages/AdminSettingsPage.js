@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, Nav, Card, ListGroup, ListGroupItem } from 'react-bootstrap';
+import { Container, Row, Col, Card, ListGroup, ListGroupItem } from 'react-bootstrap';
 import { FaUsersCog, FaCogs } from 'react-icons/fa';
 import UserManagement from '../components/admin/UserManagement';
 // import SystemSettings from '../components/admin/SystemSettings'; // Placeholder for future
@@ -25,25 +25,23 @@ function AdminSettingsPage() {
                 <Col md={3}>
                     <Card>
                         <Card.Header as="h5">Navigation</Card.Header>
-                        <ListGroup variant='flush' className="flex-column p-2">
-                            <ListGroupItem>
-                                <Nav.Link
-                                    active={activeSetting === 'userManagement'}
-                                    onClick={() => setActiveSetting('userManagement')}
-                                    href="#"
-                                >
-                                    <FaUsersCog className="me-2" />User Management
-                                </Nav.Link>
-                            </ListGroupItem>
-                            {/* <Nav.Item>
-                                <Nav.Link
+                        <ListGroup variant='flush' className="p-2">
+                            <ListGroup.Item
+                                action
+                                active={activeSetting === 'userManagement'}
+                                onClick={() => setActiveSetting('userManagement')}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <FaUsersCog className="me-2" />User Management
+                            </ListGroup.Item>
+                            {/* Example for a future "System Settings" item:
+                            <ListGroup.Item
+                                action
                                     active={activeSetting === 'systemSettings'}
                                     onClick={() => setActiveSetting('systemSettings')}
-                                    href="#"
-                                >
+                                style={{ cursor: 'pointer' }}                            >
                                     <FaCogs className="me-2" />System Settings
-                                </Nav.Link>
-                            </Nav.Item> */}
+                            </ListGroup.Item> */}
                         </ListGroup>
                     </Card>
                 </Col>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, ListGroup, Spinner, Alert } from 'react-bootstrap';
-import { FaShieldAlt, FaFileContract, FaTasks } from 'react-icons/fa';
+import { Container, Row, Col, Card, ListGroup, Spinner, Alert, Badge } from 'react-bootstrap';
+import { FaShieldAlt, FaFileContract, FaTasks, FaTag, FaCogs, FaExclamationCircle, FaFileMedicalAlt } from 'react-icons/fa';
 import {
     getComplianceStandards,
     getRequirements as getAllRequirements, // To fetch requirements
@@ -136,6 +136,17 @@ function ThreeColumnView() {
         }
     }, [selectedStandardId, selectedRequirementId, requirements, loadingRequirements, getAllMasterTasks, fetchTasksByRequirement]);
 
+    const getPriorityBadgeColor = (priority) => {
+        switch (priority?.toLowerCase()) {
+            case 'critical': return 'danger';
+            case 'high': return 'warning';
+            case 'medium': return 'info';
+            case 'low': return 'secondary';
+            default: return 'light';
+        }
+    };
+
+
     return (
         <Container fluid className="p-3">
             <h2 className="mb-4">Compliance Management - Read Only View</h2>
@@ -193,8 +204,11 @@ function ThreeColumnView() {
                                         className="d-flex justify-content-between align-items-center"
                                     >
                                         <div>
-                                            <strong>{req.controlIdReference}</strong>
-                                            <small className="d-block text-muted">{req.requirementText?.substring(0, 70)}...</small>
+                                            <div className="fw-bold">{req.controlIdReference}</div>
+                                            <p className="mb-1 small text-muted" style={{ whiteSpace: 'pre-wrap' }}>
+                                                {req.requirementText}
+                                            </p>
+                                            {/* <small className="d-block text-muted">ID: {req.id}</small> */}
                                         </div>
                                     </ListGroup.Item>
                                 ))
@@ -224,8 +238,27 @@ function ThreeColumnView() {
                                         className="d-flex justify-content-between align-items-center"
                                     >
                                         <div>
-                                            <strong>{task.title}</strong>
-                                            <small className="d-block text-muted">{task.description?.substring(0, 70)}...</small>
+                                            <div className="fw-bold">{task.title}</div>
+                                            {task.description && <p className="mb-1 small text-muted">{task.description}</p>}
+                                            <div className="mt-1">
+                                                {task.category && <Badge pill bg="light" text="dark" className="me-1 border"><FaTag className="me-1" />{task.category}</Badge>}
+                                                {task.defaultPriority && (
+                                                    <Badge pill bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">
+                                                        <FaExclamationCircle className="me-1" />{task.defaultPriority}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 && (
+                                                <div className="mt-1">
+                                                    <FaFileMedicalAlt className="me-1 text-muted" title="Expected Evidence" />
+                                                    {task.evidenceTypesExpected.map(et => <Badge key={et} pill bg="secondary" text="white" className="me-1 fw-normal">{et}</Badge>)}
+                                                </div>
+                                            )}
+                                            {task.checkType && (
+                                                <div className="mt-1 small text-muted">
+                                                    <FaCogs className="me-1"/> Automated: {task.checkType} on {task.target || 'N/A'}
+                                                </div>
+                                            )}
                                         </div>
                                     </ListGroup.Item>
                                 ))
