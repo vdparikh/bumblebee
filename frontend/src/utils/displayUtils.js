@@ -8,7 +8,7 @@ export const getStatusColor = (status) => {
         case 'success': // Added for execution results
             return 'success';
         case 'open':
-            return 'primary';
+            return 'secondary';
         case 'in progress':
             return 'info';
         case 'pending review':

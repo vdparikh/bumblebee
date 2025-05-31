@@ -103,7 +103,7 @@ function CampaignTaskInstanceDetail() {
     const getStatusColor = (status) => {
         switch (status) {
             case 'Closed': return 'success';
-            case 'Open': return 'primary';
+            case 'Open': return 'secondary';
             case 'In Progress': return 'info';
             case 'Pending Review': return 'warning';
             case 'Failed': return 'danger';
@@ -326,11 +326,11 @@ function CampaignTaskInstanceDetail() {
             <Row>
                 <Col md={12}>
                     <div className="d-flex justify-content-between align-items-center mb-2">
-                        <h2 className="mb-0"><FaClipboardCheck className="me-2 text-primary" />{taskInstance.title}</h2>
-                        <div>
-                            {isOverdue(taskInstance.due_date, taskInstance.status) && <Badge bg="danger" className="me-2 fs-6">Overdue</Badge>}
+                        <h2 className="mb-0">{taskInstance.title}</h2>
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                            {isOverdue(taskInstance.due_date, taskInstance.status) && <span className="me-2 fs-6 bg-danger mt-2 p-1 pt-2 pb-2 ps-3 pe-3 h6 text-white rounded-pill">Overdue</span>}
                             <Dropdown>
-                                <Dropdown.Toggle variant={getStatusColor(taskInstance.status)} id="dropdown-status" size="sm" className="fs-6">
+                                <Dropdown.Toggle variant={getStatusColor(taskInstance.status)} id="dropdown-status" size="sm" className="rounded-pill p-1 pt-2 pb-2 ps-3 pe-3">
                                     {taskInstance.status}
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu disabled={!canUpdateTaskStatus}>

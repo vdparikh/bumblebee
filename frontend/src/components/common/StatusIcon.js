@@ -5,7 +5,7 @@ import {
 } from 'react-icons/fa';
 
 const StatusIcon = ({ status, isOverdue, size = "1.5em", type = "task" }) => {
-    if (isOverdue) return <FaExclamationCircle size={size} className="text-danger" title="Overdue" />;
+    if (isOverdue) return <FaExclamationCircle  style={{ lineHeight: "1em"}}  size={size} className="text-danger" title="Overdue" />;
 
     switch (status?.toLowerCase()) {
         case 'closed':

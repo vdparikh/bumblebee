@@ -53,7 +53,10 @@ import {
     FaCogs,         // For automated check details
     FaEllipsisV, // For action menu
     FaSearch,       // For search icon
-    FaFilter,       // For filter indication
+    FaFilter,
+    FaAddressBook,
+    FaUserEdit,
+    FaExternalLinkAlt,       // For filter indication
     // FaExclamationCircle // Part of StatusIcon
 } from 'react-icons/fa';
 import Popover from 'react-bootstrap/Popover';
@@ -548,17 +551,24 @@ function CampaignDetail() {
                                     <div className="d-flex align-items-center">
                                         {/* Badge is now part of TaskListItem, but if you want it outside, keep it here */}
                                         {/* <Badge bg={getStatusColor(task.status)} className="me-2">{task.status}</Badge> */}
-                                                <Dropdown>
+                                        
+                                        {canEditCampaign && (
+                                                            <Button style={{ lineHeight: "1em"}}  variant='transparent' onClick={() => handleOpenAssignModal(task)} className="small p-0 m-0 me-2"><FaUserEdit size="1.2em" /></Button>
+                                                        )}
+                                          
+                                          <Button style={{ lineHeight: "1em"}} variant='transparent' as={Link} to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }} className="small p-0 m-0"><FaExternalLinkAlt size="1em" /></Button>
+
+                                                {/* <Dropdown>
                                                     <Dropdown.Toggle variant="link" id={`dropdown-cti-actions-${task.id}`} className="p-0 text-secondary no-caret">
-                                                        <FaEllipsisV size="1.2em" />
+                                                        <FaEllipsisV size="1em" />
                                                     </Dropdown.Toggle>
                                                     <Dropdown.Menu align="end">
-                                                        <Dropdown.Item as={Link} to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }} className="small">View/Edit Task Details</Dropdown.Item>
+                                                        <Dropdown.Item as={Link} to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }} className="small">Task Details</Dropdown.Item>
                                                         {canEditCampaign && (
                                                             <Dropdown.Item onClick={() => handleOpenAssignModal(task)} className="small">Assign Users & Due Date</Dropdown.Item>
                                                         )}
                                                     </Dropdown.Menu>
-                                                </Dropdown>
+                                                </Dropdown> */}
                                             </div>
                                 );
                                 return (

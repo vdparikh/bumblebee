@@ -7,10 +7,11 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #F2F5F9; /* Your original light theme background */
+  background-color: #F3F6FF; /* Your original light theme background */
   font-size: 0.9em;
   font-weight: 400;
-  color: var(--bs-body-color); /* Use Bootstrap variable for body text color */
+  color: var(--bs-body-color); 
+  /* Use Bootstrap variable for body text color */
 }
 
 form, select, input, .form-control, .form-select {
@@ -29,13 +30,13 @@ code {
 
 /* Custom Variables (Optional, but good for consistency) */
 :root {
-  --custom-primary: #616FC6; /* A nice blue */
+  --custom-primary: #35338C; /* A nice blue */
   --custom-secondary: rgb(108, 117, 125); /* Bootstrap's default secondary, or choose your own */
   --custom-theme-color: #EC5100;
   --custom-header-font: 'Ancizar Sans', sans-serif;
   --custom-body-font: 'Lato', sans-serif;
-  --bs-primary: #4D51A1; /* Define your primary color. Avoid !important here if Bootstrap uses it. */
-  --bs-primary-rgb:77, 81, 161; /* Define your primary color. Avoid !important here if Bootstrap uses it. */
+  --bs-primary: #35338C; /* Define your primary color. Avoid !important here if Bootstrap uses it. */
+  --bs-primary-rgb: 223, 233, 246; /* Define your primary color. Avoid !important here if Bootstrap uses it. */
   
 }
 /* If you want --bs-primary to be different in dark mode, you'd define it in [data-bs-theme="dark"] */
@@ -66,7 +67,7 @@ h3 {
 }
 
 .card .card-header {
-  background-color: rgba(var(--bs-primary-rgb),0.1)!important; /* Use Bootstrap variable */
+  background-color: rgba(var(--bs-primary-rgb),1)!important; /* Use Bootstrap variable */
   font-size: 1.1em;
   border: 0px;
 }
@@ -88,8 +89,13 @@ a:hover {
 }
 
 .list-group-item.active {
-    background-color: var(--bs-primary); /* Use your defined --bs-primary */
+    background-color: var(--bs-secondary); /* Use your defined --bs-primary */
     border-color: var(--bs-primary);
+}
+
+
+.list-group-item.active .text-muted {
+    color: #fff!important;
 }
 
 .navbar-brand, .sidebar .nav-link svg {

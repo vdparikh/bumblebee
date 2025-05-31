@@ -170,9 +170,9 @@ function Dashboard() {
             {/* Welcome Message - Placeholder */}
             <Row className="mb-4">
                 <Col>
-                    <h4>
+                    <h5>
                         Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {currentUser?.name || 'User'}!
-                    </h4>
+                    </h5>
                     <p className="text-muted">Here's a quick overview of your compliance activities.</p>
                 </Col>
             </Row>
@@ -181,7 +181,7 @@ function Dashboard() {
             <Row className="mb-4">
                 <Col xl={3} md={6} className="mb-3">
                     <KeyMetricsCard title="Key Task Metrics" metrics={[
-                        { label: "Open/In Progress Tasks", value: dashboardStats.openTasksCount, variant: "primary" },
+                        { label: "Open/In Progress Tasks", value: dashboardStats.openTasksCount, variant: "secondary" },
                         { label: "Overdue Tasks", value: dashboardStats.overdueTasksCount, variant: "danger" },
                     ]} />
                 </Col>

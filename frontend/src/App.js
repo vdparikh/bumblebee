@@ -17,7 +17,7 @@ import Standards from './components/Standards';
 import MyTasks from './components/MyTasks';
 // import TaskDetail from './components/TaskDetail'; // Not currently used
 import { FaBullhorn, FaCheckDouble, FaList, FaTasks, FaUser, FaTachometerAlt, FaFileContract, FaShieldAlt, FaColumns, FaAngleDoubleRight, FaAngleDoubleLeft, FaQuestionCircle, FaRegQuestionCircle } from 'react-icons/fa'; // Added FaTachometerAlt
-import Campaigns from './components/Campaigns'; // Import Campaigns component
+import Campaigns from './components/Campaigns';
 import CampaignDetail from './components/CampaignDetail'; // Import CampaignDetail component
 import Dashboard from './components/Dashboard'; // Import the new Dashboard component
 import { ThemeProvider } from './contexts/ThemeContext'; // Import ThemeProvider
@@ -29,6 +29,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'; // Import AuthPr
 import LoginPage from './components/auth/LoginPage'; // Import LoginPage
 import ProtectedRoute from './components/auth/ProtectedRoute'; // Import ProtectedRoute
 import RegisterPage from './components/auth/RegisterPage'; // Import RegisterPage
+import ThreeColumnView from './components/views/ThreeColumnView'; // Import the new view
 import UserProfilePage from './components/auth/UserProfilePage'; // Import UserProfilePage
 
 function DynamicHeader() {
@@ -60,6 +61,9 @@ function DynamicHeader() {
       } else if (location.pathname.startsWith("/campaigns/")) {
         headerText = "Campaign Details";
       } else {
+        if (location.pathname.startsWith("/alt-view")) {
+          headerText = "Alternate View";
+        }
         // Add more cases for other routes
         // Optional: handle unknown paths or set a generic title
         headerText = "Home";
@@ -111,6 +115,7 @@ function Layout() { // Create a new component that can use useLocation
                     // { type: 'divider', label: 'Auditors', key: 'nav-div-auditor' },
                     { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.5em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
 
+                    { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.5em" />, label: "Alternate View", roles: ['admin', 'auditor', 'user'] },
                     // Admin/Auditor specific section
                     (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management' },
                     { to: "/tasks", eventKey: "/tasks", icon: <FaTasks size="1.5em" />, label: "Manage Tasks", roles: ['admin', 'auditor'] },
@@ -224,6 +229,7 @@ function Layout() { // Create a new component that can use useLocation
                           <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
                           <Route path="/campaign-task/:instanceId" element={<ProtectedRoute><CampaignTaskInstanceDetail /></ProtectedRoute>} />
                           <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+                          <Route path="/alt-view" element={<ProtectedRoute><ThreeColumnView /></ProtectedRoute>} />
                           <Route path="/campaigns/:campaignId" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
                         </Routes>
                       </main>

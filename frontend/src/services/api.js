@@ -57,6 +57,12 @@ export const getTasks = async (userId, userField) => {
     const response = await apiClient.get(url);
     return response;
 };
+
+export const getTasksByRequirementId = async (requirementId) => {
+    const response = await apiClient.get(`/requirements/${requirementId}/tasks`);
+    return response;
+};
+
 export const getTaskById = async (taskId) => {
     const response = await apiClient.get(`/tasks/${taskId}`);
     return response;

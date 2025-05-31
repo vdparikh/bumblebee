@@ -32,7 +32,7 @@ const TaskListItem = ({
                 <div className="d-flex justify-content-between align-items-start">
 
                     <div className="d-flex justify-content-between align-items-start">
-                        <StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1em" />
+                        <StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1.1em" />
                         <div className="mb-0 ms-2 text-break"> {/* Increased title size slightly */}
                             {linkTo ? <Link to={linkTo} state={linkState} className="text-decoration-none text-dark stretched-link">{task.title}</Link> : task.title}
                         </div>
@@ -42,7 +42,7 @@ const TaskListItem = ({
                         {task.defaultPriority && (<Badge bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">{task.defaultPriority}</Badge>)}
                         <Badge bg={getStatusColor(task.status)} className="me-2 flex-shrink-0">{task.status}</Badge>
 
-                        {actionMenu ? actionMenu : (linkTo && <FaExternalLinkAlt size="1em" className="text-muted mt-1" title="View Details" />)}
+                        {actionMenu ? actionMenu : (linkTo && <FaExternalLinkAlt style={{ lineHeight: "1em"}} size="1em" className="text-muted mt-1" title="View Details" />)}
                     </div>
                 </div>
             </Card.Header>
