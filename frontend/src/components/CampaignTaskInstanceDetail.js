@@ -46,7 +46,9 @@ import {
     FaPlayCircle, // For execute icon
     FaPoll, // For results icon
     FaExclamationCircle, // For Priority
-    FaFileMedicalAlt, // For Evidence Types
+    FaFileMedicalAlt,
+    FaTerminal,
+    FaPlus, // For Evidence Types
 
 } from 'react-icons/fa';
 import { ListGroupItem } from 'react-bootstrap';
@@ -84,6 +86,7 @@ function CampaignTaskInstanceDetail() {
     const [statusError, setStatusError] = useState('');
     const [executionError, setExecutionError] = useState(''); // New
     const [executionSuccess, setExecutionSuccess] = useState(''); // New
+    const [lastExecutionAttempt, setLastExecutionAttempt] = useState(null); // New state for immediate output
     const [loadingResults, setLoadingResults] = useState(false); // New
 
     // User can edit basic task details (like status) if they are admin, auditor, or the assigned user.
@@ -109,6 +112,8 @@ function CampaignTaskInstanceDetail() {
             case 'In Progress': return 'info';
             case 'Pending Review': return 'warning';
             case 'Failed': return 'danger';
+            case 'Success': return 'success';
+            case 'Error': return 'danger';
             default: return 'secondary';
         }
     };
@@ -284,14 +289,17 @@ function CampaignTaskInstanceDetail() {
         setExecutionError('');
         setExecutionSuccess('');
         setLoadingResults(true); // Indicate activity
+        setLastExecutionAttempt(null); // Clear previous attempt details
         try {
             const response = await executeCampaignTaskInstance(instanceId);
             setExecutionSuccess(response.data.message || "Execution triggered successfully. Results will be available shortly.");
+            setLastExecutionAttempt({ output: response.data.output, status: response.data.status });
             // Optionally, fetch results immediately or prompt user to refresh
             await fetchInstanceResults(); // Fetch results after triggering
         } catch (err) {
             console.error("Error executing task instance:", err);
             setExecutionError(`Failed to execute task. ${err.response?.data?.error || ''}`);
+            setLastExecutionAttempt(null);
         } finally {
             setLoadingResults(false);
         }
@@ -332,7 +340,7 @@ function CampaignTaskInstanceDetail() {
         backButtonText = taskInstance.campaign_id ? "Back to Campaign" : "Back to My Tasks";
     }
 
-        const getPriorityBadgeColor = (priority) => {
+    const getPriorityBadgeColor = (priority) => {
         switch (priority?.toLowerCase()) {
             case 'critical': return 'danger';
             case 'high': return 'warning';
@@ -372,28 +380,30 @@ function CampaignTaskInstanceDetail() {
                     <small className="text-muted d-block mb-3">
                         Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> |
                         Created: {new Date(taskInstance.created_at).toLocaleString()} |
-                        Last Updated: {new Date(taskInstance.updated_at).toLocaleString()}
+                        Last Updated: {new Date(taskInstance.updatedAt).toLocaleString()}
                     </small>
                 </Col>
                 <Col md={8} className='border-end'>
                     <Tabs defaultActiveKey="details" id="task-instance-detail-tabs" className="nav-line-tabs mb-3">
                         <Tab eventKey="details" title={<><FaInfoCircle className="me-1" />Details</>}>
-                            <Card><Card.Body>
-                                    {taskInstance.description || 'N/A'}
+                            <Card>
+                                 <Card.Header as="h5"><FaInfoCircle className="me-2 text-muted" />Task Details</Card.Header>
+                                <Card.Body>
+                                {taskInstance.description || 'N/A'}
                             </Card.Body>
                                 <ListGroup variant='flush'>
 
                                     <ListGroupItem>
-                                        <FaTag className="me-2 text-muted" /><strong>Category:</strong> 
-                                        
- {taskInstance.category && (
-                        <Badge pill bg="light" text="dark" className="fw-normal ms-2 border"><FaTag className="me-1" />{taskInstance.category}</Badge>
-                    )}
-                    {taskInstance.requirement_control_id_reference && (
-                        <Badge pill bg="light" text="dark" className="fw-normal border">Req: {taskInstance.requirement_control_id_reference}</Badge>
-                    )}
+                                        <FaTag className="me-2 text-muted" /><strong>Category:</strong>
 
-                                        </ListGroupItem>
+                                        {taskInstance.category && (
+                                            <Badge pill bg="light" text="dark" className="fw-normal ms-2 border"><FaTag className="me-1" />{taskInstance.category}</Badge>
+                                        )}
+                                        {taskInstance.requirement_control_id_reference && (
+                                            <Badge pill bg="light" text="dark" className="fw-normal border">Req: {taskInstance.requirement_control_id_reference}</Badge>
+                                        )}
+
+                                    </ListGroupItem>
                                     <ListGroupItem>
                                         <FaUserShield className="me-2 text-muted" /><strong className='me-2'>Owner(s):</strong>
                                         {taskInstance.owners && taskInstance.owners.length > 0 ?
@@ -417,19 +427,19 @@ function CampaignTaskInstanceDetail() {
                                     </ListGroupItem>
                                     <ListGroupItem>
                                         <FaFileMedicalAlt className="me-2 text-muted" /><strong>Expected Evidence:</strong>
-                                             {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
+                                        {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
                                             taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
                                                 <React.Fragment key={evidenceType}>
-                                                
-                                                 <Badge variant="secondary" className='bg-secondary me-1 ms-1'>{evidenceType}</Badge>
-                                                    
+
+                                                    <Badge variant="secondary" className='bg-secondary me-1 ms-1'>{evidenceType}</Badge>
+
                                                 </React.Fragment>
                                             )) : ' N/A'}
                                     </ListGroupItem>
                                     <ListGroupItem><FaCalendarAlt className="me-2 text-muted" /><strong>Due Date:</strong> {taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</ListGroupItem>
                                     <ListGroupItem>
-                                        <FaClipboardList className="me-2 text-muted" /><strong>Requirement:</strong> 
-                                        
+                                        <FaClipboardList className="me-2 text-muted" /><strong>Requirement:</strong>
+
                                         {/* {taskInstance.requirement_control_id_reference || 'N/A'}
                                         {taskInstance.requirement_control_id_reference && (
                                             <OverlayTrigger
@@ -448,165 +458,173 @@ function CampaignTaskInstanceDetail() {
                                             </OverlayTrigger>
                                         )} */}
 
-<h6 className='mt-3'>{taskInstance.requirement_control_id_reference} - {taskInstance.requirement_standard_name || 'Standard N/A'}</h6>
-                                         <p className='mt-2 text-muted' style={{ whiteSpace: 'pre-wrap' }}>{taskInstance.requirement_text || 'No detailed text available.'}</p>
+                                        <h6 className='mt-3'>{taskInstance.requirement_control_id_reference} - {taskInstance.requirement_standard_name || 'Standard N/A'}</h6>
+                                        <p className='mt-2 text-muted' style={{ whiteSpace: 'pre-wrap' }}>{taskInstance.requirement_text || 'No detailed text available.'}</p>
 
 
                                     </ListGroupItem>
-                                    {taskInstance.check_type && (
-                                        <>
-                                            <h5><FaCogs className="me-2 text-muted" />Automated Check Details</h5>
-                                            <Card.Text className="ps-1"><strong>Check Type:</strong> {taskInstance.check_type}</Card.Text>
-                                            <Card.Text className="ps-1"><strong>Target:</strong> {taskInstance.target || 'N/A'}</Card.Text>
-                                            <Card.Text className="ps-1"><strong>Parameters:</strong> {taskInstance.parameters ? JSON.stringify(taskInstance.parameters) : 'None'}</Card.Text>
-                                        </>
-                                    )}
+
+
                                 </ListGroup>
                                 <Card.Footer>
                                     <strong>Instance ID:</strong> {taskInstance.id}
 
                                 </Card.Footer>
                             </Card>
+
+
                         </Tab>
                         <Tab eventKey="evidence" title={<><FaFileUpload className="me-1" />Evidence</>}>
 
-                        
+
                             <Card>
-                                <Card.Header as="h5">Add New Evidence</Card.Header>
+                                <Card.Header as="h5"><FaPlus className="me-2 text-muted" />Add New Evidence</Card.Header>
                                 <Card.Body>
-                                {canManageEvidenceAndExecution ? (
-                                    <>
-                                        {addEvidenceError && <Alert variant="danger" onClose={() => setAddEvidenceError('')} dismissible>{addEvidenceError}</Alert>}
-                                        <div className=''>
-                                            
+                                    {canManageEvidenceAndExecution ? (
+                                        <>
+                                            {addEvidenceError && <Alert variant="danger" onClose={() => setAddEvidenceError('')} dismissible>{addEvidenceError}</Alert>}
+                                            <div className=''>
 
-<FaFileMedicalAlt className="me-2 text-muted" /><strong>Expected Evidence:</strong>
-                                             {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
-                                            taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
-                                                <React.Fragment key={evidenceType}>
-                                                
-                                                 <Badge variant="secondary" className='bg-secondary me-1 ms-1'>{evidenceType}</Badge>
-                                                    
-                                                </React.Fragment>
-                                            )) : ' N/A'}
 
-                                            <Form.Group className="mt-3 mb-3">
-                                                <Form.Label>Evidence Type:</Form.Label>
-                                                <div>
-                                                    <Form.Check inline label="File" name="evidenceType" type="radio" id="evidence-type-file" value="file" checked={evidenceType === 'file'} onChange={(e) => setEvidenceType(e.target.value)} />
-                                                    <Form.Check inline label="Link (URL)" name="evidenceType" type="radio" id="evidence-type-link" value="link" checked={evidenceType === 'link'} onChange={(e) => setEvidenceType(e.target.value)} />
-                                                    <Form.Check inline label="Text" name="evidenceType" type="radio" id="evidence-type-text" value="text" checked={evidenceType === 'text'} onChange={(e) => setEvidenceType(e.target.value)} />
-                                                </div>
-                                            </Form.Group>
+                                                <FaFileMedicalAlt className="me-2 text-muted" /><strong>Expected Evidence:</strong>
+                                                {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
+                                                    taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
+                                                        <React.Fragment key={evidenceType}>
 
-                                            {evidenceType === 'file' && (
-                                                <Form.Group controlId="evidenceFile" className="mb-3">
-                                                    <Form.Label><FaFileUpload className="me-1" />Select File</Form.Label>
-                                                    <Form.Control type="file" onChange={handleFileChange} />
+                                                            <Badge variant="secondary" className='bg-secondary me-1 ms-1'>{evidenceType}</Badge>
+
+                                                        </React.Fragment>
+                                                    )) : ' N/A'}
+
+                                                <Form.Group className="mt-3 mb-3">
+                                                    <Form.Label>Evidence Type:</Form.Label>
+                                                    <div>
+                                                        <Form.Check inline label="File" name="evidenceType" type="radio" id="evidence-type-file" value="file" checked={evidenceType === 'file'} onChange={(e) => setEvidenceType(e.target.value)} />
+                                                        <Form.Check inline label="Link (URL)" name="evidenceType" type="radio" id="evidence-type-link" value="link" checked={evidenceType === 'link'} onChange={(e) => setEvidenceType(e.target.value)} />
+                                                        <Form.Check inline label="Text" name="evidenceType" type="radio" id="evidence-type-text" value="text" checked={evidenceType === 'text'} onChange={(e) => setEvidenceType(e.target.value)} />
+                                                    </div>
                                                 </Form.Group>
-                                            )}
-                                            {evidenceType === 'link' && (
-                                                <Form.Group controlId="evidenceLink" className="mb-3">
-                                                    <Form.Label>Link URL</Form.Label>
-                                                    <Form.Control type="url" placeholder="https://example.com/evidence" value={evidenceLink} onChange={(e) => setEvidenceLink(e.target.value)} />
+
+                                                {evidenceType === 'file' && (
+                                                    <Form.Group controlId="evidenceFile" className="mb-3">
+                                                        <Form.Label><FaFileUpload className="me-1" />Select File</Form.Label>
+                                                        <Form.Control type="file" onChange={handleFileChange} />
+                                                    </Form.Group>
+                                                )}
+                                                {evidenceType === 'link' && (
+                                                    <Form.Group controlId="evidenceLink" className="mb-3">
+                                                        <Form.Label>Link URL</Form.Label>
+                                                        <Form.Control type="url" placeholder="https://example.com/evidence" value={evidenceLink} onChange={(e) => setEvidenceLink(e.target.value)} />
+                                                    </Form.Group>
+                                                )}
+                                                {evidenceType === 'text' && (
+                                                    <Form.Group controlId="evidenceText" className="mb-3">
+                                                        <Form.Label>Evidence Text/Details</Form.Label>
+                                                        <Form.Control as="textarea" rows={3} placeholder="Describe the evidence or paste text here..." value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} />
+                                                    </Form.Group>
+                                                )}
+                                                <Form.Group controlId="evidenceDescription" className="mb-3">
+                                                    <Form.Label>General Description (Optional)</Form.Label>
+                                                    <Form.Control as="textarea" rows={2} placeholder="Optional: Describe this piece of evidence..." value={evidenceDescription} onChange={(e) => setEvidenceDescription(e.target.value)} />
                                                 </Form.Group>
-                                            )}
-                                            {evidenceType === 'text' && (
-                                                <Form.Group controlId="evidenceText" className="mb-3">
-                                                    <Form.Label>Evidence Text/Details</Form.Label>
-                                                    <Form.Control as="textarea" rows={3} placeholder="Describe the evidence or paste text here..." value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} />
-                                                </Form.Group>
-                                            )}
-                                            <Form.Group controlId="evidenceDescription" className="mb-3">
-                                                <Form.Label>General Description (Optional)</Form.Label>
-                                                <Form.Control as="textarea" rows={2} placeholder="Optional: Describe this piece of evidence..." value={evidenceDescription} onChange={(e) => setEvidenceDescription(e.target.value)} />
-                                            </Form.Group>
 
-                                            {/* <Button variant='success' onClick={handleAddEvidence} className="w-100 mb-3">Add Evidence</Button> */}
+                                                {/* <Button variant='success' onClick={handleAddEvidence} className="w-100 mb-3">Add Evidence</Button> */}
 
-                                             <Row>
-                                                <Col>
-                                                    <Button variant='success' onClick={handleAddEvidence} className="w-100 mb-3">Add New Evidence</Button>
-                                                </Col>
-                                                <Col><Button variant='outline-primary' onClick={handleOpenCopyEvidenceModal} className="w-100 mb-3">Copy Existing Evidence</Button></Col>
-                                            </Row>
+                                                <Row>
+                                                    <Col>
+                                                        <Button variant='success' onClick={handleAddEvidence} className="w-100 mb-3">Add New Evidence</Button>
+                                                    </Col>
+                                                    <Col><Button variant='outline-primary' onClick={handleOpenCopyEvidenceModal} className="w-100 mb-3">Copy Existing Evidence</Button></Col>
+                                                </Row>
 
-                                        </div>
-                                    </>
-                                ) : (
-                                    <Alert variant="info">Evidence management is restricted.</Alert>
-                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <Alert variant="info">Evidence management is restricted.</Alert>
+                                    )}
 
-                            </Card.Body>
-</Card>
-                                {evidenceList.length > 0 ? (
-                                    <div>
-                                        <h6 className='mt-3 p-3'>Existing Evidences</h6>
-                                        {evidenceList.map(evidence => {
-                                            let icon = <FaFileAlt className="me-2 text-muted" />;
-                                            let mainDisplay = evidence.file_name || evidence.id; // Default
-                                            let showSeparateDescription = true;
+                                </Card.Body>
+                            </Card>
+                            {evidenceList.length > 0 ? (
+                                <div>
+                                    <h6 className='mt-3 p-3'>Existing Evidences</h6>
+                                    {evidenceList.map(evidence => {
+                                        let icon = <FaFileAlt className="me-2 text-muted" />;
+                                        let mainDisplay = evidence.file_name || evidence.id; // Default
+                                        let showSeparateDescription = true;
 
-                                            if (evidence.mimeType === 'text/url') {
-                                                icon = <FaLink className="me-2 text-primary" />;
-                                                const linkText = evidence.description || evidence.fileName || evidence.filePath;
-                                                mainDisplay = <a href={evidence.filePath} target="_blank" rel="noopener noreferrer">{linkText}</a>;
-                                                showSeparateDescription = !evidence.description; // Only show separate if description wasn't used as link text
-                                            } else if (evidence.mimeType === 'text/plain') {
-                                                icon = <FaAlignLeft className="me-2 text-info" />;
-                                                mainDisplay = <span style={{ whiteSpace: 'pre-wrap' }}>{evidence.description || 'No text content'}</span>;
-                                                showSeparateDescription = false;
-                                            } else if (evidence.filePath) { // Assumed to be a file
-                                                // Icon remains default FaFileAlt or could be more specific based on actual mime_type
-                                                mainDisplay = <a href={`http://localhost:8080/${evidence.filePath}`} target="_blank" rel="noopener noreferrer">{evidence.fileName || evidence.id}</a>;
-                                            }
+                                        if (evidence.mimeType === 'text/url') {
+                                            icon = <FaLink className="me-2 text-primary" />;
+                                            const linkText = evidence.description || evidence.fileName || evidence.filePath;
+                                            mainDisplay = <a href={evidence.filePath} target="_blank" rel="noopener noreferrer">{linkText}</a>;
+                                            showSeparateDescription = !evidence.description; // Only show separate if description wasn't used as link text
+                                        } else if (evidence.mimeType === 'text/plain') {
+                                            icon = <FaAlignLeft className="me-2 text-info" />;
+                                            mainDisplay = <span style={{ whiteSpace: 'pre-wrap' }}>{evidence.description || 'No text content'}</span>;
+                                            showSeparateDescription = false;
+                                        } else if (evidence.filePath) { // Assumed to be a file
+                                            // Icon remains default FaFileAlt or could be more specific based on actual mime_type
+                                            mainDisplay = <a href={`http://localhost:8080/${evidence.filePath}`} target="_blank" rel="noopener noreferrer">{evidence.fileName || evidence.id}</a>;
+                                        }
 
-                                            return (
-                                                <Card className='mb-2' key={evidence.id}>
-                                                    <Card.Header>{icon}
+                                        return (
+                                            <Card className='mb-2' key={evidence.id}>
+                                                <Card.Header>{icon}
                                                     {mainDisplay}
-                                                    </Card.Header>
-                                                    <Card.Body>
+                                                </Card.Header>
+                                                <Card.Body>
                                                     {showSeparateDescription && evidence.description && <p className="mb-0 mt-1"><small>Description: {evidence.description}</small></p>}
-                                                    </Card.Body>
-                                                    <Card.Footer>
-                                                        <small className="text-muted d-block">Uploaded: {evidence.uploaded_at ? new Date(evidence.uploaded_at).toLocaleString() : 'N/A'}</small>
-                                                    </Card.Footer>
-                                                </Card>
-                                            );
-                                        })}
-                                    </div>
-                                ) : <p className="m-3 alert alert-info text-muted">No evidence uploaded yet.</p>}
-                            
+                                                </Card.Body>
+                                                <Card.Footer>
+                                                    <small className="text-muted d-block">Uploaded: {evidence.uploaded_at ? new Date(evidence.uploaded_at).toLocaleString() : 'N/A'}</small>
+                                                </Card.Footer>
+                                            </Card>
+                                        );
+                                    })}
+                                </div>
+                            ) : <p className="mt-3 alert alert-info text-muted">No evidence uploaded yet.</p>}
+
                         </Tab>
                         <Tab eventKey="execution" title={<><FaPlayCircle className="me-1" />Execution</>}>
-                            <Card><Card.Body>
-                                {executionError && <Alert variant="danger" onClose={() => setExecutionError('')} dismissible>{executionError}</Alert>}
-                                {executionSuccess && <Alert variant="success" onClose={() => setExecutionSuccess('')} dismissible>{executionSuccess}</Alert>}
+                            <div>
+                                <Card className=''>
+                                    <ListGroup variant='flush'>
+                                        {taskInstance.check_type && (
+                                            <>
+                                                <Card.Header as="h5"><FaCogs className="me-2 text-muted" />Automated Check Details</Card.Header>
+                                                <ListGroupItem ><strong>Check Type:</strong> {taskInstance.check_type}</ListGroupItem>
+                                                <ListGroupItem ><strong>Target:</strong> {taskInstance.target || 'N/A'}</ListGroupItem>
+                                                <ListGroupItem ><strong>Parameters:</strong> {taskInstance.parameters ? JSON.stringify(taskInstance.parameters) : 'None'}</ListGroupItem>
+                                            </>
+                                        )}
+                                    </ListGroup>
+                                    <Card.Footer>
+                                        {executionError && <Alert variant="danger" onClose={() => setExecutionError('')} dismissible>{executionError}</Alert>}
+                                        {executionSuccess && <Alert variant="success" onClose={() => setExecutionSuccess('')} dismissible>{executionSuccess}</Alert>}
 
-                                {canManageEvidenceAndExecution && taskInstance.check_type ? (
-                                    // This block is shown if the task IS configured for automation
-                                    <>
-                                        <p>This task instance is configured for automated execution.</p>
-                                        <Button onClick={handleExecuteInstance} disabled={loadingResults}>
-                                            {/* ... button text ... */}
-                                        </Button>
-                                    </>
-                                ) : !canManageEvidenceAndExecution ? (
-                                    // This block is shown if the user doesn't have permission
-                                    <Alert variant="info">Task execution is restricted.</Alert>
-                                ) : !taskInstance.check_type ? (
-                                    // THIS IS THE KEY CONDITION:
-                                    // If taskInstance.check_type is null, undefined, or an empty string,
-                                    // this message is displayed.
-                                    <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
-                                ) : (
-                                    // Fallback, also shows the same message
-                                    <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
-                                )}
+                                        {canManageEvidenceAndExecution && taskInstance.check_type ? (
+                                            // This block is shown if the task IS configured for automation
+                                            <>
+                                                <p>This task instance is configured for automated execution.</p>
+                                                <Button className='rounded-pill small w-100' onClick={handleExecuteInstance} disabled={loadingResults}>
+                                                    Execute
+                                                </Button>
+                                            </>
+                                        ) : !canManageEvidenceAndExecution ? (
+                                            // This block is shown if the user doesn't have permission
+                                            <Alert variant="info">Task execution is restricted.</Alert>
+                                        ) : !taskInstance.check_type ? (
+                                            // THIS IS THE KEY CONDITION:
+                                            // If taskInstance.check_type is null, undefined, or an empty string,
+                                            // this message is displayed.
+                                            <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
+                                        ) : (
+                                            // Fallback, also shows the same message
+                                            <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
+                                        )}
 
 
-                                {/* {canManageEvidenceAndExecution && taskInstance.check_type ? (
+                                        {/* {canManageEvidenceAndExecution && taskInstance.check_type ? (
                                     <>
                                         <p>This task instance is configured for automated execution.</p>
                                         <Button onClick={handleExecuteInstance} disabled={loadingResults}>
@@ -620,19 +638,27 @@ function CampaignTaskInstanceDetail() {
                                 ) : (
                                     <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
                                 )} */}
-                            </Card.Body></Card>
+                                    </Card.Footer></Card>
+                            </div>
                         </Tab>
                         <Tab eventKey="results" title={<><FaPoll className="me-1" />Results</>}>
-                            <Card><Card.Body>
+                            <Card>
+                                 <Card.Header as="h5"><FaTerminal className="me-2 text-muted" />Results</Card.Header>
+                                <Card.Body>
                                 <Button onClick={fetchInstanceResults} disabled={loadingResults} className="mb-3">
                                     {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1" /> Loading...</> : "Refresh Results"}
                                 </Button>
                                 {executionResults.length > 0 ? (
                                     <ListGroup variant="flush">
-                                        {executionResults.map(res => (
+                                        {executionResults.map((res, index) => (
                                             <ListGroup.Item key={res.id}>
                                                 <small><strong>Timestamp:</strong> {new Date(res.timestamp).toLocaleString()}</small><br />
-                                                <small><strong>Status:</strong> <Badge bg={getStatusColorUtil(res.status)}>{res.status}</Badge></small><br />
+                                                <small><strong>Status:</strong> <Badge bg={getStatusColor(res.status)}>{res.status}</Badge></small><br />
+                                                {res.executedByUser && res.executedByUser.name && (
+                                                    <small>
+                                                        <strong>Executed By:</strong> <UserDisplay userId={res.executedByUserId} userName={res.executedByUser.name} allUsers={users} />
+                                                    </small>
+                                                )}
                                                 <small><strong>Output:</strong></small>
                                                 <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>{res.output}</pre>
                                             </ListGroup.Item>
@@ -657,7 +683,7 @@ function CampaignTaskInstanceDetail() {
                 </Col>
             </Row>
 
-             {taskInstance && (
+            {taskInstance && (
                 <CopyEvidenceModal
                     show={showCopyEvidenceModal}
                     onHide={() => setShowCopyEvidenceModal(false)}
@@ -665,7 +691,7 @@ function CampaignTaskInstanceDetail() {
                     onCopySubmit={handleCopyEvidenceSubmit}
                 />
             )}
-            
+
         </div>
 
     );

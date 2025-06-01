@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/vdparikh/compliance-automation/backend/executor"   // New executor package
 	"github.com/vdparikh/compliance-automation/backend/handlers"   // Adjust import path
 	"github.com/vdparikh/compliance-automation/backend/middleware" // Adjust path
 	"github.com/vdparikh/compliance-automation/backend/store"      // Adjust import path
@@ -63,6 +64,9 @@ func main() {
 		log.Fatalf("Could not connect to the database: %v", err)
 	}
 	defer dbStore.DB.Close()
+
+	// Initialize and register all check executors
+	executor.InitExecutors()
 
 	router := gin.Default()
 

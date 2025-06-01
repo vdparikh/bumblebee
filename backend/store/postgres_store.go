@@ -1155,7 +1155,7 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
 	query := `SELECT cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id,
 	cti.campaign_selected_requirement_id, cti.title, cti.description, cti.category, cti.assignee_user_id, cti.last_checked_at, cti.last_check_status,
     cti.status, cti.due_date, cti.created_at, cti.updated_at,
-    cti.check_type, cti.target, cti.parameters,
+    mt.check_type, mt.target, mt.parameters,
     assignee.name as assignee_user_name,
     req.control_id_reference as requirement_control_id_reference,
     req.requirement_text as requirement_text,
@@ -1168,7 +1168,7 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
     LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
     LEFT JOIN requirements req ON csr.requirement_id = req.id
     LEFT JOIN compliance_standards std ON req.standard_id = std.id
-    LEFT JOIN tasks mt ON cti.master_task_id = mt.id -- Join with master tasks
+    LEFT JOIN tasks mt ON cti.master_task_id = mt.id 
     WHERE cti.id = $1
 `
 
@@ -1681,4 +1681,51 @@ func (s *DBStore) CreateCampaignTaskInstanceResult(result *models.CampaignTaskIn
 		return fmt.Errorf("failed to create campaign task instance result: %w", err)
 	}
 	return nil
+}
+
+func (s *DBStore) GetCampaignTaskInstanceResults(instanceID string) ([]models.CampaignTaskInstanceResult, error) {
+	var results []models.CampaignTaskInstanceResult
+	query := `
+		SELECT 
+			ctir.id, 
+			ctir.campaign_task_instance_id, 
+			ctir.executed_by_user_id, 
+			u.name as executed_by_user_name, 
+			ctir.timestamp, 
+			ctir.status, 
+			ctir.output
+		FROM campaign_task_instance_results ctir
+		LEFT JOIN users u ON ctir.executed_by_user_id = u.id
+		WHERE ctir.campaign_task_instance_id = $1
+		ORDER BY ctir.timestamp DESC
+	`
+	rows, err := s.DB.Queryx(query, instanceID) // Using Queryx for struct scanning with joins
+	if err != nil {
+		return nil, fmt.Errorf("failed to query campaign task instance results for instance %s: %w", instanceID, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var res models.CampaignTaskInstanceResult
+		// The UserBasicInfo struct is embedded, so we need to scan its fields if they are separate in the query
+		// However, with sqlx, if the struct tags match, it should map correctly.
+		// For `executed_by_user_name`, we'll need to populate `res.ExecutedByUser.Name` manually or adjust model.
+		// Let's assume sqlx handles `db:"executed_by_user_name"` if `ExecutedByUser` was a flat field.
+		// Since `ExecutedByUser` is a struct, we'll scan into a temporary variable for the name.
+		var userName sql.NullString
+		err := rows.Scan(&res.ID, &res.CampaignTaskInstanceID, &res.ExecutedByUserID, &userName, &res.Timestamp, &res.Status, &res.Output)
+		if err != nil {
+			log.Printf("Error scanning campaign task instance result row: %v", err)
+			// Decide whether to return partial results or fail all
+			return nil, fmt.Errorf("failed to scan campaign task instance result: %w", err)
+		}
+		if userName.Valid {
+			res.ExecutedByUser = &models.UserBasicInfo{Name: userName.String}
+			if res.ExecutedByUserID != nil { // Populate ID if available
+				res.ExecutedByUser.ID = *res.ExecutedByUserID
+			}
+		}
+		results = append(results, res)
+	}
+	return results, rows.Err()
 }

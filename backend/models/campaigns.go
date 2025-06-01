@@ -61,7 +61,7 @@ type CampaignTaskInstance struct {
 	// Parameters                    map[string]interface{} `json:"parameters,omitempty"`                       // Changed to interface{} for flexibility
 
 	UpdatedAt       time.Time              `json:"updatedAt" db:"updated_at"`
-	CheckType       *string                `json:"checkType,omitempty" db:"check_type"`
+	CheckType       *string                `json:"check_type,omitempty" db:"check_type"`
 	Target          *string                `json:"target,omitempty" db:"target"`
 	Parameters      map[string]interface{} `json:"parameters,omitempty" db:"parameters"`             // Stored as JSONB
 	LastCheckedAt   *time.Time             `json:"lastCheckedAt,omitempty" db:"last_checked_at"`     // New field

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-    getTasks, 
-    createTask, 
-    updateTask, 
-    getRequirements, 
-    getUsers, 
-    getComplianceStandards 
+import {
+    getTasks,
+    createTask,
+    updateTask,
+    getRequirements,
+    getUsers,
+    getComplianceStandards,
+    getConnectedSystems // Assuming this function exists in your API service
 } from '../services/api';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
@@ -55,7 +56,7 @@ import {
 
 function Tasks() {
     const [tasks, setTasks] = useState([]);
-    
+
     // Form state for creating/editing a task
     const [newTitle, setNewTitle] = useState('');
     // Define fixed categories
@@ -75,20 +76,21 @@ function Tasks() {
     const [newStatus, setNewStatus] = useState('Open');
     const [newDueDate, setNewDueDate] = useState('');
     const [newRequirementId, setNewRequirementId] = useState('');
-    const [newCheckType, setNewCheckType] = useState(''); 
-    const [newCheckTarget, setNewCheckTarget] = useState(''); 
-    const [newCheckParams, setNewCheckParams] = useState(''); 
+    const [newCheckType, setNewCheckType] = useState('');
+    const [newCheckTarget, setNewCheckTarget] = useState(''); // Will store Connected System ID if applicable
+    const [newCheckParams, setNewCheckParams] = useState({}); // Changed from string to object
     const [newEvidenceTypesExpected, setNewEvidenceTypesExpected] = useState([]); // For react-select
     const [newDefaultPriority, setNewDefaultPriority] = useState('');
-    
+
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    
+
     // Available options for EvidenceTypesExpected
     const [allStandards, setAllStandards] = useState([]);
     const [allRequirements, setAllRequirements] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
-    
+    const [allConnectedSystems, setAllConnectedSystems] = useState([]);
+
     const [filteredTasks, setFilteredTasks] = useState([]);
     const [selectedStandardIdForFilter, setSelectedStandardIdForFilter] = useState('');
     const [selectedRequirementIdForFilter, setSelectedRequirementIdForFilter] = useState('');
@@ -103,6 +105,42 @@ function Tasks() {
         { value: 'policy_document', label: 'Policy Document' },
         { value: 'interview_notes', label: 'Interview Notes' },
     ];
+
+    // Define check types and their specific parameter configurations
+    const checkTypeConfigurations = {
+        'http_get_check': {
+            label: 'HTTP GET Check',
+            parameters: [
+                { name: 'apiPath', label: 'API Path', type: 'text', required: true, placeholder: '/health or /api/v1/status', helpText: 'The specific path to append to the base URL of the target system (e.g., /api/status).' },
+                { name: 'expected_status_code', label: 'Expected Status Code', type: 'number', placeholder: '200', helpText: 'The HTTP status code expected for a successful check. Defaults to 200 if not specified.' }
+            ],
+            targetType: 'connected_system', // Indicates 'Target' should be a Connected System ID
+            targetLabel: 'Target Connected System'
+        },
+        'script_run_check': {
+            label: 'Script Run Check',
+            parameters: [
+                { name: 'script_path', label: 'Script Path on Target Host', type: 'text', required: true, placeholder: '/opt/scripts/check.sh', helpText: 'Absolute path to the script on the selected execution host.' },
+                { name: 'script_args', label: 'Script Arguments (JSON Array)', type: 'textarea', placeholder: 'e.g., ["arg1", "value for arg2"]', helpText: 'Optional. Arguments to pass to the script, as a JSON array of strings.' },
+                { name: 'expected_exit_code', label: 'Expected Exit Code', type: 'number', placeholder: '0', helpText: 'Optional. The exit code expected for a successful script run. Defaults to 0.' }
+            ],
+            targetType: 'connected_system',
+            targetLabel: 'Execution Host (e.g., Local Server)',
+            targetHelpText: 'Select the Connected System representing the host where the script will run (e.g., the local backend server).'
+        },
+        'port_scan_check': {
+            label: 'Port Scan Check',
+            parameters: [
+                { name: 'port', label: 'Port Number', type: 'number', required: true, placeholder: 'e.g., 80 or 443' },
+                { name: 'protocol', label: 'Protocol', type: 'select', options: [{ value: 'tcp', label: 'TCP' }, { value: 'udp', label: 'UDP' }], required: false, placeholder: 'tcp', helpText: 'Optional. Network protocol. Defaults to TCP.' },
+                { name: 'timeout_seconds', label: 'Timeout (seconds)', type: 'number', placeholder: '5', helpText: 'Optional. Connection timeout in seconds. Defaults to 5.' }
+            ],
+            targetType: 'connected_system',
+            targetLabel: 'Target Connected System (for Host/IP)',
+            targetHelpText: "Select a Connected System. Its configuration should contain a 'host' field (e.g., {\"host\": \"server.example.com\"})."
+
+        }
+    };
 
     const fetchTasks = useCallback(async () => {
         try {
@@ -140,6 +178,14 @@ function Tasks() {
             setError(prev => prev + ' Failed to fetch users for selection.');
             setAllUsers([]);
         }
+        try {
+            const systemsResponse = await getConnectedSystems();
+            setAllConnectedSystems(Array.isArray(systemsResponse.data) ? systemsResponse.data : []);
+        } catch (err) {
+            console.error("Error fetching connected systems for dropdown:", err);
+            setError(prev => prev + ' Failed to fetch connected systems for selection.');
+            setAllConnectedSystems([]);
+        }
     }, []);
 
     useEffect(() => {
@@ -153,7 +199,7 @@ function Tasks() {
             const requirementIdsForStandard = allRequirements
                 .filter(req => req.standardId === selectedStandardIdForFilter)
                 .map(req => req.id);
-            tempTasks = tempTasks.filter(task => 
+            tempTasks = tempTasks.filter(task =>
                 task.requirementId && requirementIdsForStandard.includes(task.requirementId)
             );
         }
@@ -174,7 +220,7 @@ function Tasks() {
         setNewRequirementId('');
         setNewCheckType('');
         setNewCheckTarget('');
-        setNewCheckParams('');
+        setNewCheckParams({}); // Reset to empty object
         setNewEvidenceTypesExpected([]);
         setNewDefaultPriority('');
     };
@@ -186,15 +232,48 @@ function Tasks() {
             setSuccess('');
             return;
         }
-        let params = null;
-        try {
-            if (newCheckParams.trim()) {
-                params = JSON.parse(newCheckParams);
+
+        let processedParams = { ...newCheckParams }; // Use a copy to modify
+
+        // Validate and process parameters based on check type
+        const currentCheckConfig = checkTypeConfigurations[newCheckType];
+        if (newCheckType && currentCheckConfig && currentCheckConfig.parameters) {
+            for (const paramDef of currentCheckConfig.parameters) {
+                const paramValue = processedParams[paramDef.name];
+                if (paramDef.required && (paramValue === undefined || paramValue === '' || paramValue === null)) {
+                    setError(`Parameter "${paramDef.label}" is required for ${currentCheckConfig.label}.`);
+                    setSuccess('');
+                    return;
+                }
+
+                // Specific handling for script_args to ensure it's an array or null
+                if (paramDef.name === 'script_args' && paramValue) {
+                    if (typeof paramValue === 'string') {
+                        if (paramValue.trim() === '') {
+                            processedParams.script_args = null; // Treat empty string as no args
+                        } else {
+                            try {
+                                const parsed = JSON.parse(paramValue);
+                                if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+                                    processedParams.script_args = parsed;
+                                } else {
+                                    setError('Script Arguments must be a valid JSON array of strings (e.g., ["arg1", "arg2"]). Or leave empty.');
+                                    setSuccess('');
+                                    return;
+                                }
+                            } catch (e) {
+                                setError('Script Arguments contains invalid JSON. Please provide a valid JSON array of strings or leave empty.');
+                                setSuccess('');
+                                return;
+                            }
+                        }
+                    } else if (!Array.isArray(paramValue) && paramValue !== null) {
+                        setError('Script Arguments must be a valid JSON array of strings or null.');
+                        setSuccess('');
+                        return;
+                    }
+                }
             }
-        } catch (error) {
-            setError("Invalid JSON for parameters. Please use a valid JSON string or leave empty.");
-            setSuccess('');
-            return;
         }
 
         const taskData = {
@@ -208,11 +287,11 @@ function Tasks() {
             requirementId: newRequirementId.trim() || null,
             checkType: newCheckType.trim() || null,
             target: newCheckTarget.trim() || null,
-            parameters: params, 
+            parameters: Object.keys(processedParams).length > 0 ? processedParams : null,
             evidenceTypesExpected: newEvidenceTypesExpected.map(option => option.value), // Get array of strings
             defaultPriority: newDefaultPriority.trim() || null,
         };
-        
+
         try {
             if (editingTaskId) {
                 await updateTask(editingTaskId, taskData);
@@ -222,7 +301,7 @@ function Tasks() {
                 setSuccess('Task created successfully!');
             }
             resetFormFields();
-            fetchTasks(); 
+            fetchTasks();
             setError('');
             setEditingTaskId(null);
             setActiveTabKey('existing');
@@ -246,7 +325,7 @@ function Tasks() {
         setNewRequirementId(task.requirementId || '');
         setNewCheckType(task.checkType || '');
         setNewCheckTarget(task.target || '');
-        setNewCheckParams(task.parameters ? JSON.stringify(task.parameters, null, 2) : '');
+        setNewCheckParams(task.parameters || {}); // Set to task's parameters object or empty object
         // Convert string array from task.evidenceTypesExpected to {value, label} for react-select
         setNewEvidenceTypesExpected(task.evidenceTypesExpected ? task.evidenceTypesExpected.map(et => ({ value: et, label: evidenceTypeOptions.find(opt => opt.value === et)?.label || et })) : []);
         setNewDefaultPriority(task.defaultPriority || '');
@@ -259,10 +338,33 @@ function Tasks() {
         setEditingTaskId(null);
         resetFormFields();
         setActiveTabKey('existing');
-        setError(''); 
+        setError('');
         setSuccess('');
     };
-    
+
+    const handleParamChange = (paramName, value, paramDef) => { // Pass the full paramDef
+        setNewCheckParams(prevParams => ({
+            ...prevParams,
+            [paramName]: (() => {
+                if (paramDef.type === 'number') {
+                    if (value.trim() === '') {
+                        return null; // Optional number fields become null if empty
+                    }
+                    const num = parseInt(value, 10);
+                    return isNaN(num) ? null : num; // If parsing fails, treat as null for optional
+                }
+                // For script_args, which is a textarea expecting JSON, it's currently sent as a string.
+                // This might need further parsing here or careful handling in the backend.
+                return value;
+            })()
+        }));
+    };
+    const handleCheckTypeChange = (e) => {
+        setNewCheckType(e.target.value);
+        setNewCheckParams({}); // Reset parameters when check type changes
+        setNewCheckTarget(''); // Reset target as well
+    };
+
     const handleClearFilters = () => {
         setSelectedStandardIdForFilter('');
         setSelectedRequirementIdForFilter('');
@@ -271,7 +373,7 @@ function Tasks() {
     const renderUserWithPopover = (userId, defaultText = 'N/A') => {
         if (!userId) return defaultText;
         const user = getUserDetails(userId);
-        if (!user) return userId; 
+        if (!user) return userId;
 
         const userPopover = (
             <Popover id={`popover-user-list-${user.id}`}>
@@ -322,7 +424,7 @@ function Tasks() {
 
     return (
         <div>
-            <h2 className="mb-4"><FaTasksIcon className="me-2"/>Compliance Tasks</h2>
+            <h2 className="mb-4"><FaTasksIcon className="me-2" />Compliance Tasks</h2>
 
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
@@ -333,12 +435,12 @@ function Tasks() {
                     <Row>
                         <Col md={5}>
                             <FloatingLabel controlId="filterStandard" label="Filter by Standard">
-                                <Form.Select 
+                                <Form.Select
                                     aria-label="Filter by Standard"
                                     value={selectedStandardIdForFilter}
                                     onChange={(e) => {
                                         setSelectedStandardIdForFilter(e.target.value);
-                                        setSelectedRequirementIdForFilter(''); 
+                                        setSelectedRequirementIdForFilter('');
                                     }}
                                 >
                                     <option value="">All Standards</option>
@@ -352,7 +454,7 @@ function Tasks() {
                         </Col>
                         <Col md={5}>
                             <FloatingLabel controlId="filterRequirement" label="Filter by Requirement">
-                                <Form.Select 
+                                <Form.Select
                                     aria-label="Filter by Requirement"
                                     value={selectedRequirementIdForFilter}
                                     onChange={(e) => setSelectedRequirementIdForFilter(e.target.value)}
@@ -361,10 +463,10 @@ function Tasks() {
                                     {allRequirements
                                         .filter(req => !selectedStandardIdForFilter || req.standardId === selectedStandardIdForFilter)
                                         .map(req => (
-                                        <option key={req.id} value={req.id}>
-                                            {req.controlIdReference} - {req.requirementText.substring(0,30)}...
-                                        </option>
-                                    ))}
+                                            <option key={req.id} value={req.id}>
+                                                {req.controlIdReference} - {req.requirementText.substring(0, 30)}...
+                                            </option>
+                                        ))}
                                 </Form.Select>
                             </FloatingLabel>
                         </Col>
@@ -379,20 +481,20 @@ function Tasks() {
                 <Alert variant="info" className="d-flex justify-content-between align-items-center">
                     <span>
                         Filtering by:
-                        {selectedStandardIdForFilter && <Badge bg="info" className="ms-2 me-1">{allStandards.find(s=>s.id === selectedStandardIdForFilter)?.name || 'Standard'}</Badge>}
-                        {selectedRequirementIdForFilter && <Badge bg="info" className="ms-2 me-1">{allRequirements.find(r=>r.id === selectedRequirementIdForFilter)?.controlIdReference || 'Requirement'}</Badge>}
+                        {selectedStandardIdForFilter && <Badge bg="info" className="ms-2 me-1">{allStandards.find(s => s.id === selectedStandardIdForFilter)?.name || 'Standard'}</Badge>}
+                        {selectedRequirementIdForFilter && <Badge bg="info" className="ms-2 me-1">{allRequirements.find(r => r.id === selectedRequirementIdForFilter)?.controlIdReference || 'Requirement'}</Badge>}
                     </span>
                 </Alert>
             )}
 
             <Tabs activeKey={activeTabKey} onSelect={(k) => setActiveTabKey(k)} id="tasks-tabs" className="mb-3 nav-line-tabs">
-                <Tab eventKey="create" title={<><FaPlusCircle className="me-1"/>{editingTaskId ? 'Edit Task' : 'Create New Task'}</>}>
+                <Tab eventKey="create" title={<><FaPlusCircle className="me-1" />{editingTaskId ? 'Edit Task' : 'Create New Task'}</>}>
                     <Card className="mb-4">
                         <Card.Body>
                             <Form onSubmit={handleSubmitTask}>
 
 
-                                <FloatingLabel controlId="floatingRequirementId" label={<><FaClipboardList className="me-1"/>Requirement</>} className="mb-3">
+                                <FloatingLabel controlId="floatingRequirementId" label={<><FaClipboardList className="me-1" />Requirement</>} className="mb-3">
                                     <Form.Select value={newRequirementId} onChange={(e) => setNewRequirementId(e.target.value)} aria-label="Select associated requirement">
                                         <option value="">Select Requirement</option>
                                         {allRequirements.map(req => (
@@ -402,10 +504,10 @@ function Tasks() {
                                         ))}
                                     </Form.Select>
                                 </FloatingLabel>
-                                
+
                                 <Row className="mb-3">
                                     <Form.Group as={Col} md="6" controlId="floatingTaskTitle">
-                                        <FloatingLabel label={<><FaInfoCircle className="me-1"/>Task Title*</>}>
+                                        <FloatingLabel label={<><FaInfoCircle className="me-1" />Task Title*</>}>
                                             <Form.Control type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Enter a concise title for the task" required />
                                         </FloatingLabel>
                                     </Form.Group>
@@ -423,11 +525,11 @@ function Tasks() {
 
                                     </Form.Group>
                                 </Row>
-        
+
                                 <FloatingLabel controlId="floatingTaskDescription" label="Description" className="mb-3">
                                     <Form.Control as="textarea" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Description" style={{ height: '100px' }} />
                                 </FloatingLabel>
-        
+
                                 <Row className="mb-3">
                                     <Form.Group as={Col} md="6" controlId="evidenceTypesExpected">
                                         <Form.Label>Evidence Types Expected</Form.Label>
@@ -439,8 +541,8 @@ function Tasks() {
                                             placeholder="Select or type to add evidence types..."
                                             isClearable
                                             isSearchable
-                                            // To allow creating new tags (if desired, requires more setup with CreatableSelect from react-select)
-                                            // components={{ DropdownIndicator: null }} // Example for tag-like input
+                                        // To allow creating new tags (if desired, requires more setup with CreatableSelect from react-select)
+                                        // components={{ DropdownIndicator: null }} // Example for tag-like input
                                         />
                                         <Form.Text muted>Specify the types of evidence typically required for this task.</Form.Text>
                                     </Form.Group>
@@ -460,39 +562,96 @@ function Tasks() {
                                         <Form.Text muted>Set a default priority for instances created from this task template.</Form.Text>
                                     </Form.Group>
                                 </Row>
-        
-        
+
+
                                 <Accordion className="mb-3">
                                     <Accordion.Item eventKey="0">
-                                        <Accordion.Header><FaCogs className="me-2"/>Optional: Automated Check Details</Accordion.Header>
+                                        <Accordion.Header><FaCogs className="me-2" />Optional: Automated Check Details</Accordion.Header>
                                         <Accordion.Body>
                                             <FloatingLabel controlId="floatingCheckType" label="Check Type" className="mb-3">
-                                                <Form.Control type="text" value={newCheckType} onChange={(e) => setNewCheckType(e.target.value)} placeholder="Check Type (e.g., file_exists)" />
+                                                <Form.Select value={newCheckType} onChange={handleCheckTypeChange}>
+                                                    <option value="">Select Check Type</option>
+                                                    {Object.entries(checkTypeConfigurations).map(([key, config]) => (
+                                                        <option key={key} value={key}>{config.label}</option>
+                                                    ))}
+                                                </Form.Select>
                                                 <Form.Text muted>Identifier for the type of automated check (e.g., `api_health`, `port_scan`).</Form.Text>
                                             </FloatingLabel>
-                                            <FloatingLabel controlId="floatingCheckTarget" label="Target" className="mb-3">
-                                                <Form.Control type="text" value={newCheckTarget} onChange={(e) => setNewCheckTarget(e.target.value)} placeholder="Target (e.g., 127.0.0.1)" />
-                                                <Form.Text muted>The target system or endpoint for the check (e.g., IP address, hostname, URL).</Form.Text>
-                                            </FloatingLabel>
-                                            <FloatingLabel controlId="floatingCheckParams" label="Parameters (JSON)">
-                                                <Form.Control as="textarea" value={newCheckParams} onChange={(e) => setNewCheckParams(e.target.value)} placeholder='e.g., {"filePath":"/path/to/file"}' style={{ height: '100px' }}/>
-                                                <Form.Text muted>Provide parameters as a valid JSON object. E.g., <code>{`{"port": 80, "timeout": 5000}`}</code></Form.Text>
-                                            </FloatingLabel>
+
+                                            {newCheckType && checkTypeConfigurations[newCheckType] && (
+                                                <>
+                                                    {checkTypeConfigurations[newCheckType].targetType === 'connected_system' && (
+                                                        <FloatingLabel controlId="floatingCheckTargetSystem" label={checkTypeConfigurations[newCheckType].targetLabel || "Target Connected System"} className="mb-3">
+                                                            <Form.Select value={newCheckTarget} onChange={(e) => setNewCheckTarget(e.target.value)} required>
+                                                                <option value="">Select Connected System</option>
+                                                                {allConnectedSystems.map(system => (
+                                                                    <option key={system.id} value={system.id}>{system.name} ({system.systemType})</option>
+                                                                ))}
+                                                            </Form.Select>
+                                                            <Form.Text muted>Select the pre-configured system to target.</Form.Text>
+                                                        </FloatingLabel>
+                                                    )}
+                                                    {(checkTypeConfigurations[newCheckType].targetType === 'ip_address_or_hostname' || checkTypeConfigurations[newCheckType].targetType === 'script_path') && (
+                                                        <FloatingLabel controlId="floatingCheckTargetDirect" label={checkTypeConfigurations[newCheckType].targetLabel || "Target"} className="mb-3">
+                                                            <Form.Control type="text" value={newCheckTarget} onChange={(e) => setNewCheckTarget(e.target.value)} placeholder={checkTypeConfigurations[newCheckType].targetPlaceholder || "Enter target details"} required />
+                                                            <Form.Text muted>{checkTypeConfigurations[newCheckType].targetHelpText || 'Enter the target for the check.'}</Form.Text>
+                                                        </FloatingLabel>
+                                                    )}
+                                                    {/* Add other targetType handlers if needed */}
+
+                                                    {checkTypeConfigurations[newCheckType].parameters.map(paramDef => (
+                                                        <FloatingLabel key={paramDef.name} controlId={`floatingParam-${paramDef.name}`} label={`${paramDef.label}${paramDef.required ? '*' : ''}`} className="mb-3">
+                                                            {paramDef.type === 'select' ? (
+                                                                <Form.Select
+                                                                    value={newCheckParams[paramDef.name] || ''}
+                                                                    onChange={(e) => handleParamChange(paramDef.name, e.target.value, paramDef)}
+                                                                    required={paramDef.required}
+                                                                >
+                                                                    <option value="">Select {paramDef.label}</option>
+                                                                    {paramDef.options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                                                </Form.Select>
+                                                            ) : paramDef.type === 'textarea' ? (
+                                                                <Form.Control
+                                                                    as="textarea"
+                                                                    // If the parameter is script_args and it's an array, stringify it for display
+                                                                    // Otherwise, use its value or an empty string.
+                                                                    value={paramDef.name === 'script_args' && Array.isArray(newCheckParams[paramDef.name])
+                                                                            ? JSON.stringify(newCheckParams[paramDef.name])
+                                                                            : (newCheckParams[paramDef.name] || '')}
+                                                                    onChange={(e) => handleParamChange(paramDef.name, e.target.value, paramDef)}
+                                                                    placeholder={paramDef.placeholder}
+                                                                    required={paramDef.required}
+                                                                    style={{ height: '80px' }}
+                                                                />
+                                                            ) : (
+                                                                <Form.Control
+                                                                    type={paramDef.type}
+                                                                    value={newCheckParams[paramDef.name] || ''}
+                                                                    onChange={(e) => handleParamChange(paramDef.name, e.target.value, paramDef)}
+                                                                    placeholder={paramDef.placeholder}
+                                                                    required={paramDef.required}
+                                                                />
+                                                            )}
+                                                            {paramDef.helpText && <Form.Text muted>{paramDef.helpText}</Form.Text>}
+                                                        </FloatingLabel>
+                                                    ))}
+                                                </>
+                                            )}
                                         </Accordion.Body>
                                     </Accordion.Item>
                                 </Accordion>
-        
+
                                 <Button variant="primary" type="submit" className="me-2">
-                                    {editingTaskId ? <><FaEdit className="me-1"/>Update Task</> : <><FaPlusCircle className="me-1"/>Add Task</>}
+                                    {editingTaskId ? <><FaEdit className="me-1" />Update Task</> : <><FaPlusCircle className="me-1" />Add Task</>}
                                 </Button>
                                 {editingTaskId && (
-                                    <Button variant="outline-secondary" onClick={handleCancelEdit}><FaWindowClose className="me-1"/>Cancel Edit</Button>
+                                    <Button variant="outline-secondary" onClick={handleCancelEdit}><FaWindowClose className="me-1" />Cancel Edit</Button>
                                 )}
                             </Form>
                         </Card.Body>
                     </Card>
                 </Tab>
-                <Tab eventKey="existing" title={<><FaListUl className="me-1"/>Existing Tasks</>}>
+                <Tab eventKey="existing" title={<><FaListUl className="me-1" />Existing Tasks</>}>
                     {filteredTasks.length === 0 && tasks.length > 0 && (selectedStandardIdForFilter || selectedRequirementIdForFilter) &&
                         <Alert variant="warning">No tasks match the current filter criteria.</Alert>
                     }
@@ -505,19 +664,19 @@ function Tasks() {
                             return (
                                 <ListGroup.Item key={task.id} className=" p-3">
                                     <Row className="align-items-start">
-                                        <Col xs="auto" className="pe-2 d-flex align-items-center pt-1">                                           
+                                        <Col xs="auto" className="pe-2 d-flex align-items-center pt-1">
                                             {getCategoryIcon(task.category)}
                                         </Col>
                                         <Col>
                                             <h5 className="mb-1">{task.title}</h5>
                                             {task.description && <p className="mb-1 ">{task.description}</p>}
                                             <small className="text-muted d-block mt-1">
-                                                ID: {task.id} 
-                                                {task.category && <> <span className="mx-1">|</span> <FaTag className="me-1"/>Category: {task.category}</>}
+                                                ID: {task.id}
+                                                {task.category && <> <span className="mx-1">|</span> <FaTag className="me-1" />Category: {task.category}</>}
                                                 {task.requirementId && requirement && (
                                                     <>
-                                                        <span className="mx-1">|</span> <FaClipboardList className="me-1"/>
-                                                        Requirement: 
+                                                        <span className="mx-1">|</span> <FaClipboardList className="me-1" />
+                                                        Requirement:
                                                         <OverlayTrigger
                                                             placement="top"
                                                             delay={{ show: 250, hide: 400 }}
@@ -531,9 +690,9 @@ function Tasks() {
                                                                 </Popover>
                                                             }
                                                         >
-                                                            <span className="text-primary" style={{cursor: 'pointer'}}> {requirement.controlIdReference}</span>
+                                                            <span className="text-primary" style={{ cursor: 'pointer' }}> {requirement.controlIdReference}</span>
                                                         </OverlayTrigger>
-                                                        {standardName && ` (${standardName.split('(')[1]?.replace(')','') || standardName})`}
+                                                        {standardName && ` (${standardName.split('(')[1]?.replace(')', '') || standardName})`}
                                                     </>
                                                 )}
                                                 {task.defaultPriority && (
@@ -545,10 +704,10 @@ function Tasks() {
                                                     <><span className="mx-1">|</span> Expected Evidence: {task.evidenceTypesExpected.join(', ')}</>
                                                 )}
                                             </small>
-                                            
+
                                             {task.checkType && (
                                                 <div className="mt-2 p-2 bg-light border rounded">
-                                                    <small><FaCogs className="me-1"/><strong>Automated Check:</strong> {task.checkType} on {task.target || 'N/A'}</small>
+                                                    <small><FaCogs className="me-1" /><strong>Automated Check:</strong> {task.checkType} on {task.target || 'N/A'}</small>
                                                     <small className="d-block"><strong>Parameters:</strong> {task.parameters ? JSON.stringify(task.parameters) : 'None'}</small>
                                                 </div>
                                             )}
@@ -576,7 +735,7 @@ function Tasks() {
                     </ListGroup>
                 </Tab>
             </Tabs>
-                        
+
         </div>
     );
 }
