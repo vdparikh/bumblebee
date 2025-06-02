@@ -6,8 +6,7 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import Row from 'react-bootstrap/Row';
-import NavDropdown from 'react-bootstrap/NavDropdown';
-import Image from 'react-bootstrap/Image'; 
+import NavDropdown from 'react-bootstrap/NavDropdown'; 
 import Col from 'react-bootstrap/Col'; 
 
 import Tasks from './components/Tasks'; 
@@ -22,7 +21,7 @@ import Dashboard from './components/Dashboard';
 import { ThemeProvider } from './contexts/ThemeContext'; 
 import ThemeSwitcher from './components/common/ThemeSwitcher'; 
 import CampaignTaskInstanceDetail from './components/CampaignTaskInstanceDetail'; 
-import { Button, OverlayTrigger, Spinner } from 'react-bootstrap';
+import { Button, Spinner } from 'react-bootstrap';
 import HelpSupportPanel from './components/common/HelpSupportPanel'; 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './components/auth/LoginPage'; 

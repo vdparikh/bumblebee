@@ -2,17 +2,15 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom';
 import { getUserCampaignTasks, getCampaigns, getUsers, getUserFeed } from '../services/api'; 
 import { Row, Col, Card, Spinner, Alert, ListGroup, Badge, ProgressBar } from 'react-bootstrap';
-import { FaTachometerAlt, FaTasks, FaBullhorn, FaExclamationTriangle, FaClipboardList, FaCommentAlt, FaComment } from 'react-icons/fa';
+import { FaTachometerAlt, FaBullhorn, FaComment } from 'react-icons/fa';
 
 import PageHeader from './common/PageHeader'; 
 import KeyMetricsCard from './common/KeyMetricsCard';
 import PieChartCard from './common/PieChartCard';
-import BarChartCard from './common/BarChartCard'; 
 import TaskListItem from './common/TaskListItem';
 import { getStatusColor } from '../utils/displayUtils';
 import UserDisplay from './common/UserDisplay'; 
 import { useAuth } from '../contexts/AuthContext';
-import { LineIcon } from "lineicons-react";
 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
@@ -21,7 +19,6 @@ function Dashboard() {
     const [myTasks, setMyTasks] = useState([]);
     const [activeCampaigns, setActiveCampaigns] = useState([]);
     const [userFeed, setUserFeed] = useState([]); 
-    const [loadingFeed, setLoadingFeed] = useState(true); 
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
