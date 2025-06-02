@@ -1,27 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getTasks, createTask, executeTask, getTaskResults } from '../services/api'; // Ensure these are correctly imported from your api.js
+import { getTasks, createTask, executeTask, getTaskResults } from '../services/api'; 
 
 function ComplianceChecks() {
-    const [tasks, setTasks] = useState([]); // Renamed from checks
+    const [tasks, setTasks] = useState([]); 
     
-    // Form state for creating a new task
+    
     const [newTitle, setNewTitle] = useState('');
     const [newDescription, setNewDescription] = useState('');
     const [newCategory, setNewCategory] = useState('');
-    const [newOwnerUserId, setNewOwnerUserId] = useState(''); // Required
+    const [newOwnerUserId, setNewOwnerUserId] = useState(''); 
     const [newAssigneeUserId, setNewAssigneeUserId] = useState('');
-    const [newStatus, setNewStatus] = useState('Open'); // Required, with a default
+    const [newStatus, setNewStatus] = useState('Open'); 
     const [newDueDate, setNewDueDate] = useState('');
     const [newRequirementId, setNewRequirementId] = useState('');
 
-    // Optional automated check fields
+    
     const [newCheckType, setNewCheckType] = useState(''); 
     const [newCheckTarget, setNewCheckTarget] = useState(''); 
     const [newCheckParams, setNewCheckParams] = useState(''); 
     
-    const [results, setResults] = useState({}); // Store results by taskId
+    const [results, setResults] = useState({}); 
 
-    const fetchTasks = useCallback(async () => { // Renamed from fetchChecks
+    const fetchTasks = useCallback(async () => { 
         try {
             const response = await getTasks();
             setTasks(response.data);
@@ -34,7 +34,7 @@ function ComplianceChecks() {
         fetchTasks();
     }, [fetchTasks]);
 
-    const handleAddTask = async (e) => { // Renamed from handleAddCheck
+    const handleAddTask = async (e) => { 
         e.preventDefault();
         if (!newTitle.trim() || !newOwnerUserId.trim() || !newStatus.trim()) {
             alert("Title, Owner User ID, and Status are required.");
@@ -54,24 +54,24 @@ function ComplianceChecks() {
             title: newTitle.trim(),
             description: newDescription.trim(),
             category: newCategory.trim(),
-            ownerUserId: newOwnerUserId.trim(), // Ensure this is a valid UUID or identifier expected by backend
-            assigneeUserId: newAssigneeUserId.trim() || null, // Send null if empty
+            ownerUserId: newOwnerUserId.trim(), 
+            assigneeUserId: newAssigneeUserId.trim() || null, 
             status: newStatus.trim(),
-            // Format date correctly if your backend expects a specific format,
-            // otherwise, ensure it's a valid ISO string or null.
+            
+            
             dueDate: newDueDate ? new Date(newDueDate).toISOString() : null, 
-            requirementId: newRequirementId.trim() || null, // Send null if empty
+            requirementId: newRequirementId.trim() || null, 
 
-            // Optional automated check fields
-            // Send null if the string is empty, otherwise send the string.
+            
+            
             checkType: newCheckType.trim() || null,
             target: newCheckTarget.trim() || null,
-            parameters: Object.keys(params).length > 0 ? params : null, // Send null if no params
+            parameters: Object.keys(params).length > 0 ? params : null, 
         };
         
         try {
             await createTask(taskData);
-            // Reset form fields
+            
             setNewTitle('');
             setNewDescription('');
             setNewCategory('');
@@ -83,14 +83,14 @@ function ComplianceChecks() {
             setNewCheckType('');
             setNewCheckTarget('');
             setNewCheckParams('');
-            fetchTasks(); // Refresh the list
+            fetchTasks(); 
         } catch (error) {
             console.error("Error creating task:", error.response ? error.response.data : error.message);
             alert(`Failed to create task. ${error.response && error.response.data && error.response.data.error ? error.response.data.error : 'See console for details.'}`);
         }
     };
 
-    const handleExecuteTask = async (taskId) => { // Renamed from handleExecuteCheck
+    const handleExecuteTask = async (taskId) => { 
         try {
             const response = await executeTask(taskId);
             alert(`Task execution triggered: ${response.data.message}`);

@@ -9,17 +9,14 @@ import (
 	"github.com/vdparikh/compliance-automation/backend/store"
 )
 
-// StandardHandler holds the store for database operations.
 type StandardHandler struct {
 	Store *store.DBStore
 }
 
-// NewStandardHandler creates a new StandardHandler.
 func NewStandardHandler(s *store.DBStore) *StandardHandler {
 	return &StandardHandler{Store: s}
 }
 
-// CreateStandardHandler handles the creation of new compliance standards.
 func (h *StandardHandler) CreateStandardHandler(c *gin.Context) {
 	var newStd models.ComplianceStandard
 	if err := c.ShouldBindJSON(&newStd); err != nil {
@@ -27,7 +24,6 @@ func (h *StandardHandler) CreateStandardHandler(c *gin.Context) {
 		return
 	}
 
-	// Basic validation
 	if newStd.Name == "" || newStd.ShortName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name and ShortName are required"})
 		return
@@ -40,7 +36,6 @@ func (h *StandardHandler) CreateStandardHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, newStd)
 }
 
-// GetStandardsHandler lists all compliance standards.
 func (h *StandardHandler) GetStandardsHandler(c *gin.Context) {
 	standards, err := h.Store.GetComplianceStandards()
 	if err != nil {
@@ -50,7 +45,6 @@ func (h *StandardHandler) GetStandardsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, standards)
 }
 
-// UpdateStandardHandler handles PUT requests to update an existing standard.
 func (h *StandardHandler) UpdateStandardHandler(c *gin.Context) {
 	standardID := c.Param("id")
 	var stdUpdates models.ComplianceStandard

@@ -8,7 +8,7 @@ export const ThemeContext = createContext({
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
     const localTheme = localStorage.getItem('app-theme');
-    return localTheme || 'light'; // Default to light theme
+    return localTheme || 'light'; 
   });
 
   useEffect(() => {
@@ -30,8 +30,5 @@ export const ThemeProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use the theme context
-export const useTheme = () => React.useContext(ThemeContext);
 
-// Note: Bootstrap 5 uses `data-bs-theme` on the `<html>` tag.
-// If you were using custom CSS variables, you might set them on `document.body.className` or similar.
+export const useTheme = () => React.useContext(ThemeContext);

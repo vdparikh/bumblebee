@@ -19,7 +19,6 @@ func NewSystemIntegrationHandler(store *store.DBStore) *SystemIntegrationHandler
 	return &SystemIntegrationHandler{store: store}
 }
 
-// CreateConnectedSystemHandler handles the creation of a new connected system.
 func (h *SystemIntegrationHandler) CreateConnectedSystemHandler(c *gin.Context) {
 	var system models.ConnectedSystem
 	if err := c.ShouldBindJSON(&system); err != nil {
@@ -28,13 +27,11 @@ func (h *SystemIntegrationHandler) CreateConnectedSystemHandler(c *gin.Context) 
 		return
 	}
 
-	// Basic validation
 	if system.Name == "" || system.SystemType == "" || len(system.Configuration) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name, SystemType, and Configuration are required"})
 		return
 	}
 
-	// Ensure configuration is valid JSON
 	var js json.RawMessage
 	if err := json.Unmarshal(system.Configuration, &js); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Configuration must be valid JSON: " + err.Error()})
@@ -50,7 +47,6 @@ func (h *SystemIntegrationHandler) CreateConnectedSystemHandler(c *gin.Context) 
 	c.JSON(http.StatusCreated, system)
 }
 
-// GetConnectedSystemHandler retrieves a specific connected system by ID.
 func (h *SystemIntegrationHandler) GetConnectedSystemHandler(c *gin.Context) {
 	id := c.Param("id")
 	system, err := h.store.GetConnectedSystemByID(id)
@@ -66,7 +62,6 @@ func (h *SystemIntegrationHandler) GetConnectedSystemHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, system)
 }
 
-// GetAllConnectedSystemsHandler retrieves all connected systems.
 func (h *SystemIntegrationHandler) GetAllConnectedSystemsHandler(c *gin.Context) {
 	systems, err := h.store.GetAllConnectedSystems()
 	if err != nil {
@@ -77,7 +72,6 @@ func (h *SystemIntegrationHandler) GetAllConnectedSystemsHandler(c *gin.Context)
 	c.JSON(http.StatusOK, systems)
 }
 
-// UpdateConnectedSystemHandler updates an existing connected system.
 func (h *SystemIntegrationHandler) UpdateConnectedSystemHandler(c *gin.Context) {
 	id := c.Param("id")
 	var systemUpdates models.ConnectedSystem
@@ -87,7 +81,6 @@ func (h *SystemIntegrationHandler) UpdateConnectedSystemHandler(c *gin.Context) 
 		return
 	}
 
-	// Ensure configuration is valid JSON if provided
 	if len(systemUpdates.Configuration) > 0 {
 		var js json.RawMessage
 		if err := json.Unmarshal(systemUpdates.Configuration, &js); err != nil {
@@ -96,17 +89,14 @@ func (h *SystemIntegrationHandler) UpdateConnectedSystemHandler(c *gin.Context) 
 		}
 	}
 
-	systemUpdates.ID = id // Ensure ID from path is used
+	systemUpdates.ID = id 
 
-	// Fetch existing to compare or merge if partial updates are complex
-	// For now, assuming the payload contains all updatable fields or store handles defaults
 	err := h.store.UpdateConnectedSystem(&systemUpdates)
 	if err != nil {
 		log.Printf("Error updating connected system %s: %v", id, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update connected system: " + err.Error()})
 		return
 	}
-	// Fetch the updated record to return it
 	updatedSystem, err := h.store.GetConnectedSystemByID(id)
 	if err != nil || updatedSystem == nil {
 		log.Printf("Error fetching updated system %s after update: %v", id, err)
@@ -116,7 +106,6 @@ func (h *SystemIntegrationHandler) UpdateConnectedSystemHandler(c *gin.Context) 
 	c.JSON(http.StatusOK, updatedSystem)
 }
 
-// DeleteConnectedSystemHandler deletes a connected system.
 func (h *SystemIntegrationHandler) DeleteConnectedSystemHandler(c *gin.Context) {
 	id := c.Param("id")
 	err := h.store.DeleteConnectedSystem(id)

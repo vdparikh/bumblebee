@@ -8,23 +8,17 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	// Adjust path if necessary
 )
 
-// HTTPGetCheckExecutor implements the CheckExecutor interface for HTTP GET checks.
 type HTTPGetCheckExecutor struct{}
 
-// httpGetSystemConfig defines the expected structure for ConnectedSystem.Configuration.
 type httpGetSystemConfig struct {
 	BaseURL string `json:"baseUrl"`
-	// Future: APIKey, AuthHeaderName, etc.
 }
 
-// httpGetTaskParams defines the expected structure for TaskInstance.Parameters.
 type httpGetTaskParams struct {
-	APIPath            string `json:"apiPath"`              // e.g., "/status" or "users/1"
-	ExpectedStatusCode *int   `json:"expected_status_code"` // Pointer to allow omission (defaults to 200)
-	// Future: QueryParams map[string]string, Headers map[string]string
+	APIPath            string `json:"apiPath"`
+	ExpectedStatusCode *int   `json:"expected_status_code"`
 }
 
 func (e *HTTPGetCheckExecutor) ValidateParameters(taskParamsMap map[string]interface{}, systemConfigJSON json.RawMessage) (isValid bool, expectedParamsDesc string, err error) {
@@ -61,7 +55,7 @@ func (e *HTTPGetCheckExecutor) ValidateParameters(taskParamsMap map[string]inter
 
 func (e *HTTPGetCheckExecutor) Execute(checkCtx CheckContext) (ExecutionResult, error) {
 	var output strings.Builder
-	resultStatus := "Failed" // Default status
+	resultStatus := "Failed"
 
 	taskInstance := checkCtx.TaskInstance
 	connectedSystem := checkCtx.ConnectedSystem
@@ -77,9 +71,9 @@ func (e *HTTPGetCheckExecutor) Execute(checkCtx CheckContext) (ExecutionResult, 
 		return ExecutionResult{Status: "Error", Output: output.String()}, err
 	}
 
-	taskParamsBytes, _ := json.Marshal(taskInstance.Parameters) // Marshal to easily unmarshal into struct
+	taskParamsBytes, _ := json.Marshal(taskInstance.Parameters)
 	var taskP httpGetTaskParams
-	_ = json.Unmarshal(taskParamsBytes, &taskP) // Error handling done by ValidateParameters or defaults
+	_ = json.Unmarshal(taskParamsBytes, &taskP)
 
 	finalURL := strings.TrimSuffix(sysConfig.BaseURL, "/") + "/" + strings.TrimPrefix(taskP.APIPath, "/")
 	output.WriteString(fmt.Sprintf("Attempting HTTP GET request to: %s (via Connected System: %s)\n", finalURL, connectedSystem.Name))
@@ -127,4 +121,4 @@ func (e *HTTPGetCheckExecutor) Execute(checkCtx CheckContext) (ExecutionResult, 
 	return ExecutionResult{Status: resultStatus, Output: output.String()}, nil
 }
 
-var _ CheckExecutor = (*HTTPGetCheckExecutor)(nil) // Compile-time interface satisfaction check
+var _ CheckExecutor = (*HTTPGetCheckExecutor)(nil)

@@ -19,7 +19,6 @@ func (cd *CustomDate) UnmarshalJSON(b []byte) error {
 	}
 	t, err := time.Parse(layoutISO, s)
 	if err != nil {
-		// Try parsing with full timestamp if date-only fails
 		t, err = time.Parse(time.RFC3339, s)
 		if err != nil {
 			return fmt.Errorf("failed to parse date %s: %w", s, err)

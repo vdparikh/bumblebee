@@ -10,7 +10,7 @@ const RegisterPage = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { register } = useAuth(); // We'll add this to AuthContext
+    const { register } = useAuth(); 
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -23,7 +23,6 @@ const RegisterPage = () => {
         setLoading(true);
         try {
             await register(name, email, password);
-            // Navigation to dashboard or login page will be handled by AuthContext's register method
         } catch (err) {
             setError(err.message || 'Failed to register. Please try again.');
         }

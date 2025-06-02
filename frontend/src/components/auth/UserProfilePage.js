@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Container, Card, Row, Col, Badge, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { FaUserCircle, FaEnvelope, FaUserTag, FaKey, FaLock } from 'react-icons/fa';
-import PageHeader from '../common/PageHeader'; // Assuming you have a PageHeader component
-import { changePassword as changePasswordApi } from '../../services/api'; // Import the API service
+import PageHeader from '../common/PageHeader'; 
+import { changePassword as changePasswordApi } from '../../services/api'; 
 
 const UserProfilePage = () => {
     const { currentUser } = useAuth();
@@ -73,7 +73,7 @@ const UserProfilePage = () => {
                             <Card.Text>
                                 <strong className="text-muted">User ID:</strong> <small>{currentUser.id}</small>
                             </Card.Text>
-                            {/* Add more profile information or edit functionality here later */}
+                            
                         </Card.Body>
                     </Card>
 

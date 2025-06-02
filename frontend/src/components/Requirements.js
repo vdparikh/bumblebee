@@ -24,7 +24,7 @@ import {
 
 function Requirements() {
     const [requirements, setRequirements] = useState([]);
-    const [complianceStandards, setComplianceStandards] = useState([]); // For dropdown
+    const [complianceStandards, setComplianceStandards] = useState([]); 
     const [newStandardId, setNewStandardId] = useState('');
     const [newControlIdRef, setNewControlIdRef] = useState('');
     const [newRequirementText, setNewRequirementText] = useState('');
@@ -52,7 +52,7 @@ function Requirements() {
             setComplianceStandards(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error("Error fetching compliance standards for dropdown:", error);
-            // setError('Failed to fetch compliance standards for selection.'); // Optional: separate error state
+            
             setComplianceStandards([]);
         }
     }, []);
@@ -136,7 +136,7 @@ function Requirements() {
 
     const getStandardNameById = (standardId) => {
         const standard = complianceStandards.find(s => s.id === standardId);
-        return standard ? `${standard.name} (${standard.shortName})` : standardId; // Fallback to ID if not found
+        return standard ? `${standard.name} (${standard.shortName})` : standardId; 
     };
 
     return (
@@ -149,7 +149,7 @@ function Requirements() {
             <Tabs activeKey={activeTabKey} onSelect={(k) => setActiveTabKey(k)} id="requirements-tabs" className="mb-3 nav-line-tabs">
                 <Tab eventKey="create" title={<><FaPlusCircle className="me-1"/>{editingRequirementId ? 'Edit Requirement' : 'Create New Requirement'}</>}>
                     <Card className="mb-4">
-                        {/* <Card.Header as="h5">Create New Requirement</Card.Header> */}
+                        
                         <Card.Body>
                             <Form onSubmit={handleSubmitRequirement}>
                                 <FloatingLabel controlId="floatingSelectStandard" label="Compliance Standard*" className="mb-3">
@@ -213,7 +213,7 @@ function Requirements() {
                     </Card>
                 </Tab>
                 <Tab eventKey="existing" title={<><FaListUl className="me-1"/>Existing Requirements</>}>
-                    {/* <h3 className="mb-3">Existing Requirements</h3> */}
+                    
                     <Row className="mb-3">
                         <Col md={12}>
                             <FloatingLabel controlId="filterStandardExisting" label="Filter by Standard">
@@ -248,14 +248,9 @@ function Requirements() {
                                 </Card.Header>
                                 <Card.Body className=''>
                                 <Row className="align-items-start">
-                                    {/* <Col xs="auto" className="pe-2 pt-1">
-                                        <FaBookOpen size="1.5em" className="text-secondary"/>
-                                    </Col> */}
+                                    
                                     <Col >
-                                        {/* <div className="d-flex w-100 justify-content-between">
-                                            <h5 className="mb-1">{req.controlIdReference}</h5>
-                                            <small className="text-muted">ID: {req.id}</small>
-                                        </div> */}
+                                        
                                         <p className="mb-1">{req.requirementText}</p>
                                        
                                     </Col>

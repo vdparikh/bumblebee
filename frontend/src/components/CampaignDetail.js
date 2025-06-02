@@ -1,19 +1,18 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
-import { useParams, Link, useNavigate } // To get campaignId from URL and for navigation
+import { useParams, Link, useNavigate } 
     from 'react-router-dom';
 import {
-    getCampaignById, // API to fetch campaign details
-    getCampaignSelectedRequirements, // API to fetch selected requirements for this campaign
-    getCampaignTaskInstances, // API to fetch task instances for this campaign
-    updateCampaign, // API to update the campaign (including requirements and status)
-    deleteCampaign, // API to delete a campaign
-    updateCampaignTaskInstance, // API to assign owners/assignees, update status
+    getCampaignById, 
+    getCampaignSelectedRequirements, 
+    getCampaignTaskInstances, 
+    updateCampaign, 
+    deleteCampaign, 
+    updateCampaignTaskInstance, 
     getUsers,
     getComplianceStandards,
-    getRequirements as getAllMasterRequirements, // To display full text if needed
-    getTasks as getAllMasterTasks // To display master task info if needed
+    getRequirements as getAllMasterRequirements, 
+    getTasks as getAllMasterTasks 
 } from '../services/api';
 import {
     Container,
@@ -27,55 +26,55 @@ import {
     Button,
     Form,
     Modal,
-    OverlayTrigger, // Added for popovers
+    OverlayTrigger, 
     Dropdown,
-    Table, // Added for table view
-    ListGroupItem, // For status change    
-    // ButtonGroup // For view toggle (though not used in this request, good to have if needed later)
+    Table, 
+    ListGroupItem, 
+    
 } from 'react-bootstrap';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
-import Select from 'react-select'; // Import react-select
-// import { Pie, Bar } from 'react-chartjs-2'; // Will be used by reusable components
+import Select from 'react-select'; 
+
 import {
     FaBullhorn,
     FaInfoCircle,
     FaCalendarAlt,
-    // FaClipboardList, // Will be part of TaskListItem or specific icons
-    // FaTasks as FaTasksIcon, // Will be part of StatusIcon or TaskListItem
+    
+    
     FaUserShield,
     FaUserCheck,
     FaEdit,
     FaLink,
-    FaTrashAlt, // For delete icon
+    FaTrashAlt, 
     FaCheckCircle,
     FaSpinner,
-    // FaHourglassHalf, // Part of StatusIcon
-    // FaTimesCircle, // Part of StatusIcon
-    FaCogs,         // For automated check details
-    FaEllipsisV, // For action menu
-    FaSearch,       // For search icon
+    
+    
+    FaCogs,         
+    FaEllipsisV, 
+    FaSearch,       
     FaFilter,
     FaAddressBook,
     FaUserEdit,
     FaExternalLinkAlt,
-    FaThList, // Icon for Card/List view
-    FaTable, // Icon for Table view
-    FaSort, FaSortUp, FaSortDown // Icons for sorting
+    FaThList, 
+    FaTable, 
+    FaSort, FaSortUp, FaSortDown 
 
-    // FaExclamationCircle // Part of StatusIcon
+    
 } from 'react-icons/fa';
 import Popover from 'react-bootstrap/Popover';
 
 import PageHeader from './common/PageHeader';
 import ConfirmModal from './common/ConfirmModal';
 import TaskListItem from './common/TaskListItem';
-import StatusIcon from './common/StatusIcon'; // Re-importing as TaskStatusIcon was local
-import UserDisplay from './common/UserDisplay'; // Import reusable component
+import StatusIcon from './common/StatusIcon'; 
+import UserDisplay from './common/UserDisplay'; 
 import PieChartCard from './common/PieChartCard';
 import BarChartCard from './common/BarChartCard';
 import KeyMetricsCard from './common/KeyMetricsCard';
-import { useAuth } from '../contexts/AuthContext'; // Import useAuth
-import { getStatusColor } from '../utils/displayUtils'; // Import utility
+import { useAuth } from '../contexts/AuthContext'; 
+import { getStatusColor } from '../utils/displayUtils'; 
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -83,7 +82,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 function CampaignDetail() {
     const { campaignId } = useParams();
     const navigate = useNavigate();
-    const { currentUser } = useAuth(); // Get current user for role-based access
+    const { currentUser } = useAuth(); 
     const [campaign, setCampaign] = useState(null);
     const [selectedRequirements, setSelectedRequirements] = useState([]);
     const [taskInstances, setTaskInstances] = useState([]);
@@ -91,29 +90,29 @@ function CampaignDetail() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    // State for modals
+    
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [currentTaskInstanceForAssignment, setCurrentTaskInstanceForAssignment] = useState(null);
-    const [selectedOwnerIDs, setSelectedOwnerIDs] = useState([]); // Changed for multi-select
+    const [selectedOwnerIDs, setSelectedOwnerIDs] = useState([]); 
     const [selectedAssignee, setSelectedAssignee] = useState('');
     const [selectedDueDate, setSelectedDueDate] = useState('');
 
-    // State for requirements editing modal
+    
     const [showRequirementsModal, setShowRequirementsModal] = useState(false);
     const [availableRequirementsForModal, setAvailableRequirementsForModal] = useState([]);
-    const [currentSelectedRequirementsForCampaign, setCurrentSelectedRequirementsForCampaign] = useState([]); // Used in the modal
+    const [currentSelectedRequirementsForCampaign, setCurrentSelectedRequirementsForCampaign] = useState([]); 
     const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
 
-    // State for new filtering and search
-    const [selectedRequirementFilterId, setSelectedRequirementFilterId] = useState(null); // ID of requirement clicked in left col
+    
+    const [selectedRequirementFilterId, setSelectedRequirementFilterId] = useState(null); 
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeStatusFilter, setActiveStatusFilter] = useState(null); // From chart
-    const [activeCategoryFilter, setActiveCategoryFilter] = useState(null); // From chart
+    const [activeStatusFilter, setActiveStatusFilter] = useState(null); 
+    const [activeCategoryFilter, setActiveCategoryFilter] = useState(null); 
     const [filteredTaskInstances, setFilteredTaskInstances] = useState([]);
-    const [taskViewMode, setTaskViewMode] = useState('list'); // 'list' or 'table'
+    const [taskViewMode, setTaskViewMode] = useState('list'); 
     const [sortConfig, setSortConfig] = useState({ key: 'due_date', direction: 'ascending' });
 
-    // Determine if the current user can edit campaign details
+    
     const canEditCampaign = useMemo(() => {
         if (!currentUser) return false;
         return currentUser.role === 'admin' || currentUser.role === 'auditor';
@@ -130,10 +129,10 @@ function CampaignDetail() {
             const reqRes = await getCampaignSelectedRequirements(campaignId);
             const currentReqs = Array.isArray(reqRes.data) ? reqRes.data : [];
             setSelectedRequirements(currentReqs);
-            // Initialize for modal editing - ensure all necessary fields are present for the modal's logic
+            
             setCurrentSelectedRequirementsForCampaign(currentReqs.map(r => ({ requirement_id: r.requirement_id, is_applicable: r.is_applicable, control_id_reference: r.control_id_reference, requirement_text: r.requirement_text })));
 
-            const tasksRes = await getCampaignTaskInstances(campaignId); // You'll need to create this API endpoint and service
+            const tasksRes = await getCampaignTaskInstances(campaignId); 
             setTaskInstances(Array.isArray(tasksRes.data) ? tasksRes.data : []);
 
             const usersRes = await getUsers();
@@ -151,7 +150,7 @@ function CampaignDetail() {
         fetchCampaignData();
     }, [fetchCampaignData]);
 
-    // Effect to apply filters for task instances
+    
     useEffect(() => {
         let tempTasks = [...taskInstances];
 
@@ -174,18 +173,18 @@ function CampaignDetail() {
             tempTasks = tempTasks.filter(task => (task.category || 'Uncategorized') === activeCategoryFilter);
         }
 
-        // Apply sorting
+        
         if (sortConfig.key !== null) {
             tempTasks.sort((a, b) => {
                 let valA = a[sortConfig.key];
                 let valB = b[sortConfig.key];
 
-                // Handle special cases like dates or nested properties if needed
+                
                 if (sortConfig.key === 'due_date') {
-                    valA = a.due_date ? new Date(a.due_date) : new Date(0); // Treat null/undefined as very old
+                    valA = a.due_date ? new Date(a.due_date) : new Date(0); 
                     valB = b.due_date ? new Date(b.due_date) : new Date(0);
                 } else if (sortConfig.key === 'assignee_user_id') {
-                    // Sort by assignee name if available, otherwise ID
+                    
                     const userA = allUsers.find(u => u.id === a.assignee_user_id);
                     const userB = allUsers.find(u => u.id === b.assignee_user_id);
                     valA = userA ? userA.name.toLowerCase() : (a.assignee_user_id || '').toLowerCase();
@@ -206,12 +205,12 @@ function CampaignDetail() {
     }, [taskInstances, searchTerm, selectedRequirementFilterId, activeStatusFilter, activeCategoryFilter, sortConfig, allUsers]);
     const handleOpenAssignModal = (taskInstance) => {
         setCurrentTaskInstanceForAssignment(taskInstance);
-        // Assuming taskInstance.owners is an array of {id, name} objects after backend changes
+        
         const currentOwnerIds = taskInstance.owners ? taskInstance.owners.map(owner => owner.id) : [];
-        // For react-select, we need an array of { value: id, label: name }
+        
         setSelectedOwnerIDs(allUsers.filter(u => currentOwnerIds.includes(u.id)).map(u => ({ value: u.id, label: u.name })));
         setSelectedAssignee(taskInstance.assignee_user_id || (currentUser ? currentUser.id : ''));
-        // Format due date for the input type="date"
+        
         setSelectedDueDate(taskInstance.due_date ? new Date(taskInstance.due_date).toISOString().split('T')[0] : '');
         setShowAssignModal(true);
     };
@@ -220,21 +219,21 @@ function CampaignDetail() {
         if (!currentTaskInstanceForAssignment) return;
 
         const updatedTaskData = {
-            // ... copy other fields if your update API expects the full object
-            // or just send the fields to be updated
-            owner_user_ids: selectedOwnerIDs.map(owner => owner.value) || [], // Send array of IDs
+            
+            
+            owner_user_ids: selectedOwnerIDs.map(owner => owner.value) || [], 
             assignee_user_id: selectedAssignee || null,
-            due_date: selectedDueDate || null, // Add due date
+            due_date: selectedDueDate || null, 
         };
 
         try {
-            await updateCampaignTaskInstance(currentTaskInstanceForAssignment.id, updatedTaskData); // API to update task instance
+            await updateCampaignTaskInstance(currentTaskInstanceForAssignment.id, updatedTaskData); 
             setShowAssignModal(false);
-            fetchCampaignData(); // Refresh data
-            // Add success message
+            fetchCampaignData(); 
+            
         } catch (err) {
             console.error("Error assigning task:", err);
-            // Add error message
+            
         }
     };
 
@@ -242,16 +241,16 @@ function CampaignDetail() {
         if (!campaign || campaign.status === newStatus) return;
         setError('');
         try {
-            // Send only the status field for update, or the full campaign object
-            // The backend UpdateCampaignHandler is designed for partial updates on basic fields
+            
+            
 
                
             const campaignUpdateData = { ...campaign, status: newStatus,
                 selected_requirements: currentSelectedRequirementsForCampaign.map(({ requirement_id, is_applicable }) => ({ requirement_id, is_applicable }))
              };
             const updatedCampaign = await updateCampaign(campaignId, campaignUpdateData);
-            setCampaign(updatedCampaign.data); // Update local state with the response
-            // Add success message if desired
+            setCampaign(updatedCampaign.data); 
+            
         } catch (err) {
             console.error("Error updating campaign status:", err);
             setError(`Failed to update campaign status. ${err.response?.data?.error || err.message}`);
@@ -264,12 +263,12 @@ function CampaignDetail() {
             return;
         }
         try {
-            const allReqsRes = await getAllMasterRequirements(); // Fetches all requirements
+            const allReqsRes = await getAllMasterRequirements(); 
             const filteredReqs = Array.isArray(allReqsRes.data)
                 ? allReqsRes.data.filter(r => r.standardId === campaign.standard_id)
                 : [];
             setAvailableRequirementsForModal(filteredReqs);
-            // currentSelectedRequirementsForCampaign is already initialized from fetchCampaignData
+            
             setShowRequirementsModal(true);
         } catch (err) {
             console.error("Error fetching requirements for modal:", err);
@@ -283,7 +282,7 @@ function CampaignDetail() {
             if (existing) {
                 return prev.filter(r => r.requirement_id !== reqId);
             } else {
-                // Ensure all properties needed by the modal display are included
+                
                 return [...prev, { requirement_id: reqId, is_applicable: true, control_id_reference: controlIdRef, requirement_text: reqText }];
             }
         });
@@ -298,14 +297,14 @@ function CampaignDetail() {
     const handleSaveRequirementsUpdate = async () => {
         if (!campaign) return;
         const campaignUpdateData = {
-            ...campaign, // Send existing campaign data
-            // Only send requirement_id and is_applicable for the update payload
+            ...campaign, 
+            
             selected_requirements: currentSelectedRequirementsForCampaign.map(({ requirement_id, is_applicable }) => ({ requirement_id, is_applicable })),
         };
         try {
             await updateCampaign(campaignId, campaignUpdateData);
             setShowRequirementsModal(false);
-            fetchCampaignData(); // Refresh all campaign data, including tasks and selected reqs
+            fetchCampaignData(); 
         } catch (err) {
             console.error("Error updating campaign requirements:", err);
             setError("Failed to update campaign requirements. " + (err.response?.data?.error || err.message));
@@ -317,12 +316,12 @@ function CampaignDetail() {
         setError('');
         try {
             await deleteCampaign(campaignId);
-            // Add success message, maybe via query param or state on navigation
+            
             navigate('/campaigns', { state: { successMessage: `Campaign "${campaign?.name}" deleted successfully.` } });
         } catch (err) {
             console.error("Error deleting campaign:", err);
             setError(`Failed to delete campaign. ${err.response?.data?.error || err.message}`);
-            setShowDeleteConfirmModal(false); // Keep modal open on error if desired, or close
+            setShowDeleteConfirmModal(false); 
         }
     };
 
@@ -337,9 +336,9 @@ function CampaignDetail() {
         if (!dueDate || status === "Closed") return false;
         return new Date(dueDate) < new Date() && new Date(dueDate).setHours(0, 0, 0, 0) !== new Date().setHours(0, 0, 0, 0);
     };
-    // const getUserNameById = (userId) => allUsers.find(u => u.id === userId)?.name || userId;
+    
 
-    // Chart and Metrics data preparation (adapted from MyTasks.js)
+    
     const taskStats = useMemo(() => {
         if (!taskInstances || taskInstances.length === 0) {
             return { statusCounts: {}, overdueCount: 0, categoryCounts: {}, totalTasks: 0, completedTasksCount: 0, overallCompletionPercentage: 0 };
@@ -368,14 +367,14 @@ function CampaignDetail() {
         datasets: [{
             label: 'Tasks by Status',
             data: Object.values(taskStats.statusCounts),
-            // backgroundColor: Object.keys(taskStats.statusCounts).map(status => getStatusColor(status) + '99'), // Opacity
-            // borderColor: Object.keys(taskStats.statusCounts).map(status => getStatusColor(status)),
+            
+            
              backgroundColor: [
-                'rgba(75, 192, 192, 0.6)', // Open
-                'rgba(54, 162, 235, 0.6)', // In Progress
-                'rgba(255, 206, 86, 0.6)', // Pending Review
-                'rgba(153, 102, 255, 0.6)', // Closed
-                'rgba(255, 99, 132, 0.6)',  // Failed / Overdue (adjust as needed)
+                'rgba(75, 192, 192, 0.6)', 
+                'rgba(54, 162, 235, 0.6)', 
+                'rgba(255, 206, 86, 0.6)', 
+                'rgba(153, 102, 255, 0.6)', 
+                'rgba(255, 99, 132, 0.6)',  
             ],
             borderColor: [
                 'rgba(75, 192, 192, 1)',
@@ -407,7 +406,7 @@ function CampaignDetail() {
             const firstPoint = points[0];
             const label = chart.data.labels[firstPoint.index];
             setActiveStatusFilter(prevFilter => (prevFilter === label ? null : label));
-            setSelectedRequirementFilterId(null); // Clear requirement filter when chart filter is used
+            setSelectedRequirementFilterId(null); 
         }
     };
 
@@ -419,15 +418,15 @@ function CampaignDetail() {
             const firstPoint = points[0];
             const label = chart.data.labels[firstPoint.index];
             setActiveCategoryFilter(prevFilter => (prevFilter === label ? null : label));
-            setSelectedRequirementFilterId(null); // Clear requirement filter
+            setSelectedRequirementFilterId(null); 
         }
     };
 
     const handleRequirementClick = (reqId) => {
         setSelectedRequirementFilterId(prev => prev === reqId ? null : reqId);
-        // Optionally clear chart filters when a requirement is clicked
-        // setActiveStatusFilter(null);
-        // setActiveCategoryFilter(null);
+        
+        
+        
     };
 
     const requestSort = (key) => {
@@ -482,7 +481,7 @@ function CampaignDetail() {
                 }
             />
 
-            {/* Campaign Overview Section */}
+            
             <Card className="mb-3">
                 <Card.Body>
                     <div className="d-flex justify-content-between align-items-center mb-2">
@@ -502,11 +501,11 @@ function CampaignDetail() {
                         {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString() : 'N/A'} -
                         {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : 'N/A'}
                     </ListGroupItem>
-                    {/* Add more campaign metadata as needed */}
+                    
                 </ListGroup>
             </Card>
 
-            {/* Charts and Metrics Section */}
+            
             {taskInstances.length > 0 && (
                 <Row className="mb-4">
                      <Col md={4} className="mb-3 mb-md-0">
@@ -536,7 +535,7 @@ function CampaignDetail() {
                 </Row>
             )}
 
-            {/* Search and Filter Controls */}
+            
             <Row className="mb-3 gx-2">
                 <Col>
                 <div className='bg-white rounded-pill p-3'>
@@ -570,9 +569,9 @@ function CampaignDetail() {
                 </Alert>
             )}
 
-            {/* Main Content: Requirements and Tasks */}
+            
             <Row>
-                {/* Left Column: Scoped Requirements */}
+                
                 <Col md={4}>
                     <Card>
                         <Card.Header as="h5">Scoped Requirements ({selectedRequirements.length})</Card.Header>
@@ -599,7 +598,7 @@ function CampaignDetail() {
                     </Card>
                 </Col>
 
-                {/* Right Column: Campaign Tasks */}
+                
                 <Col md={8}>
                     <div className="d-flex justify-content-between align-items-center mb-2">
                         <h5>Tasks ({filteredTaskInstances.length})</h5>
@@ -617,8 +616,8 @@ function CampaignDetail() {
                             {filteredTaskInstances.map(task => {
                                 const taskActionMenu = (
                                     <div className="d-flex align-items-center">
-                                        {/* Badge is now part of TaskListItem, but if you want it outside, keep it here */}
-                                        {/* <Badge bg={getStatusColor(task.status)} className="me-2">{task.status}</Badge> */}
+                                        
+                                        
                                         
                                         {canEditCampaign && (
                                                             <Button style={{ lineHeight: "1em"}}  variant='transparent' onClick={() => handleOpenAssignModal(task)} className="small p-0 m-0 me-2"><FaUserEdit size="1.2em" /></Button>
@@ -626,17 +625,7 @@ function CampaignDetail() {
                                           
                                           <Button style={{ lineHeight: "1em"}} variant='transparent' as={Link} to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }} className="small p-0 m-0"><FaExternalLinkAlt size="1em" /></Button>
 
-                                                {/* <Dropdown>
-                                                    <Dropdown.Toggle variant="link" id={`dropdown-cti-actions-${task.id}`} className="p-0 text-secondary no-caret">
-                                                        <FaEllipsisV size="1em" />
-                                                    </Dropdown.Toggle>
-                                                    <Dropdown.Menu align="end">
-                                                        <Dropdown.Item as={Link} to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }} className="small">Task Details</Dropdown.Item>
-                                                        {canEditCampaign && (
-                                                            <Dropdown.Item onClick={() => handleOpenAssignModal(task)} className="small">Assign Users & Due Date</Dropdown.Item>
-                                                        )}
-                                                    </Dropdown.Menu>
-                                                </Dropdown> */}
+                                                
                                             </div>
                                 );
                                 return (
@@ -644,13 +633,13 @@ function CampaignDetail() {
                                         key={task.id}
                                         task={task}
                                         allUsers={allUsers}
-                                        // linkTo={`/campaign-task/${task.id}`}
-                                        // linkState={{ from: `/campaigns/${campaignId}` }}
+                                        
+                                        
                                         isOverdueFn={isOverdue}
-                                        showCampaignInfo={false} // Already in campaign context
+                                        showCampaignInfo={false} 
                                         showOwnerInfo={true}
-                                        // Pass owners directly if available, otherwise UserDisplay will handle it
-                                        // This assumes task.owners is an array of {id, name}
+                                        
+                                        
                                         owners={task.owners} 
                                         actionMenu={taskActionMenu} 
                                     />
@@ -668,7 +657,7 @@ function CampaignDetail() {
                                         <th onClick={() => requestSort('title')} style={{ cursor: 'pointer' }}>Title {getSortIcon('title')}</th>
                                         <th onClick={() => requestSort('status')} style={{ cursor: 'pointer' }}>Status {getSortIcon('status')}</th>
                                         <th width="100px" onClick={() => requestSort('assignee_user_id')} style={{ cursor: 'pointer' }}>Assignee {getSortIcon('assignee_user_id')}</th>
-                                        <th>Owner(s)</th> {/* Sorting owners can be complex, skipping for now */}
+                                        <th>Owner(s)</th> 
                                         <th width="100px" onClick={() => requestSort('due_date')} style={{ cursor: 'pointer' }}>Due Date {getSortIcon('due_date')}</th>
                                         <th>Actions </th>
                                     </tr>
@@ -710,7 +699,7 @@ function CampaignDetail() {
             </Row>
 
 
-            {/* Modal for Assigning Owner/Assignee to a Campaign Task Instance */}
+            
             <Modal show={showAssignModal} onHide={() => setShowAssignModal(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>Assign Users for Task: {currentTaskInstanceForAssignment?.title}</Modal.Title>
@@ -749,7 +738,7 @@ function CampaignDetail() {
                 </Modal.Footer>
             </Modal>
 
-            {/* Modal for Deleting Campaign */}
+            
             <ConfirmModal
                 show={showDeleteConfirmModal}
                 title="Confirm Deletion"
@@ -760,7 +749,7 @@ function CampaignDetail() {
                 confirmVariant="danger"
             />
 
-            {/* Modal for Editing Selected Requirements */}
+            
             <Modal show={showRequirementsModal} onHide={() => setShowRequirementsModal(false)} size="lg">
                 <Modal.Header closeButton>
                     <Modal.Title>Edit Scoped Requirements for: {campaign?.name}</Modal.Title>
@@ -787,7 +776,7 @@ function CampaignDetail() {
                                             label={selectedReqDetails?.is_applicable ? "Applicable" : "Not Applicable"}
                                             checked={selectedReqDetails?.is_applicable}
                                             onChange={(e) => { e.stopPropagation(); handleModalApplicabilityChange(req.id, e.target.checked); }}
-                                            onClick={(e) => e.stopPropagation()} // Prevent row click when toggling switch
+                                            onClick={(e) => e.stopPropagation()} 
                                         />
                                     )}
                                 </ListGroup.Item>

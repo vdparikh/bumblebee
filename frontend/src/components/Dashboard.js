@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { getUserCampaignTasks, getCampaigns, getUsers, getUserFeed } from '../services/api'; // Added getUserFeed
+import { getUserCampaignTasks, getCampaigns, getUsers, getUserFeed } from '../services/api'; 
 import { Row, Col, Card, Spinner, Alert, ListGroup, Badge, ProgressBar } from 'react-bootstrap';
 import { FaTachometerAlt, FaTasks, FaBullhorn, FaExclamationTriangle, FaClipboardList, FaCommentAlt, FaComment } from 'react-icons/fa';
 
-import PageHeader from './common/PageHeader'; // Assuming BarChartCard is not used elsewhere in this component
+import PageHeader from './common/PageHeader'; 
 import KeyMetricsCard from './common/KeyMetricsCard';
 import PieChartCard from './common/PieChartCard';
-import BarChartCard from './common/BarChartCard'; // Assuming you might want this later
+import BarChartCard from './common/BarChartCard'; 
 import TaskListItem from './common/TaskListItem';
 import { getStatusColor } from '../utils/displayUtils';
-import UserDisplay from './common/UserDisplay'; // For feed item user display
+import UserDisplay from './common/UserDisplay'; 
 import { useAuth } from '../contexts/AuthContext';
 import { LineIcon } from "lineicons-react";
 
@@ -20,18 +20,18 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 function Dashboard() {
     const [myTasks, setMyTasks] = useState([]);
     const [activeCampaigns, setActiveCampaigns] = useState([]);
-    const [userFeed, setUserFeed] = useState([]); // New state for user feed
-    const [loadingFeed, setLoadingFeed] = useState(true); // New state for feed loading
+    const [userFeed, setUserFeed] = useState([]); 
+    const [loadingFeed, setLoadingFeed] = useState(true); 
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     const { currentUser } = useAuth();
-    const loggedInUserId = currentUser?.id; // Use actual user ID
+    const loggedInUserId = currentUser?.id; 
 
 
     const statusChartRef = useRef(null);
-    // const categoryChartRef = useRef(null); // No longer needed for this new design
+    
 
     const fetchData = useCallback(async () => {
         if (!loggedInUserId) {
@@ -42,10 +42,10 @@ function Dashboard() {
         setLoading(true);
         setError('');
         try {
-            // Fetch open/in-progress tasks for the user
-            const tasksPromise = getUserCampaignTasks(loggedInUserId, "owner"); // Fetch all tasks for now, filter later
-            const campaignsPromise = getCampaigns("Active"); // Fetch active campaigns
-            const feedPromise = getUserFeed({ limit: 7 }); // Fetch recent 7 feed items
+            
+            const tasksPromise = getUserCampaignTasks(loggedInUserId, "owner"); 
+            const campaignsPromise = getCampaigns("Active"); 
+            const feedPromise = getUserFeed({ limit: 7 }); 
             const usersPromise = getUsers();
 
             const [tasksResponse, campaignsResponse, usersResponse, feedResponse] = await Promise.allSettled([
@@ -108,13 +108,13 @@ function Dashboard() {
             return acc;
         }, {});
 
-        // Updated to calculate completed, notCompleted, and total per category
+        
         const categoryProgressStats = myTasks.reduce((acc, task) => {
-            const category = task.category || "Uncategorized"; // Group tasks with no category
+            const category = task.category || "Uncategorized"; 
             if (!acc[category]) {
                 acc[category] = { completed: 0, notCompleted: 0, total: 0 };
             }
-            if (task.status === "Closed") { // Assuming "Closed" means completed
+            if (task.status === "Closed") { 
                 acc[category].completed += 1;
             } else {
                 acc[category].notCompleted += 1;
@@ -127,9 +127,9 @@ function Dashboard() {
             overdueTasksCount,
             activeCampaignsCount,
             statusCounts,
-            recentOpenTasks: openTasks.slice(0, 5), // Show top 5 recent open tasks
+            recentOpenTasks: openTasks.slice(0, 5), 
             recentActiveCampaigns: activeCampaigns.slice(0,5),
-            categoryProgressStats, // Renamed for clarity
+            categoryProgressStats, 
         };
     }, [myTasks, activeCampaigns]);
 
@@ -138,14 +138,14 @@ function Dashboard() {
         datasets: [{
             label: 'Tasks by Status',
             data: Object.values(dashboardStats.statusCounts),
-            // backgroundColor: Object.keys(dashboardStats.statusCounts).map(status => getStatusColor(status) + '99'), // Opacity
-            // borderColor: Object.keys(dashboardStats.statusCounts).map(status => getStatusColor(status)),
+            
+            
             backgroundColor: [
-                'rgba(75, 192, 192, 0.6)', // Open
-                'rgba(54, 162, 235, 0.6)', // In Progress
-                'rgba(255, 206, 86, 0.6)', // Pending Review
-                'rgba(153, 102, 255, 0.6)', // Closed
-                'rgba(255, 99, 132, 0.6)',  // Failed / Overdue (adjust as needed)
+                'rgba(75, 192, 192, 0.6)', 
+                'rgba(54, 162, 235, 0.6)', 
+                'rgba(255, 206, 86, 0.6)', 
+                'rgba(153, 102, 255, 0.6)', 
+                'rgba(255, 99, 132, 0.6)',  
             ],
             borderColor: [
                 'rgba(75, 192, 192, 1)',
@@ -158,7 +158,7 @@ function Dashboard() {
         }],
     }), [dashboardStats.statusCounts]);
 
-    // categoryChartData is no longer needed for the new design
+    
 
     if (loading) return <div className="text-center mt-5"><Spinner animation="border" /><p>Loading dashboard...</p></div>;
     if (error) return <Alert variant="danger" className="mt-3">{error}</Alert>;
@@ -167,7 +167,7 @@ function Dashboard() {
         <div>
             <PageHeader icon={<FaTachometerAlt />} title="Dashboard Overview" />
 
-            {/* Welcome Message - Placeholder */}
+            
             <Row className="mb-4">
                 <Col>
                     <h5>
@@ -177,7 +177,7 @@ function Dashboard() {
                 </Col>
             </Row>
 
-            {/* Key Metrics */}
+            
             <Row className="mb-4">
                 <Col xl={3} md={6} className="mb-3">
                     <KeyMetricsCard title="Key Task Metrics" metrics={[
@@ -190,16 +190,16 @@ function Dashboard() {
                         title="Task Status Overview"
                         chartRef={statusChartRef}
                         chartData={statusChartData}
-                        // onClickHandler={handleStatusChartClick} // Add if you want chart interaction
+                        
                     />
                 </Col>
                 <Col xl={3} md={6} className="mb-3">
                     <KeyMetricsCard title="Campaign Snapshot" metrics={[
                         { label: "Active Campaigns", value: dashboardStats.activeCampaignsCount, variant: "success" },
-                        // Add more campaign metrics if available/needed
+                        
                     ]} />
                 </Col>
-                <Col xl={3} md={6} className="mb-3"> {/* Replaced BarChartCard */}
+                <Col xl={3} md={6} className="mb-3"> 
                     <Card className="h-100">
                         <Card.Header as="h6">Task Progress by Category</Card.Header>
                         <Card.Body style={{ maxHeight: '250px', overflowY: 'auto' }}>
@@ -226,7 +226,7 @@ function Dashboard() {
                 </Col>
             </Row>
 
-            {/* Task and Campaign Summaries */}
+            
             <Row className="mb-4">
                 <Col md={6} className="mb-4">
                         <div className="d-flex justify-content-between small mb-1 p-2">
@@ -246,8 +246,8 @@ function Dashboard() {
                                         isOverdueFn={isOverdue}
                                         showCampaignInfo={true}
                                         showAssigneeInfo={true}
-                                        showOwnerInfo={true} // Display the list of all owners
-                                        owners={task.owners} // Pass the owners array from the task data
+                                        showOwnerInfo={true} 
+                                        owners={task.owners} 
                                     />
                                 ))}
                             </div>
@@ -297,7 +297,7 @@ function Dashboard() {
                         ) : (
                             <Card.Body><p className="text-muted">No recent activity to display.</p></Card.Body>
                         )}
-                        {/* Optionally add a "View All Activity" link here */}
+                        
                     </Card>
 
                 </Col>

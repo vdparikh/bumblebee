@@ -8,7 +8,6 @@ import (
 	"github.com/vdparikh/compliance-automation/backend/models"
 )
 
-// CreateDocument adds a new document to the database.
 func (s *DBStore) CreateDocument(doc *models.Document) (string, error) {
 	query := `INSERT INTO documents (name, description, document_type, source_url, internal_reference)
               VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at`
@@ -20,7 +19,6 @@ func (s *DBStore) CreateDocument(doc *models.Document) (string, error) {
 	return doc.ID, nil
 }
 
-// GetDocumentByID retrieves a document by its ID.
 func (s *DBStore) GetDocumentByID(id string) (*models.Document, error) {
 	var doc models.Document
 	query := `SELECT id, name, description, document_type, source_url, internal_reference, created_at, updated_at
@@ -28,7 +26,7 @@ func (s *DBStore) GetDocumentByID(id string) (*models.Document, error) {
 	err := s.DB.Get(&doc, query, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil // Or return a specific "not found" error
+			return nil, nil 
 		}
 		log.Printf("Error getting document by ID from DB: %v", err)
 		return nil, fmt.Errorf("failed to get document by ID %s: %w", id, err)
@@ -36,8 +34,6 @@ func (s *DBStore) GetDocumentByID(id string) (*models.Document, error) {
 	return &doc, nil
 }
 
-// GetDocuments retrieves all documents.
-// Add filtering/pagination parameters as needed in the future.
 func (s *DBStore) GetDocuments() ([]models.Document, error) {
 	var docs []models.Document
 	query := `SELECT id, name, description, document_type, source_url, internal_reference, created_at, updated_at
@@ -53,7 +49,6 @@ func (s *DBStore) GetDocuments() ([]models.Document, error) {
 	return docs, nil
 }
 
-// UpdateDocument updates an existing document in the database.
 func (s *DBStore) UpdateDocument(doc *models.Document) error {
 	query := `UPDATE documents SET
                 name = $1,
@@ -73,7 +68,6 @@ func (s *DBStore) UpdateDocument(doc *models.Document) error {
 	return nil
 }
 
-// DeleteDocument removes a document from the database.
 func (s *DBStore) DeleteDocument(id string) error {
 	query := `DELETE FROM documents WHERE id = $1`
 	result, err := s.DB.Exec(query, id)
@@ -91,5 +85,4 @@ func (s *DBStore) DeleteDocument(id string) error {
 	return nil
 }
 
-// Ensure DBStore implements an interface if you define one for stores
-var _ Store = (*DBStore)(nil) // Assuming Store interface exists and DBStore implements it
+var _ Store = (*DBStore)(nil)

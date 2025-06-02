@@ -17,7 +17,6 @@ const LoginPage = () => {
         setLoading(true);
         try {
             await login(email, password);
-            // Navigation is handled by AuthContext's login method
         } catch (err) {
             setError(err.message || 'Failed to log in. Please check your credentials.');
         }

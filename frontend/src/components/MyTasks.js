@@ -11,7 +11,7 @@ import Spinner from 'react-bootstrap/Spinner';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
-import Table from 'react-bootstrap/Table'; // Added for table view
+import Table from 'react-bootstrap/Table'; 
 import { useAuth } from '../contexts/AuthContext';
 
 import {
@@ -23,7 +23,7 @@ import {
     FaSearch,
     FaListUl, FaThLarge,
     FaFilter,
-    FaSort, FaSortUp, FaSortDown, // Icons for sorting
+    FaSort, FaSortUp, FaSortDown, 
     FaTable
 } from 'react-icons/fa';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
@@ -44,7 +44,7 @@ function MyTasks() {
     defaults.font.family = 'Lato';
 
     const { currentUser } = useAuth();
-    const loggedInUserId = currentUser?.id; // Use actual user ID
+    const loggedInUserId = currentUser?.id; 
 
 
     const [myTasks, setMyTasks] = useState([]);
@@ -53,16 +53,16 @@ function MyTasks() {
     const [allCampaigns, setAllCampaigns] = useState([]);
     const [activeStatusFilter, setActiveStatusFilter] = useState(null);
     const [activeCategoryFilter, setActiveCategoryFilter] = useState(null);
-    // const [activeCampaignFilter, setActiveCampaignFilter] = useState(''); // Kept for potential future use with dropdown
+    
     const [searchTerm, setSearchTerm] = useState('');
 
     const [selectedCampaignIdForColumnView, setSelectedCampaignIdForColumnView] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [viewMode, setViewMode] = useState('list'); // 'list', 'board', or 'table'
+    const [viewMode, setViewMode] = useState('list'); 
     const [sortConfig, setSortConfig] = useState({ key: 'due_date', direction: 'ascending' });
 
-    // const loggedInUserId = "36a95829-f890-43dc-aff3-289c50ce83c2";
+    
     const statusChartRef = useRef(null);
     const categoryChartRef = useRef(null);
 
@@ -83,7 +83,7 @@ function MyTasks() {
 
             const fetchedTasks = Array.isArray(tasksResponse.data) ? tasksResponse.data : [];
             setMyTasks(fetchedTasks);
-        if (usersResponse?.data) { // Added optional chaining for safety
+        if (usersResponse?.data) { 
                 setUsers(Array.isArray(usersResponse.data) ? usersResponse.data : []);
             } else {
                 console.warn("No data in users response or response format unexpected", usersResponse);
@@ -109,11 +109,11 @@ function MyTasks() {
 
     useEffect(() => {
         fetchData();
-}, [fetchData]); // fetchData is already memoized with loggedInUserId
+}, [fetchData]); 
 
-    // This useEffect now directly uses myTasks which is pre-filtered by the API
+    
     useEffect(() => { 
-        let tasksToFilter = [...myTasks]; // myTasks is now already filtered for "In Progress" campaigns
+        let tasksToFilter = [...myTasks]; 
 
         if (searchTerm) {
             const lowerSearchTerm = searchTerm.toLowerCase();
@@ -130,15 +130,14 @@ function MyTasks() {
         if (activeCategoryFilter) {
             tasksToFilter = tasksToFilter.filter(task => (task.category || 'Uncategorized') === activeCategoryFilter);
         }
-        // if (activeCampaignFilter) { // Kept for potential future use with dropdown
-        //     tasksToFilter = tasksToFilter.filter(task => task.campaign_id === activeCampaignFilter);
-        // }
+        
+        
         if (selectedCampaignIdForColumnView) {
             tasksToFilter = tasksToFilter.filter(task => task.campaign_id === selectedCampaignIdForColumnView);
         }
 
-        // Apply sorting
-        if (sortConfig.key !== null && viewMode === 'table') { // Only sort if in table view and a key is set
+        
+        if (sortConfig.key !== null && viewMode === 'table') { 
             tasksToFilter.sort((a, b) => {
                 let valA = a[sortConfig.key];
                 let valB = b[sortConfig.key];
@@ -150,7 +149,7 @@ function MyTasks() {
                     valA = (a.campaign_name || '').toLowerCase();
                     valB = (b.campaign_name || '').toLowerCase();
                 }
-                // Add more specific comparators if needed (e.g., for assignee name if that column is added)
+                
 
                 if (valA < valB) {
                     return sortConfig.direction === 'ascending' ? -1 : 1;
@@ -165,7 +164,7 @@ function MyTasks() {
         setFilteredTasks(tasksToFilter);
     }, [myTasks, activeStatusFilter, activeCategoryFilter, searchTerm, selectedCampaignIdForColumnView, sortConfig, viewMode]);
 
-    const isOverdue = (dueDate, status) => { // Added status to align with TaskListItem
+    const isOverdue = (dueDate, status) => { 
         if (!dueDate || status === "Closed") return false;
         return new Date(dueDate) < new Date() && new Date(dueDate).setHours(0, 0, 0, 0) !== new Date().setHours(0, 0, 0, 0);
     };
@@ -224,14 +223,14 @@ function MyTasks() {
         datasets: [{
             label: 'Tasks by Status',
             data: Object.values(taskStats.statusCounts),
-            // backgroundColor: Object.keys(taskStats.statusCounts).map(status => getStatusColor(status) + '99'), // Opacity
-            // borderColor: Object.keys(taskStats.statusCounts).map(status => getStatusColor(status)),
+            
+            
             backgroundColor: [
-                'rgba(75, 192, 192, 0.6)', // Open
-                'rgba(54, 162, 235, 0.6)', // In Progress
-                'rgba(255, 206, 86, 0.6)', // Pending Review
-                'rgba(153, 102, 255, 0.6)', // Closed
-                'rgba(255, 99, 132, 0.6)',  // Failed / Overdue (adjust as needed)
+                'rgba(75, 192, 192, 0.6)', 
+                'rgba(54, 162, 235, 0.6)', 
+                'rgba(255, 206, 86, 0.6)', 
+                'rgba(153, 102, 255, 0.6)', 
+                'rgba(255, 99, 132, 0.6)',  
             ],
             borderColor: [
                 'rgba(75, 192, 192, 1)',
@@ -442,7 +441,7 @@ function MyTasks() {
                     {filteredTasks.length === 0 && myTasks.length > 0 && !loading &&
                         (activeStatusFilter ||
                             activeCategoryFilter ||
-                            // activeCampaignFilter || // Kept for potential future use with dropdown
+                            
                             searchTerm ||
                             selectedCampaignIdForColumnView) &&
                         <Alert variant="warning">No tasks match the current filter criteria.</Alert>
@@ -495,8 +494,8 @@ function MyTasks() {
                                         isOverdueFn={isOverdue}
                                         showCampaignInfo={true}
                                         showAssigneeInfo={true}
-                                        showOwnerInfo={true} // Display the list of all owners
-                                        owners={task.owners} // Pass the owners array from the task data
+                                        showOwnerInfo={true} 
+                                        owners={task.owners} 
                                     />
                                 ))}
                         
@@ -511,8 +510,8 @@ function MyTasks() {
                                         <th onClick={() => requestSort('campaign_name')} style={{ cursor: 'pointer' }}>Campaign {getSortIcon('campaign_name')}</th>
                                         <th onClick={() => requestSort('status')} style={{ cursor: 'pointer' }}>Status {getSortIcon('status')}</th>
                                         <th onClick={() => requestSort('due_date')} style={{ cursor: 'pointer' }}>Due Date {getSortIcon('due_date')}</th>
-                                        {/* Assignee might be redundant if "My Tasks" are always assigned to current user, but good for consistency */}
-                                        {/* <th onClick={() => requestSort('assignee_user_id')} style={{ cursor: 'pointer' }}>Assignee {getSortIcon('assignee_user_id')}</th> */}
+                                        
+                                        
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -531,7 +530,7 @@ function MyTasks() {
                                             </td>
                                             <td><Badge bg={getStatusColor(task.status)}>{task.status}</Badge></td>
                                             <td>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</td>
-                                            {/* <td><UserDisplay userId={task.assignee_user_id} allUsers={users} /></td> */}
+                                            
                                         </tr>
                                     ))}
                                 </tbody>

@@ -21,7 +21,6 @@ const HelpSupportPanel = () => {
                 <Card.Header as="h6">
                     <FaQuestionCircle className="me-2 text-success" /> Frequently Asked Questions
                 </Card.Header>
-                {/* Replace ListGroup with Accordion */}
                 <Accordion flush>
                     <Accordion.Item eventKey="0">
                         <Accordion.Header>How do I create a new campaign?</Accordion.Header>

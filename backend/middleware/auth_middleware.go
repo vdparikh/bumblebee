@@ -5,11 +5,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vdparikh/compliance-automation/backend/auth" // Adjust path
+	"github.com/vdparikh/compliance-automation/backend/auth" 
 )
 
-// AuthMiddleware extracts and validates JWT from Authorization header.
-// If valid, it adds user claims to the request context.
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -31,14 +29,11 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Add claims to context for downstream handlers
-		c.Set(string(auth.ContextKeyClaims), claims) // Use string key for Gin context
+		c.Set(string(auth.ContextKeyClaims), claims) 
 		c.Next()
 	}
 }
 
-// RoleAuthMiddleware checks if the authenticated user has one of the allowed roles.
-// This middleware must run *after* AuthMiddleware.
 func RoleAuthMiddleware(allowedRoles []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claimsValue, exists := c.Get(string(auth.ContextKeyClaims))
@@ -48,14 +43,11 @@ func RoleAuthMiddleware(allowedRoles []string) gin.HandlerFunc {
 		}
 		claims, ok := claimsValue.(*auth.Claims)
 		if !ok || claims == nil {
-			// This should ideally not happen if AuthMiddleware ran successfully
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error processing authentication claims"})
 			return
 		}
 
 		isAllowed := false
-		// for _, role := range allowedRoles {
-		// }
 
 		if !isAllowed {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden: You do not have permission to access this resource"})

@@ -8,7 +8,7 @@ const BarChartCard = ({ title, chartRef, chartData, onClickHandler, options, sty
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                display: false, // Often not needed for bar charts if labels are clear
+                display: false, 
             },
         },
     };

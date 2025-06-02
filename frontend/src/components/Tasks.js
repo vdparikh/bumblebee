@@ -8,7 +8,7 @@ import {
     getUsers,
     getComplianceStandards,
     getConnectedSystems,
-    getDocuments // For linking documents
+    getDocuments 
 } from '../services/api';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
@@ -23,45 +23,45 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Popover from 'react-bootstrap/Popover';
 import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
-import Select from 'react-select'; // Import react-select
+import Select from 'react-select'; 
 import Badge from 'react-bootstrap/Badge';
-import Dropdown from 'react-bootstrap/Dropdown'; // Added for action menu
+import Dropdown from 'react-bootstrap/Dropdown'; 
 
 import {
     FaTasks as FaTasksIcon,
     FaPlusCircle,
     FaListUl,
     FaInfoCircle,
-    // FaUserShield, // Removed as Owner is not shown in list
-    // FaUserCheck, // Removed as Assignee is not shown in list
-    // FaCalendarAlt, // Removed as Due Date is not shown in list
+    
+    
+    
     FaTag,
     FaClipboardList,
     FaCogs,
     FaCalendarAlt,
     FaUserShield,
     FaUserCheck,
-    // FaPlayCircle, // Not used in this simplified view
-    // FaSpinner, // Status icons removed from list
-    // FaHourglassHalf, // Status icons removed from list
-    // FaTimesCircle, // Status icons removed from list
-    // FaRegFileAlt, // Status icons removed from list
+    
+    
+    
+    
+    
     FaEdit,
     FaWindowClose,
-    FaEllipsisV, // Added for action menu
-    // FaCheckCircle, // Status icons removed from list
-    FaFileSignature, // For Policy category (example)
-    FaBookOpen, // For linked documents
-    FaShieldAlt, // For Data Security category
-    FaFileContract // For Vulnerability Management category
+    FaEllipsisV, 
+    
+    FaFileSignature, 
+    FaBookOpen, 
+    FaShieldAlt, 
+    FaFileContract 
 } from 'react-icons/fa';
 
 function Tasks() {
     const [tasks, setTasks] = useState([]);
 
-    // Form state for creating/editing a task
+    
     const [newTitle, setNewTitle] = useState('');
-    // Define fixed categories
+    
     const taskCategories = [
         "Asset Management",
         "Configuration Management",
@@ -79,21 +79,21 @@ function Tasks() {
     const [newDueDate, setNewDueDate] = useState('');
     const [newRequirementId, setNewRequirementId] = useState('');
     const [newCheckType, setNewCheckType] = useState('');
-    const [newCheckTarget, setNewCheckTarget] = useState(''); // Will store Connected System ID if applicable
-    const [newCheckParams, setNewCheckParams] = useState({}); // Changed from string to object
-    const [newEvidenceTypesExpected, setNewEvidenceTypesExpected] = useState([]); // For react-select
-    const [newLinkedDocumentIDs, setNewLinkedDocumentIDs] = useState([]); // For react-select, stores {value, label}
+    const [newCheckTarget, setNewCheckTarget] = useState(''); 
+    const [newCheckParams, setNewCheckParams] = useState({}); 
+    const [newEvidenceTypesExpected, setNewEvidenceTypesExpected] = useState([]); 
+    const [newLinkedDocumentIDs, setNewLinkedDocumentIDs] = useState([]); 
     const [newDefaultPriority, setNewDefaultPriority] = useState('');
 
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // Available options for EvidenceTypesExpected
+    
     const [allStandards, setAllStandards] = useState([]);
     const [allRequirements, setAllRequirements] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
     const [allConnectedSystems, setAllConnectedSystems] = useState([]);
-    const [allDocuments, setAllDocuments] = useState([]); // State for all documents
+    const [allDocuments, setAllDocuments] = useState([]); 
 
     const [filteredTasks, setFilteredTasks] = useState([]);
     const [selectedStandardIdForFilter, setSelectedStandardIdForFilter] = useState('');
@@ -118,7 +118,7 @@ function Tasks() {
                 { name: 'apiPath', label: 'API Path', type: 'text', required: true, placeholder: '/health or /api/v1/status', helpText: 'The specific path to append to the base URL of the target system (e.g., /api/status).' },
                 { name: 'expected_status_code', label: 'Expected Status Code', type: 'number', placeholder: '200', helpText: 'The HTTP status code expected for a successful check. Defaults to 200 if not specified.' }
             ],
-            targetType: 'connected_system', // Indicates 'Target' should be a Connected System ID
+            targetType: 'connected_system', 
             targetLabel: 'Target Connected System'
         },
         'script_run_check': {
@@ -148,7 +148,7 @@ function Tasks() {
 
     const fetchTasks = useCallback(async () => {
         try {
-            const response = await getTasks(); // Assuming getTasks without params fetches all
+            const response = await getTasks(); 
             setTasks(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error("Error fetching tasks:", error);
@@ -225,7 +225,7 @@ function Tasks() {
     const resetFormFields = () => {
         setNewTitle('');
         setNewDescription('');
-        setNewCategory(''); // Reset to empty or a default category if desired
+        setNewCategory(''); 
         setNewOwnerUserId('');
         setNewAssigneeUserId('');
         setNewStatus('Open');
@@ -233,7 +233,7 @@ function Tasks() {
         setNewRequirementId('');
         setNewCheckType('');
         setNewCheckTarget('');
-        setNewCheckParams({}); // Reset to empty object
+        setNewCheckParams({}); 
         setNewEvidenceTypesExpected([]);
         setNewLinkedDocumentIDs([]);
         setNewDefaultPriority('');
@@ -241,25 +241,27 @@ function Tasks() {
 
     const handleSubmitTask = async (e) => {
         e.preventDefault();
-        if (!newTitle.trim()) { // OwnerUserID and Status are removed from master task
+        if (!newTitle.trim()) { 
             setError("Title is required.");
             setSuccess('');
             return;
         }
 
-            console.log('Current newLinkedDocumentIDs state:', newLinkedDocumentIDs); // <-- Add this
-    // // ... rest of the function
-    // const taskData = {
-    //     // ...
-    //     linked_document_ids: newLinkedDocumentIDs.map(option => option.value),
-    //     // ...
-    // };
-    // console.log('Submitting taskData with linked_document_ids:', taskData.linked_document_ids); // <-- Add this
+            console.log('Current newLinkedDocumentIDs state:', newLinkedDocumentIDs); 
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     
-        let processedParams = { ...newCheckParams }; // Use a copy to modify
+        let processedParams = { ...newCheckParams }; 
 
-        // Validate and process parameters based on check type
+        
         const currentCheckConfig = checkTypeConfigurations[newCheckType];
         if (newCheckType && currentCheckConfig && currentCheckConfig.parameters) {
             for (const paramDef of currentCheckConfig.parameters) {
@@ -270,11 +272,11 @@ function Tasks() {
                     return;
                 }
 
-                // Specific handling for script_args to ensure it's an array or null
+                
                 if (paramDef.name === 'script_args' && paramValue) {
                     if (typeof paramValue === 'string') {
                         if (paramValue.trim() === '') {
-                            processedParams.script_args = null; // Treat empty string as no args
+                            processedParams.script_args = null; 
                         } else {
                             try {
                                 const parsed = JSON.parse(paramValue);
@@ -303,17 +305,17 @@ function Tasks() {
         const taskData = {
             title: newTitle.trim(),
             description: newDescription.trim(),
-            category: newCategory, // Category is now from dropdown
-            // ownerUserId: ownerUserId, // Removed
-            // assigneeUserId: newAssigneeUserId.trim() || null, // Removed
-            // status: newStatus.trim(), // Removed
-            // dueDate: newDueDate ? new Date(newDueDate).toISOString() : null,  // Removed
+            category: newCategory, 
+            
+            
+            
+            
             requirementId: newRequirementId.trim() || null,
             checkType: newCheckType.trim() || null,
             target: newCheckTarget.trim() || null,
             parameters: Object.keys(processedParams).length > 0 ? processedParams : null,
-            evidenceTypesExpected: newEvidenceTypesExpected.map(option => option.value), // Get array of strings
-            linked_document_ids: newLinkedDocumentIDs.map(option => option.value), // Send array of document IDs
+            evidenceTypesExpected: newEvidenceTypesExpected.map(option => option.value), 
+            linked_document_ids: newLinkedDocumentIDs.map(option => option.value), 
             defaultPriority: newDefaultPriority.trim() || null,
         };
 
@@ -343,18 +345,18 @@ function Tasks() {
         setEditingTaskId(task.id);
         setNewTitle(task.title || '');
         setNewDescription(task.description || '');
-        setNewCategory(task.category || ''); // Set to existing category or default
-        // setNewOwnerUserId(task.ownerUserId || ''); // Removed
-        // setNewAssigneeUserId(task.assigneeUserId || ''); // Removed
-        // setNewStatus(task.status || 'Open'); // Removed
-        // setNewDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''); // Removed
+        setNewCategory(task.category || ''); 
+        
+        
+        
+        
         setNewRequirementId(task.requirementId || '');
         setNewCheckType(task.checkType || '');
         setNewCheckTarget(task.target || '');
-        setNewCheckParams(task.parameters || {}); // Set to task's parameters object or empty object
-        // Convert string array from task.evidenceTypesExpected to {value, label} for react-select
+        setNewCheckParams(task.parameters || {}); 
+        
         setNewEvidenceTypesExpected(task.evidenceTypesExpected ? task.evidenceTypesExpected.map(et => ({ value: et, label: evidenceTypeOptions.find(opt => opt.value === et)?.label || et })) : []);
-        // Convert linked documents to {value, label} for react-select
+        
         setNewLinkedDocumentIDs(task.linked_documents ? task.linked_documents.map(doc => ({ value: doc.id, label: doc.name })) : []);
         setNewDefaultPriority(task.defaultPriority || '');
         setActiveTabKey('create');
@@ -370,27 +372,27 @@ function Tasks() {
         setSuccess('');
     };
 
-    const handleParamChange = (paramName, value, paramDef) => { // Pass the full paramDef
+    const handleParamChange = (paramName, value, paramDef) => { 
         setNewCheckParams(prevParams => ({
             ...prevParams,
             [paramName]: (() => {
                 if (paramDef.type === 'number') {
                     if (value.trim() === '') {
-                        return null; // Optional number fields become null if empty
+                        return null; 
                     }
                     const num = parseInt(value, 10);
-                    return isNaN(num) ? null : num; // If parsing fails, treat as null for optional
+                    return isNaN(num) ? null : num; 
                 }
-                // For script_args, which is a textarea expecting JSON, it's currently sent as a string.
-                // This might need further parsing here or careful handling in the backend.
+                
+                
                 return value;
             })()
         }));
     };
     const handleCheckTypeChange = (e) => {
         setNewCheckType(e.target.value);
-        setNewCheckParams({}); // Reset parameters when check type changes
-        setNewCheckTarget(''); // Reset target as well
+        setNewCheckParams({}); 
+        setNewCheckTarget(''); 
     };
 
     const handleClearFilters = () => {
@@ -415,7 +417,7 @@ function Tasks() {
         return <OverlayTrigger placement="top" overlay={userPopover} delay={{ show: 250, hide: 400 }}><span>{user.name}</span></OverlayTrigger>;
     };
 
-    const getUserDetails = (userId) => { // Moved here as it's only used by renderUserWithPopover now
+    const getUserDetails = (userId) => { 
         if (!userId || !allUsers || allUsers.length === 0) return null;
         return allUsers.find(user => user.id === userId);
     };
@@ -569,8 +571,8 @@ function Tasks() {
                                             placeholder="Select or type to add evidence types..."
                                             isClearable
                                             isSearchable
-                                        // To allow creating new tags (if desired, requires more setup with CreatableSelect from react-select)
-                                        // components={{ DropdownIndicator: null }} // Example for tag-like input
+                                        
+                                        
                                         />
                                         <Form.Text muted>Specify the types of evidence typically required for this task.</Form.Text>
                                     </Form.Group>
@@ -639,7 +641,7 @@ function Tasks() {
                                                             <Form.Text muted>{checkTypeConfigurations[newCheckType].targetHelpText || 'Enter the target for the check.'}</Form.Text>
                                                         </FloatingLabel>
                                                     )}
-                                                    {/* Add other targetType handlers if needed */}
+                                                    
 
                                                     {checkTypeConfigurations[newCheckType].parameters.map(paramDef => (
                                                         <FloatingLabel key={paramDef.name} controlId={`floatingParam-${paramDef.name}`} label={`${paramDef.label}${paramDef.required ? '*' : ''}`} className="mb-3">
@@ -655,8 +657,8 @@ function Tasks() {
                                                             ) : paramDef.type === 'textarea' ? (
                                                                 <Form.Control
                                                                     as="textarea"
-                                                                    // If the parameter is script_args and it's an array, stringify it for display
-                                                                    // Otherwise, use its value or an empty string.
+                                                                    
+                                                                    
                                                                     value={paramDef.name === 'script_args' && Array.isArray(newCheckParams[paramDef.name])
                                                                             ? JSON.stringify(newCheckParams[paramDef.name])
                                                                             : (newCheckParams[paramDef.name] || '')}
@@ -769,15 +771,8 @@ function Tasks() {
 
                                                 <Button variant='outline-primary' className='btn-sm' onClick={() => handleEditTask(task)}>Edit Task</Button>
 
-                                                {/* Status Badge removed from list view */}
-                                                {/* <Dropdown>
-                                                    <Dropdown.Toggle variant="link" id={`dropdown-task-actions-${task.id}`} className="p-0 text-secondary no-caret">
-                                                        <FaEllipsisV size="1.2em" />
-                                                    </Dropdown.Toggle>
-                                                    <Dropdown.Menu align="end">
-                                                        <Dropdown.Item className='small' onClick={() => handleEditTask(task)}>Edit Task</Dropdown.Item>
-                                                    </Dropdown.Menu>
-                                                </Dropdown> */}
+                                                
+                                                
                                             </div>
                                         </Col>
                                     </Row>

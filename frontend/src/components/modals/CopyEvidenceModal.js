@@ -9,7 +9,7 @@ const CopyEvidenceModal = ({ show, onHide, targetCampaignId, onCopySubmit }) => 
     const [taskInstances, setTaskInstances] = useState([]);
     const [selectedTaskInstanceId, setSelectedTaskInstanceId] = useState('');
     const [sourceEvidence, setSourceEvidence] = useState([]);
-    const [selectedEvidenceToCopy, setSelectedEvidenceToCopy] = useState([]); // Array of evidence IDs
+    const [selectedEvidenceToCopy, setSelectedEvidenceToCopy] = useState([]); 
 
     const [loadingCampaigns, setLoadingCampaigns] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
@@ -19,9 +19,9 @@ const CopyEvidenceModal = ({ show, onHide, targetCampaignId, onCopySubmit }) => 
     const fetchCampaignsForModal = useCallback(async () => {
         setLoadingCampaigns(true);
         try {
-            const response = await getCampaigns(); // Fetch all campaigns
+            const response = await getCampaigns(); 
             setCampaigns(Array.isArray(response.data) ? response.data : []);
-            if (targetCampaignId) { // Pre-select current campaign if provided
+            if (targetCampaignId) { 
                 setSelectedCampaignId(targetCampaignId);
             }
         } catch (err) {
@@ -35,7 +35,7 @@ const CopyEvidenceModal = ({ show, onHide, targetCampaignId, onCopySubmit }) => 
     useEffect(() => {
         if (show) {
             fetchCampaignsForModal();
-            // Reset states when modal is shown
+            
             setSelectedCampaignId(targetCampaignId || '');
             setTaskInstances([]);
             setSelectedTaskInstanceId('');
@@ -55,8 +55,8 @@ const CopyEvidenceModal = ({ show, onHide, targetCampaignId, onCopySubmit }) => 
                     console.error("Error fetching tasks for modal:", err);
                 })
                 .finally(() => setLoadingTasks(false));
-            setSelectedTaskInstanceId(''); // Reset task selection
-            setSourceEvidence([]); // Reset evidence
+            setSelectedTaskInstanceId(''); 
+            setSourceEvidence([]); 
         } else {
             setTaskInstances([]);
         }

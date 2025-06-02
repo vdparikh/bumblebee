@@ -9,32 +9,20 @@ import (
 	"syscall"
 )
 
-// ScriptRunCheckExecutor implements CheckExecutor for running local scripts.
 type ScriptRunCheckExecutor struct{}
 
-// scriptRunTaskParams defines parameters for script execution.
 type scriptRunTaskParams struct {
-	ScriptPath       string   `json:"script_path"`        // Required: path to the script
-	ScriptArgs       []string `json:"script_args"`        // Optional: arguments for the script
-	ExpectedExitCode *int     `json:"expected_exit_code"` // Optional: defaults to 0
+	ScriptPath       string   `json:"script_path"`
+	ScriptArgs       []string `json:"script_args"`
+	ExpectedExitCode *int     `json:"expected_exit_code"`
 }
 
 func (e *ScriptRunCheckExecutor) ValidateParameters(taskParamsMap map[string]interface{}, systemConfigJSON json.RawMessage) (isValid bool, expectedParamsDesc string, err error) {
 	expectedDesc := "For script_run_check: Target must be a Connected System (e.g., 'Local Host'). Parameters expects {'script_path': 'string (required)', 'script_args': ['string', ...], 'expected_exit_code': 'number (optional, defaults to 0)'}."
 
-	// A ConnectedSystem is now expected, though its configuration might be minimal for a "local host".
-	// We might not need to validate specific fields in systemConfigJSON for a generic "local host" type,
-	// but its presence (not nil) could be a soft check.
-	// For now, we won't enforce specific content in systemConfigJSON for this executor.
-	// If systemConfigJSON is nil, it means the handler didn't pass one, which is an issue if target was set.
 	if systemConfigJSON == nil {
-		// This case should ideally be caught by the handler if a target was specified but the system wasn't found.
-		// If no target is specified for a script_run_check, that's an issue too.
-		// The handler now ensures a ConnectedSystem is passed if a target ID is set.
 	}
 
-	// Task parameters are optional, but if 'script_args' is present, it must be an array of strings.
-	// If 'expected_exit_code' is present, it must be a number.
 	if taskParamsMap != nil {
 		taskParamsBytes, err := json.Marshal(taskParamsMap)
 		if err != nil {
@@ -56,22 +44,20 @@ func (e *ScriptRunCheckExecutor) ValidateParameters(taskParamsMap map[string]int
 
 func (e *ScriptRunCheckExecutor) Execute(checkCtx CheckContext) (ExecutionResult, error) {
 	var output strings.Builder
-	resultStatus := "Failed" // Default status
+	resultStatus := "Failed"
 
 	taskInstance := checkCtx.TaskInstance
 	connectedSystem := checkCtx.ConnectedSystem
 
 	if connectedSystem == nil {
-		// This implies TaskInstance.Target was not set or the system wasn't found by the handler.
 		output.WriteString("Error: A Connected System (Execution Host) must be targeted for script_run_check.\n")
 		return ExecutionResult{Status: "Error", Output: output.String()}, fmt.Errorf("execution host (ConnectedSystem) is missing")
 	}
-	// We can log which system is being "used" even if its config isn't directly used for local script.
 	output.WriteString(fmt.Sprintf("Executing via Connected System: %s (Type: %s)\n", connectedSystem.Name, connectedSystem.SystemType))
 
 	var taskP scriptRunTaskParams
 	taskParamsBytes, _ := json.Marshal(taskInstance.Parameters)
-	_ = json.Unmarshal(taskParamsBytes, &taskP) // Validation ensures script_path exists
+	_ = json.Unmarshal(taskParamsBytes, &taskP)
 
 	cmd := exec.Command(taskP.ScriptPath, taskP.ScriptArgs...)
 	var stdout, stderr bytes.Buffer
@@ -80,7 +66,7 @@ func (e *ScriptRunCheckExecutor) Execute(checkCtx CheckContext) (ExecutionResult
 
 	output.WriteString(fmt.Sprintf("Attempting to execute script: %s with arguments: %v\n", taskP.ScriptPath, taskP.ScriptArgs))
 
-	err := cmd.Run() // Renamed scriptPath to taskP.ScriptPath
+	err := cmd.Run()
 
 	output.WriteString(fmt.Sprintf("--- Script STDOUT ---\n%s\n", stdout.String()))
 	output.WriteString(fmt.Sprintf("--- Script STDERR ---\n%s\n", stderr.String()))

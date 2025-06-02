@@ -6,14 +6,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/vdparikh/compliance-automation/backend/auth"   // Adjust path
-	"github.com/vdparikh/compliance-automation/backend/models" // Adjust path
-	"github.com/vdparikh/compliance-automation/backend/store"  // Assuming this is your actual store package
+	"github.com/vdparikh/compliance-automation/backend/auth"   
+	"github.com/vdparikh/compliance-automation/backend/models" 
+	"github.com/vdparikh/compliance-automation/backend/store"  
 )
 
 type AuthAPI struct {
 	UserStore *store.DBStore
-	// Use your actual store type
 }
 
 func NewAuthAPI(userStore *store.DBStore) *AuthAPI {
@@ -29,7 +28,6 @@ func (a *AuthAPI) Login(c *gin.Context) {
 
 	user, err := a.UserStore.GetUserByEmail(creds.Email)
 	if err != nil {
-		// Log internal server error
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error while fetching user"})
 		return
 	}
@@ -51,8 +49,8 @@ func (a *AuthAPI) Login(c *gin.Context) {
 
 	response := map[string]interface{}{
 		"token": tokenString,
-		"user": map[string]interface{}{ // Send back basic user info
-			"id":    user.ID, // Assuming user.ID is already a string from your model
+		"user": map[string]interface{}{ 
+			"id":    user.ID, 
 			"name":  user.Name,
 			"email": user.Email,
 			"role":  user.Role,
@@ -61,9 +59,8 @@ func (a *AuthAPI) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// GetCurrentUser: Fetches user details based on token in context
 func (a *AuthAPI) GetCurrentUser(c *gin.Context) {
-	claimsValue, exists := c.Get(string(auth.ContextKeyClaims)) // Use string key for Gin context
+	claimsValue, exists := c.Get(string(auth.ContextKeyClaims)) 
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized: No user claims found in context"})
 		return
@@ -75,7 +72,7 @@ func (a *AuthAPI) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	userID, err := uuid.Parse(claims.UserID) // claims.UserID should be string
+	userID, err := uuid.Parse(claims.UserID) 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID in token claims: " + err.Error()})
 		return
@@ -92,7 +89,7 @@ func (a *AuthAPI) GetCurrentUser(c *gin.Context) {
 	}
 
 	responseUser := map[string]interface{}{
-		"id":    user.ID, // Assuming user.ID is already a string
+		"id":    user.ID, 
 		"name":  user.Name,
 		"email": user.Email,
 		"role":  user.Role,
@@ -107,9 +104,8 @@ func (a *AuthAPI) Register(c *gin.Context) {
 		return
 	}
 
-	// Check if user already exists
 	existingUser, err := a.UserStore.GetUserByEmail(req.Email)
-	if err != nil && err.Error() != "sql: no rows in result set" { // Be careful with exact error string matching
+	if err != nil && err.Error() != "sql: no rows in result set" { 
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error while checking email"})
 		return
 	}
@@ -128,11 +124,11 @@ func (a *AuthAPI) Register(c *gin.Context) {
 		Name:           req.Name,
 		Email:          req.Email,
 		HashedPassword: hashedPassword,
-		Role:           "user", // Default role for self-registration
+		Role:           "user", 
 	}
 
 	if err := a.UserStore.CreateUser(&newUser); err != nil {
-		if strings.Contains(err.Error(), "already exists") { // More specific check from store
+		if strings.Contains(err.Error(), "already exists") { 
 			c.JSON(http.StatusConflict, gin.H{"error": "User with this email already exists"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user: " + err.Error()})
@@ -140,11 +136,8 @@ func (a *AuthAPI) Register(c *gin.Context) {
 		return
 	}
 
-	// Optionally, log the user in immediately by generating a token
 	tokenString, err := auth.GenerateJWT(&newUser)
 	if err != nil {
-		// User created, but token generation failed. This is an edge case.
-		// You might decide to return success without token, or an error.
 		c.JSON(http.StatusCreated, gin.H{"message": "User created successfully, but failed to generate token.", "user": newUser})
 		return
 	}
@@ -166,7 +159,7 @@ func (a *AuthAPI) ChangePasswordHandler(c *gin.Context) {
 
 	var req struct {
 		CurrentPassword string `json:"currentPassword" binding:"required"`
-		NewPassword     string `json:"newPassword" binding:"required,min=8"` // Add password complexity rules if needed
+		NewPassword     string `json:"newPassword" binding:"required,min=8"` 
 		ConfirmPassword string `json:"confirmPassword" binding:"required"`
 	}
 
@@ -180,32 +173,29 @@ func (a *AuthAPI) ChangePasswordHandler(c *gin.Context) {
 		return
 	}
 
-	// Fetch user from DB
 	userIDUUID, err := uuid.Parse(claims.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
 		return
 	}
-	user, err := a.UserStore.GetUserByID(userIDUUID) // Assuming GetUserByID exists and returns hashed_password
+	user, err := a.UserStore.GetUserByID(userIDUUID) 
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	// Verify current password
 	if !auth.CheckPasswordHash(req.CurrentPassword, user.HashedPassword) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Incorrect current password"})
 		return
 	}
 
-	// Hash new password and update
 	newHashedPassword, err := auth.HashPassword(req.NewPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash new password"})
 		return
 	}
 
-	if err := a.UserStore.UpdateUserPassword(claims.UserID, newHashedPassword); err != nil { // You'll need to implement UpdateUserPassword in your store
+	if err := a.UserStore.UpdateUserPassword(claims.UserID, newHashedPassword); err != nil { 
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
 		return
 	}

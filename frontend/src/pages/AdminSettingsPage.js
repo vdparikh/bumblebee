@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, ListGroup, ListGroupItem } from 'react-bootstrap';
-import { FaUsersCog, FaCogs, FaPlug } from 'react-icons/fa'; // Added FaPlug
+import { FaUsersCog, FaCogs, FaPlug } from 'react-icons/fa'; 
 import UserManagement from '../components/admin/UserManagement';
-import SystemIntegrations from '../components/admin/SystemIntegrations'; // Import the new component
-// import SystemSettings from '../components/admin/SystemSettings'; // Placeholder for future
+import SystemIntegrations from '../components/admin/SystemIntegrations'; 
+
 
 function AdminSettingsPage() {
     const [activeSetting, setActiveSetting] = useState('userManagement');
@@ -14,8 +14,8 @@ function AdminSettingsPage() {
                 return <UserManagement />;
             case 'systemIntegrations':
                 return <SystemIntegrations />;
-            // case 'systemSettings':
-            //     return <SystemSettings />; // Placeholder
+            
+            
             default:
                 return <p>Select a setting to manage.</p>;
         }
@@ -45,15 +45,7 @@ function AdminSettingsPage() {
                             >
                                 <FaPlug className="me-2" />System Integrations
                             </ListGroup.Item>
-                            {/* Example for a future "System Settings" item:
-                            <ListGroup.Item
-                                action
-                                active={activeSetting === 'systemSettings'}
-                                onClick={() => setActiveSetting('systemSettings')}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                <FaCogs className="me-2" />System Settings
-                            </ListGroup.Item>*/}
+                            
                         </ListGroup>
                     </Card>
                 </Col>

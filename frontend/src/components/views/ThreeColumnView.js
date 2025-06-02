@@ -3,8 +3,8 @@ import { Container, Row, Col, Card, ListGroup, Spinner, Alert, Badge } from 'rea
 import { FaShieldAlt, FaFileContract, FaTasks, FaTag, FaCogs, FaExclamationCircle, FaFileMedicalAlt } from 'react-icons/fa';
 import {
     getComplianceStandards,
-    getRequirements as getAllRequirements, // To fetch requirements
-    getTasks as getAllMasterTasks, // Changed to fetch all tasks
+    getRequirements as getAllRequirements, 
+    getTasks as getAllMasterTasks, 
 } from '../../services/api';
 
 function ThreeColumnView() {
@@ -46,7 +46,7 @@ function ThreeColumnView() {
         setLoadingRequirements(true);
         setError('');
         try {
-            const response = await getAllRequirements(); // This fetches all, then we filter
+            const response = await getAllRequirements(); 
             const filteredReqs = Array.isArray(response.data) ? response.data.filter(r => r.standardId === standardId) : [];
             setRequirements(filteredReqs);
         } catch (err) {
@@ -65,7 +65,7 @@ function ThreeColumnView() {
         setLoadingTasks(true);
         setError('');
         try {
-            const response = await getAllMasterTasks(); // Fetch all master tasks
+            const response = await getAllMasterTasks(); 
             const filteredTasks = Array.isArray(response.data) ? response.data.filter(task => task.requirementId === requirementId) : [];
             setTasks(filteredTasks);
         } catch (err) {
@@ -79,8 +79,8 @@ function ThreeColumnView() {
     const handleStandardSelect = (standardId) => {
         const newSelectedStandardId = selectedStandardId === standardId ? null : standardId;
         setSelectedStandardId(newSelectedStandardId);
-        setSelectedRequirementId(null); // Reset requirement selection when standard changes
-        setTasks([]); // Reset tasks when standard changes
+        setSelectedRequirementId(null); 
+        setTasks([]); 
         if (newSelectedStandardId) {
             fetchRequirementsByStandard(newSelectedStandardId);
         } else {
@@ -99,14 +99,14 @@ function ThreeColumnView() {
     };
 
     useEffect(() => {
-        // This effect handles fetching tasks based on selected standard and requirement
+        
         if (selectedRequirementId) {
-            // A specific requirement is selected, fetch its tasks
+            
             fetchTasksByRequirement(selectedRequirementId);
         } else if (selectedStandardId && !loadingRequirements && requirements.length > 0) {
-            // A standard is selected, but no specific requirement.
-            // Requirements for this standard should have been fetched.
-            // Fetch tasks for all requirements of the current standard.
+            
+            
+            
             const requirementIds = requirements.map(r => r.id);
             if (requirementIds.length > 0) {
                 setLoadingTasks(true);
@@ -125,13 +125,13 @@ function ThreeColumnView() {
                         setLoadingTasks(false);
                     });
             } else {
-                setTasks([]); // No requirements for this standard
+                setTasks([]); 
             }
         } else if (selectedStandardId && !loadingRequirements && requirements.length === 0) {
-            // Standard selected, requirements fetched, but there are none.
+            
             setTasks([]);
         } else {
-            // No standard selected, or requirements are still loading
+            
             setTasks([]);
         }
     }, [selectedStandardId, selectedRequirementId, requirements, loadingRequirements, getAllMasterTasks, fetchTasksByRequirement]);
@@ -153,7 +153,7 @@ function ThreeColumnView() {
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
 
             <Row>
-                {/* Standards Column */}
+                
                 <Col md={3}>
                     <Card className="h-100">
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
@@ -184,7 +184,7 @@ function ThreeColumnView() {
                     </Card>
                 </Col>
 
-                {/* Requirements Column (Placeholder) */}
+                
                 <Col md={4}>
                     <Card className="h-100">
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
@@ -208,7 +208,7 @@ function ThreeColumnView() {
                                             <p className="mb-1 small text-muted" style={{ whiteSpace: 'pre-wrap' }}>
                                                 {req.requirementText}
                                             </p>
-                                            {/* <small className="d-block text-muted">ID: {req.id}</small> */}
+                                            
                                         </div>
                                     </ListGroup.Item>
                                 ))
@@ -219,7 +219,7 @@ function ThreeColumnView() {
                     </Card>
                 </Col>
 
-                {/* Tasks Column (Placeholder) */}
+                
                 <Col md={5}>
                     <Card className="h-100">
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
@@ -234,7 +234,7 @@ function ThreeColumnView() {
                                 tasks.map(task => (
                                     <ListGroup.Item
                                         key={task.id}
-                                        // action // Not making tasks clickable for now
+                                        
                                         className="d-flex justify-content-between align-items-center"
                                     >
                                         <div>

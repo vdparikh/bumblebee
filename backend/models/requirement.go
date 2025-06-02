@@ -1,8 +1,7 @@
-package models // Example: pkg/models/requirement.go
+package models 
 
 import "time"
 
-// Requirement defines the structure for a compliance requirement.
 type Requirement struct {
 	ID                 string    `json:"id" db:"id"`
 	StandardID         string    `json:"standardId" db:"standard_id"`

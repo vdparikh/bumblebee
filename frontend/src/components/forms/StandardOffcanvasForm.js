@@ -22,7 +22,6 @@ const StandardOffcanvasForm = ({ standard, onSave, onCancel }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!name.trim() || !shortName.trim()) {
-            // Basic validation, more can be added
             alert("Name and Short Name are required.");
             return;
         }
