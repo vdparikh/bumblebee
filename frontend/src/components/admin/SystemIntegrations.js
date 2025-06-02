@@ -135,13 +135,18 @@ function SystemIntegrations() {
 
     return (
         <div>
-            <h3><FaPlug className="me-2" />System Integrations</h3>
+
+            <div className="d-flex justify-content-between align-items-center mb-2">
+                <h3><FaPlug className="me-2" />System Integrations</h3>
+                            <Button variant="outline-success" onClick={handleShowCreateModal} className="mb-3 rounded-pill">
+                <FaPlusCircle className="me-2" />Add New Integration
+            </Button>
+
+            </div>
+            
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
 
-            <Button variant="primary" onClick={handleShowCreateModal} className="mb-3">
-                <FaPlusCircle className="me-2" />Add New Integration
-            </Button>
 
             <Table striped bordered hover responsive>
                 <thead>

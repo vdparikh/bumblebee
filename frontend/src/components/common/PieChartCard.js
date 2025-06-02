@@ -1,6 +1,7 @@
 import React from 'react';
 import Card from 'react-bootstrap/Card';
 import { Pie } from 'react-chartjs-2';
+import { defaults } from 'chart.js';
 
 const PieChartCard = ({ title, chartRef, chartData, onClickHandler, options, style }) => {
     const defaultOptions = {
@@ -12,6 +13,8 @@ const PieChartCard = ({ title, chartRef, chartData, onClickHandler, options, sty
             },
         },
     };
+
+    defaults.font.family = 'Outfit';
 
     const mergedOptions = { ...defaultOptions, ...options };
 

@@ -3,18 +3,14 @@ import React, { useState, useEffect } from 'react';
 
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, NavLink, Navigate } from 'react-router-dom';
 import Container from 'react-bootstrap/Container';
-import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import Row from 'react-bootstrap/Row';
-import NavDropdown from 'react-bootstrap/NavDropdown'; 
 import Col from 'react-bootstrap/Col'; 
 
 import Tasks from './components/Tasks'; 
 import Requirements from './components/Requirements';
 import Standards from './components/Standards';
 import MyTasks from './components/MyTasks';
-
-import { FaUser, FaQuestionCircle, FaRegQuestionCircle } from 'react-icons/fa'; 
 import Campaigns from './components/Campaigns';
 import CampaignDetail from './components/CampaignDetail'; 
 import Dashboard from './components/Dashboard'; 
@@ -100,53 +96,29 @@ function Layout() {
           <Container fluid>
             <Row>
               
-              <Sidebar currentUser={currentUser} location={location} />
+              <Sidebar 
+                currentUser={currentUser} 
+                location={location} 
+                logout={logout}
+                showDetailsPanel={showDetailsPanel}
+                setShowDetailsPanel={setShowDetailsPanel}
+              />
 
               
               <Col className="p-0 "> 
 
 
-                <Navbar expand="lg" className=" border-bottom shadow-0 topnav">
+                <Navbar expand="lg" className="d-none border-bottom shadow-0 topnav">
                   <Container fluid className=''>
                     <Navbar.Toggle aria-controls="top-navbar-nav" />
                     
 
                     <DynamicHeader /> 
-                    <Navbar.Collapse id="top-navbar-nav" className="justify-content-end">
-                      <Nav>
-                        
-                        <NavDropdown
-                          title={
-                            <>
-                              <FaUser className='me-1' />
-                              {currentUser?.name || 'User'}
-                            </>
-                          }
-                          id="user-nav-dropdown"
-                          align="end">
-                          <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
-                          
-                          {currentUser?.role === 'admin' && <NavDropdown.Item as={NavLink} to="/admin-settings">Admin Settings</NavDropdown.Item>}
-                          <NavDropdown.Divider />
-                          <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
-                        </NavDropdown>
-
-                        <ThemeSwitcher />
-
-                        <Button
-                          variant=""
-                          size="sm"
-                          onClick={() => setShowDetailsPanel(!showDetailsPanel)}
-                          className="ms-2 d-none d-md-inline-block border-0 p-0 m-0"
-                          title={showDetailsPanel ? "Hide Details Panel" : "Show Details Panel"}
-                        > {showDetailsPanel ? <FaQuestionCircle size="1.5em" /> : <FaRegQuestionCircle size="1.5em" />} </Button>
-
-                      </Nav>
-                    </Navbar.Collapse>
+                    {/* User Dropdown, ThemeSwitcher, and Help Icon are now in Sidebar.js */}
                   </Container>
                 </Navbar>
 
-                <Row className="g-0 " style={{ height: 'calc(100vh - 60px)'  }}>
+                <Row className="g-0 " style={{ height: 'calc(100vh)'  }}>
                   
                   
                   <Col md={showDetailsPanel ? 8 : 12} xl={showDetailsPanel ? 9 : 12} className="p-0" style={{ height: '100%', overflowY: 'auto', transition: 'width 0.3s ease-in-out' }}>

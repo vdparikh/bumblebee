@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, ListGroup, Spinner, Alert, Badge } from 'react-bootstrap';
-import { FaShieldAlt, FaFileContract, FaTasks, FaTag, FaCogs, FaExclamationCircle, FaFileMedicalAlt } from 'react-icons/fa';
+import { FaShieldAlt, FaFileContract, FaTasks, FaTag, FaCogs, FaExclamationCircle, FaFileMedicalAlt, FaInfo } from 'react-icons/fa';
 import {
     getComplianceStandards,
     getRequirements as getAllRequirements, 
     getTasks as getAllMasterTasks, 
 } from '../../services/api';
+import PageHeader from '../common/PageHeader';
 
 function ThreeColumnView() {
     const [standards, setStandards] = useState([]);
@@ -148,8 +149,9 @@ function ThreeColumnView() {
 
 
     return (
-        <Container fluid className="p-3">
-            <h2 className="mb-4">Compliance Management - Read Only View</h2>
+        <Container fluid className="">
+            <PageHeader icon={<FaInfo />} title="Compliance Management - Read Only View" />
+
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
 
             <Row>

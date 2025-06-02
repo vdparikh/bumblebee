@@ -30,6 +30,7 @@ import {
     FaFileContract,
     FaTasks as FaTasksIcon
 } from 'react-icons/fa';
+import PageHeader from './common/PageHeader';
 
 function Campaigns() {
    const { currentUser } = useAuth();
@@ -165,7 +166,8 @@ function Campaigns() {
 
     return (
         <div>
-            <h2 className="mb-4"><FaBullhorn className="me-2"/>Audit Campaigns</h2>
+            
+            <PageHeader icon={<FaBullhorn />} title="Audit Campaigns" />
 
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}

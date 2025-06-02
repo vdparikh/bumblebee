@@ -26,8 +26,7 @@ function AdminSettingsPage() {
             <h2 className="mb-4">Admin Settings</h2>
             <Row>
                 <Col md={3}>
-                    <Card>
-                        <Card.Header as="h5">Navigation</Card.Header>
+                    
                         <ListGroup variant='flush' className="p-2">
                             <ListGroup.Item
                                 action
@@ -47,7 +46,7 @@ function AdminSettingsPage() {
                             </ListGroup.Item>
                             
                         </ListGroup>
-                    </Card>
+                    
                 </Col>
                 <Col md={9}>
                     {renderActiveSetting()}

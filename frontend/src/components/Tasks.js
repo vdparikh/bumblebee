@@ -55,6 +55,7 @@ import {
     FaShieldAlt, 
     FaFileContract 
 } from 'react-icons/fa';
+import PageHeader from './common/PageHeader';
 
 function Tasks() {
     const [tasks, setTasks] = useState([]);
@@ -454,7 +455,8 @@ function Tasks() {
 
     return (
         <div>
-            <h2 className="mb-4"><FaTasksIcon className="me-2" />Compliance Tasks</h2>
+            {/* <h2 className="mb-4"><FaTasksIcon className="me-2" />Compliance Tasks</h2> */}
+            <PageHeader title="Compliance Tasks" />
 
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
@@ -741,12 +743,24 @@ function Tasks() {
                                                 )}
                                                 {task.defaultPriority && (
                                                     <>
-                                                        <span className="mx-1">|</span> Priority: <Badge bg="secondary">{task.defaultPriority}</Badge>
+                                                        <span className="mx-1">|</span> Priority: 
+                                                        
+                                                        <Badge bg={ getPriorityBadgeColor(task.defaultPriority) }>{task.defaultPriority}</Badge>
                                                     </>
                                                 )}
-                                                {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 && (
-                                                    <><span className="mx-1">|</span> Expected Evidence: {task.evidenceTypesExpected.join(', ')}</>
-                                                )}
+
+                                                <div>
+                                                    Expected Evidence: 
+                                                {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 ?
+                                            task.evidenceTypesExpected.map((evidenceType, index) => (
+                                                <React.Fragment key={evidenceType}>
+
+                                                    <Badge variant="secondary" className='fw-normal bg-light text-dark me-1 ms-1'>{evidenceType}</Badge>
+
+                                                </React.Fragment>
+                                            )) : ' N/A'}
+
+</div>
                                             </small>
 
                                             {task.checkType && (
@@ -786,5 +800,16 @@ function Tasks() {
         </div>
     );
 }
+
+const getPriorityBadgeColor = (priority) => {
+    switch (priority?.toLowerCase()) {
+        case 'critical': return 'danger';
+        case 'high': return 'warning';
+        case 'medium': return 'info';
+        case 'low': return 'secondary';
+        default: return 'light';
+    }
+};
+
 
 export default Tasks;

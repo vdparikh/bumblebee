@@ -7,8 +7,8 @@ const ThemeSwitcher = () => {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <Button variant="" onClick={toggleTheme} size="sm"  className="ms-2 border-0 p-0 m-0" title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
-      {theme === 'light' ? <FaMoon /> : <FaSun />}
+    <Button variant="" onClick={toggleTheme} size="sm"  className="text-white-50" title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
+      {theme === 'light' ? <FaMoon size="1.2em" /> : <FaSun size="1.2em" />}
     </Button>
   );
 };

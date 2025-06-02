@@ -48,7 +48,7 @@ const TaskListItem = ({
             </Card.Header>
             <Card.Body className="">
 
-                {task.description && <p className="text-muted small">{task.description.substring(0, 120)}{task.description.length > 120 ? '...' : ''}</p>}
+                {task.description && <p className="text-muted ">{task.description.substring(0, 120)}{task.description.length > 120 ? '...' : ''}</p>}
 
             </Card.Body>
             <ListGroup variant="flush" className="small">

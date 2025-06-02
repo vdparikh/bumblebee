@@ -1,6 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Forum&family=Outfit:wght@100..900&display=swap');
+
 body {
   margin: 0;
-  font-family: "Segoe UI", 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -8,8 +10,7 @@ body {
   background-color: #F3F6FF; 
   font-size: 0.9em;
   font-weight: 400;
-  color: var(--bs-body-color); 
-  
+  color: var(--bs-body-color);
 }
 
 form, select, input, .form-control, .form-select {
@@ -17,30 +18,40 @@ form, select, input, .form-control, .form-select {
 }
 
 
-.hero-bg {
-  background-image: radial-gradient(209.88% 93.42% at 100% 100%,#1D5B9A 3.78%,#27237B 57.29%,#33005E 100%);
-}
-
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
 
-
 :root {
+  /* Custom App Variables */
   --custom-primary: #35338C; 
-  --custom-secondary: rgb(108, 117, 125); 
   --custom-theme-color: #EC5100;
-  --custom-header-font: 'Ancizar Sans', sans-serif;
-  --custom-body-font: 'Lato', sans-serif;
-  --bs-primary: #35338C; 
-  --bs-primary-rgb: 223, 233, 246; 
-  --bs-link-color: #35338C
-  
-}
+  --custom-header-font: 'Forum', sans-serif;
+  /* This was the light blue color previously used for card headers via an incorrect --bs-primary-rgb */
+  --custom-card-header-bg: #DFE9F6; /* rgb(223, 233, 246) */
 
-.bg-info {
-  background-color: #ff9610!important;
+  /* Bootstrap Theme Color Overrides */
+  --bs-primary: #35338C; 
+  --bs-primary-rgb: 53, 51, 140;
+
+  /* If you want to customize other Bootstrap semantic colors: */
+  /* --bs-secondary: #your-secondary-color; */
+  /* --bs-secondary-rgb: r, g, b; */
+  /* --bs-success: #your-success-color; */
+  /* --bs-success-rgb: r, g, b; */
+
+  /* Customizing Info Color (used by .bg-info, .text-info, .alert-info etc.) */
+  --bs-info: #ff9610; /* Orange color */
+  --bs-info-rgb: 255, 150, 16;
+
+  /* Link color to match primary */
+  --bs-link-color: var(--bs-primary);
+  --bs-link-hover-color: color-mix(in srgb, var(--bs-primary) 70%, black); /* Darken primary for hover */
+
+  /* Dropdown active background */
+  --bs-dropdown-link-bg: var(--bs-primary);
+  --bs-dropdown-link-active-bg: var(--bs-primary);
 }
 
 h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
@@ -50,42 +61,42 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 }
 
 h2 { 
-  font-size: 1.7em;
+  font-size: 2.5em;
 }
+
 
 h3 { 
   font-size: 1.5em;
 }
-
-.card {
-  border: 1px solid var(--bs-border-color-translucent); 
-  box-shadow: none; 
+.badge {
+  border-radius: 1rem!important;
+  font-weight: normal!important;
+}
+.badge.bg-light {
+  background-color: var(--custom-card-header-bg)!important; 
 }
 
-.tab-content {
+.badge.bg-dark, .badge.bg-secondary {
+  background-color: var(--bs-primary)!important; 
+}
+
+.card {
+  border: none; /* Consolidated from later rule */
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Consolidated from later rule */
 }
 
 .card .card-header {
-  background-color: rgba(var(--bs-primary-rgb),1)!important; 
+  background-color: var(--custom-card-header-bg); /* Using the specific light blue */
   font-size: 1.1em;
   border: 0px;
 }
 
-[data-bs-theme="dark"] .card .card-header {
-  background-color: var(--bs-dark-bg-subtle)!important;
-}
-
-
 .card .card-footer {
-  background-color: transparent!important;
-  padding: 10px 10px!important;
-}
-.navbar-brand, .nav-link { 
-  font-family: var(--custom-header-font);
-  font-size: 1.1em;
-  font-weight: 500;
+  background-color: transparent; /* Removed !important, default is transparent */
+  padding: 10px 10px!important; /* Removed !important */
 }
 
+/* General Link and Nav Styling */
 a { 
   color: var(--bs-link-color); 
 }
@@ -93,18 +104,51 @@ a:hover {
   color: var(--bs-link-hover-color);
 }
 
+[data-bs-theme="dark"] .card .card-header {
+  background-color: var(--bs-dark-bg-subtle)!important;
+}
+.navbar-brand, .nav-link { 
+  font-family: var(--custom-header-font);
+  font-size: 1.1em;
+  font-weight: 500;
+}
+
+/* List Group */
+
+.list-group-item {
+  /* background-color: var(--bs-light); 
+  border-color: var(--bs-light); */
+  border-color: var(--bs-light);
+  /* border-left: 4px solid var(--bs-light)!important; */
+}
+
+
 .list-group-item.active {
-    background-color: var(--bs-secondary); /* Use your defined --bs-primary */
-    border-color: var(--bs-primary);
+  background-color: var(--bs-gray-300); /* Changed from --bs-secondary to match primary theme */
+  border-color: var(--bs-light);
+  /* border-left: 4px solid var(--bs-primary)!important; */
+}
+
+.list-group-item.active::before {
+  content: "";
+  width: 4px;
+  height: 100%;
+  top: 0;
+  left:0;
+  position: absolute;
+  background-color: var(--bs-primary); /* Changed from --bs-secondary to match primary theme */
+  /* border-color: var(--bs-light);
+  border-left: 4px solid var(--bs-primary)!important; */
 }
 
 
-.list-group-item.active .text-muted {
-    color: #fff!important;
+.list-group-item.active, .list-group-item.active .text-muted {
+  color: var(--bs-body-color) !important;
 }
 
+/* Sidebar Specific Styles */
 .navbar-brand, .sidebar .nav-link svg {
-  margin-right: 5px!important;
+  margin-right: 5px !important; /* Consider if !important is truly needed */
   color: rgba(255, 255, 255, 0.5) 
 }
 
@@ -129,10 +173,6 @@ a:hover {
     color: var(--bs-white) !important;
 }
 
-.tab-content {
-  padding: 10px 0px;
-}
-
 .sidebar { 
   background-color: var(--bs-primary);
   color: var(--bs-light); 
@@ -140,6 +180,10 @@ a:hover {
 
 .nav-tabs .nav-link {
   color: var(--bs-body-color); 
+}
+
+.tab-content { /* General tab content padding */
+  padding: 10px 0px;
 }
 
 .nav-tabs .nav-link.active {
@@ -167,68 +211,29 @@ a:hover {
   font-weight: 600 !important; 
 }
 
-
-.btn-primary {
-  
-  
-  
-  
-  
-  
-}
-
-.btn-primary:hover {
-  
-  
-  
-}
-
-
-.card {
-  border: none; 
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); 
-}
-
-
+/* Dark Theme Overrides */
 [data-bs-theme="dark"] {
   body {
     background-color: #27252B; 
     color: var(--bs-body-color); 
   }
 
-  .card, .details-pane {
+  .card { /* .details-pane also styled below */
     background-color: #141316!important;
   }
-
-  
 
   .bg-light, .bg-white {
     background-color: rgba(0, 0, 0, 0.075)!important;
   }
 
   .text-dark { color: #fff!important; }
-.topnav {
-  background-color: #000!important;
+
+  .topnav {
+    background-color: #000!important; /* Specific override for dark topnav */
+  }
 }
 
-  
-  
-  
-  
-  
-  
-  
-}
-.sidebar .navbar-brand {
-  margin-right: 5px!important;
-  color: rgba(255, 255, 255, 0.5) 
-}
-
-.sidebar .navbar-brand {
-  color: var(--bs-white); 
-}
-
-
+/* Specific Component Styling */
 .details-pane, .topnav {
   background-color: #fff!important;
 }
@@ -253,7 +258,6 @@ a:hover {
   transition: opacity 300ms ease-in, transform 300ms ease-in;
 }
 
-
 .requirements-panel .list-group-item.active {
   background-color: var(--bs-primary-bg-subtle); 
   color: var(--bs-primary-text-emphasis);
@@ -264,8 +268,6 @@ a:hover {
   background-color: var(--bs-dark-bg-subtle);
 }
 
-
-
 .task-details-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
@@ -275,8 +277,7 @@ a:hover {
 
 .task-detail-item {
   display: flex; 
-  align-items: center; 
-  
+  align-items: center;
 }
 
 .task-detail-item .me-1 { 
@@ -287,9 +288,6 @@ a:hover {
     margin-left: 0.25rem; 
     word-break: break-word; 
 }
-
-
-
 
 .comment-list .list-group-item {
   border-bottom: 1px solid #e9ecef !important; 
@@ -330,8 +328,43 @@ a:hover {
   font-weight: 500; 
 }
 
-
 .popover {
   z-index: 1060; 
 }
 
+/*
+  The following rule for sidebar dropdowns is problematic due to fixed positioning
+  and hardcoded values. It's better to rely on Bootstrap's default dropdown
+  positioning or ensure the React component structure allows for proper rendering.
+  If dropdowns are clipped, check parent elements for `overflow: hidden` or
+  consider using React Portals for the dropdown menu.
+.sidebar .dropdown-menu.show {
+    display: block;
+    z-index: 1000;
+    position: fixed;
+    left: 60px; 
+    top: 90px; 
+}*/
+
+.sidebar .dropdown-toggle::after {
+  display: none !important; 
+}
+
+.hero-bg { /* Utility class, can be placed with other utilities or here */
+  background-image: radial-gradient(209.88% 93.42% at 100% 100%,#1D5B9A 3.78%,#27237B 57.29%,#33005E 100%);
+}
+
+
+
+
+.sidebar .dropdown-menu.show {
+    display: block;
+    z-index: 1000;
+    position: fixed;
+    left: 60px;
+    top: 90px;
+}
+
+.sidebar .dropdown-toggle::after {
+  display: none !important; 
+}
