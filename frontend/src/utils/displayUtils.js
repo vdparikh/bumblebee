@@ -4,7 +4,7 @@ export const getStatusColor = (status) => {
     switch (lowerStatus) {
         case 'closed':
         case 'completed':
-        case 'success': // Added for execution results
+        case 'success': 
             return 'success';
         case 'open':
         case 'active':
@@ -13,7 +13,7 @@ export const getStatusColor = (status) => {
             return 'info';
         case 'pending review':
             return 'warning';
-        case 'failed': // For tasks and execution results
+        case 'failed': 
         case 'error':
             return 'danger';
         case 'draft':

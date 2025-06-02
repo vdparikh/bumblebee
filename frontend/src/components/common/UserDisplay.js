@@ -9,8 +9,8 @@ const UserDisplay = ({ userId, userName, allUsers = [], defaultText = 'N/A' }) =
 
     const user = allUsers.find(u => u.id === userId);
 
-    if (!user && !userName) return userId; // Fallback to ID if user not found and no name provided
-    if (!user && userName) return userName; // Use provided userName if user object not found
+    if (!user && !userName) return userId; 
+    if (!user && userName) return userName; 
 
     const displayName = user?.name || userName || userId;
 
@@ -35,7 +35,7 @@ const UserDisplay = ({ userId, userName, allUsers = [], defaultText = 'N/A' }) =
 
     return (
         <OverlayTrigger placement="top" overlay={userPopover} delay={{ show: 250, hide: 400 }} rootClose>
-            {/* Simplified for more general use, can be styled by parent or with specific classes */}
+            
             <Badge pill bg="light" text="dark" className="fw-normal border" style={{cursor: 'pointer'}}>
                 <FaUserCircle className="me-1 opacity-75" />
                  {displayName}</Badge>

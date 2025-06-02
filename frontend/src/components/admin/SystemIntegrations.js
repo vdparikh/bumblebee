@@ -28,7 +28,7 @@ function SystemIntegrations() {
     const [name, setName] = useState('');
     const [systemType, setSystemType] = useState('');
     const [description, setDescription] = useState('');
-    const [configuration, setConfiguration] = useState('{}'); // Default to empty JSON object
+    const [configuration, setConfiguration] = useState('{}'); 
     const [isEnabled, setIsEnabled] = useState(true);
 
     const fetchSystems = useCallback(async () => {

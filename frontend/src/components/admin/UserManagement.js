@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Button, Spinner, Alert, Modal, Form, Dropdown } from 'react-bootstrap';
-import { getUsers, updateUser, deleteUser } from '../../services/api'; // We'll add updateUser and deleteUser
+import { getUsers, updateUser, deleteUser } from '../../services/api'; 
 import { FaEdit, FaTrash, FaUserPlus } from 'react-icons/fa';
-import { useAuth } from '../../contexts/AuthContext'; // To prevent admin from deleting self
+import { useAuth } from '../../contexts/AuthContext'; 
 
 function UserManagement() {
     const { currentUser } = useAuth();
@@ -16,7 +16,7 @@ function UserManagement() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [newUserRole, setNewUserRole] = useState('');
 
-    const availableRoles = ['admin', 'auditor', 'user']; // Define available roles
+    const availableRoles = ['admin', 'auditor', 'user']; 
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
@@ -61,10 +61,10 @@ function UserManagement() {
         setError('');
         setSuccess('');
         try {
-            // We'll need a more generic updateUser that can update role
+            
             await updateUser(selectedUser.id, { role: newUserRole });
             setSuccess(`User ${selectedUser.name}'s role updated successfully.`);
-            fetchUsers(); // Refresh user list
+            fetchUsers(); 
             handleCloseModals();
         } catch (err) {
             setError('Failed to update user role. ' + (err.response?.data?.error || err.message));
@@ -75,7 +75,7 @@ function UserManagement() {
         if (!selectedUser) return;
         if (currentUser && selectedUser.id === currentUser.id) {
             setError("You cannot delete your own account.");
-            setShowDeleteModal(false); // Close modal but show error on main page
+            setShowDeleteModal(false); 
             return;
         }
         setError('');
@@ -83,7 +83,7 @@ function UserManagement() {
         try {
             await deleteUser(selectedUser.id);
             setSuccess(`User ${selectedUser.name} deleted successfully.`);
-            fetchUsers(); // Refresh user list
+            fetchUsers(); 
             handleCloseModals();
         } catch (err) {
             setError('Failed to delete user. ' + (err.response?.data?.error || err.message));
@@ -97,9 +97,7 @@ function UserManagement() {
             <h3>Manage Users</h3>
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
-            {/* <Button variant="primary" className="mb-3" onClick={() => alert('Add new user functionality to be implemented')}>
-                <FaUserPlus className="me-2" />Add New User
-            </Button> */}
+            
             <Table striped bordered hover responsive>
                 <thead>
                     <tr>
@@ -130,7 +128,7 @@ function UserManagement() {
                 </tbody>
             </Table>
 
-            {/* Edit Role Modal */}
+            
             <Modal show={showEditModal} onHide={handleCloseModals}>
                 <Modal.Header closeButton><Modal.Title>Edit User Role: {selectedUser?.name}</Modal.Title></Modal.Header>
                 <Modal.Body>
@@ -147,7 +145,7 @@ function UserManagement() {
                 </Modal.Footer>
             </Modal>
 
-            {/* Delete Confirmation Modal */}
+            
             <Modal show={showDeleteModal} onHide={handleCloseModals}>
                 <Modal.Header closeButton><Modal.Title>Confirm Delete</Modal.Title></Modal.Header>
                 <Modal.Body>Are you sure you want to delete user <strong>{selectedUser?.name}</strong>? This action cannot be undone.</Modal.Body>

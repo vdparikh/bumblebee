@@ -4,80 +4,38 @@ import (
 	"time"
 )
 
-// // User represents an individual interacting with the system.
-// type User struct {
-// 	ID    string `json:"id"`
-// 	Name  string `json:"name"`
-// 	Email string `json:"email"`
-// 	Role  string `json:"role"` // e.g., "auditor", "admin", "owner"
-// }
-
-// ComplianceStandard represents a regulatory standard like NYDFS, SOX, PCI.
 type ComplianceStandard struct {
 	ID          string `json:"id"`
-	Name        string `json:"name"`      // e.g., "NYDFS Cybersecurity Regulation"
-	ShortName   string `json:"shortName"` // e.g., "NYDFS"
+	Name        string `json:"name"`      
+	ShortName   string `json:"shortName"` 
 	Description string `json:"description"`
 }
 
-// // Requirement represents a specific rule or control within a ComplianceStandard.
-// type Requirement struct {
-// 	ID                 string `json:"id"`
-// 	StandardID         string `json:"standardId"`
-// 	RequirementText    string `json:"requirementText"`
-// 	ControlIDReference string `json:"controlIdReference"` // e.g., "NYDFS 500.02"
-// }
-
-// Task represents an actionable item created by an auditor based on a Requirement.
-// This now incorporates the aspects of the previous CheckDefinition.
 type Task struct {
 	ID            string    `json:"id"`
-	RequirementID string    `json:"requirementId"` // Link to a specific compliance requirement.
+	RequirementID string    `json:"requirementId"` 
 	Title         string    `json:"title"`
 	Description   string    `json:"description"`
 	Category      string    `json:"category"`
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedAt     time.Time `json:"updatedAt"`
 
-	// Fields for automated checks (if applicable to the task)
-	CheckType  *string                `json:"checkType,omitempty"`  // e.g., "automated_script", "manual_review", "api_check"
-	Target     *string                `json:"target,omitempty"`     // e.g., server IP, API endpoint, system name
-	Parameters map[string]interface{} `json:"parameters,omitempty"` // e.g., {"filePath": "/etc/passwd"}
+	CheckType  *string                `json:"checkType,omitempty"`  
+	Target     *string                `json:"target,omitempty"`     
+	Parameters map[string]interface{} `json:"parameters,omitempty"` 
 
-	LinkedDocumentIDs []string   `json:"linked_document_ids,omitempty"`     // For C/U operations, not stored directly in tasks table
-	LinkedDocuments   []Document `json:"linked_documents,omitempty" db:"-"` // For R operations, populated from junction table
+	LinkedDocumentIDs []string   `json:"linked_document_ids,omitempty"`     
+	LinkedDocuments   []Document `json:"linked_documents,omitempty" db:"-"` 
 
-	// New fields for master task templates
-	EvidenceTypesExpected []string `json:"evidenceTypesExpected,omitempty" db:"evidence_types_expected"` // List of expected evidence types
-	DefaultPriority       *string  `json:"defaultPriority,omitempty" db:"default_priority"`              // Default priority for instances
+	EvidenceTypesExpected []string `json:"evidenceTypesExpected,omitempty" db:"evidence_types_expected"` 
+	DefaultPriority       *string  `json:"defaultPriority,omitempty" db:"default_priority"`              
 }
 
-// TaskExecutionResult stores the outcome of a task's execution (especially for automated parts).
 type TaskExecutionResult struct {
 	ID               string    `json:"id"`
 	TaskID           string    `json:"taskId"`
 	Timestamp        time.Time `json:"timestamp"`
-	Status           string    `json:"status"` // "PASS", "FAIL", "ERROR", "PENDING"
-	Output           string    `json:"output"` // Details, error message, or path to evidence
+	Status           string    `json:"status"` 
+	Output           string    `json:"output"` 
 	ExecutedByUserID string    `json:"executedByUserId"`
 }
-
-// // Evidence represents a piece of collected evidence linked to a Task.
-// type Evidence struct {
-// 	ID               string    `json:"id"`
-// 	TaskID           string    `json:"taskId"`
-// 	FileName         string    `json:"fileName"`
-// 	FilePath         string    `json:"filePath"` // Could be a URL to S3 or local path
-// 	Description      string    `json:"description"`
-// 	UploadedAt       time.Time `json:"uploadedAt"`
-// 	UploadedByUserID string    `json:"uploadedByUserId"`
-// }
-
-// // Comment represents a comment made on a Task for collaboration.
-// type Comment struct {
-// 	ID        string    `json:"id"`
-// 	TaskID    string    `json:"taskId"`
-// 	UserID    string    `json:"userId"`
-// 	Text      string    `json:"text"`
-// 	CreatedAt time.Time `json:"createdAt"`
-// }

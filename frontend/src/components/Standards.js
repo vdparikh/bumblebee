@@ -36,11 +36,11 @@ function Standards() {
         try {
             const response = await getComplianceStandards();
             setStandards(Array.isArray(response.data) ? response.data : []);
-            // setError(''); // Clear previous errors on successful fetch
+            
         } catch (error) {
             console.error("Error fetching compliance standards:", error);
             setError('Failed to fetch compliance standards.');
-            setStandards([]); // Ensure standards is an array on error
+            setStandards([]); 
         }
     }, []);
 
@@ -115,7 +115,7 @@ function Standards() {
             <Tabs activeKey={activeTabKey} onSelect={(k) => setActiveTabKey(k)} id="standards-tabs" className="mb-3 nav-line-tabs">
                 <Tab eventKey="create" title={<><FaPlusCircle className="me-1"/>{editingStandardId ? 'Edit Standard' : 'Create New Standard'}</>}>
                     <Card className="mb-4">
-                        {/* <Card.Header as="h5">Create New Standard</Card.Header> */}
+                        
                         <Card.Body>
                             <Form onSubmit={handleSubmitStandard}>
                                 <FloatingLabel controlId="floatingStandardName" label={<><FaFileSignature className="me-1"/>Standard Name*</>} className="mb-3">
@@ -170,7 +170,7 @@ function Standards() {
                     </Card>
                 </Tab>
                 <Tab eventKey="existing" title={<><FaListUl className="me-1"/>Existing Standards</>}>
-                    {/* <h3 className="mb-3">Existing Standards</h3> */}
+                    
                     {standards.length === 0 && <Alert variant="info">No standards found.</Alert>}
                     <div >
                         {standards.map(std => (
@@ -186,14 +186,9 @@ function Standards() {
                                 </Card.Header>
                                 <Card.Body className=''>
                                 <Row className="align-items-start">
-                                    {/* <Col xs="auto" className="pe-2 pt-1">
-                                        <FaShieldAlt size="1.5em" className="text-info"/>
-                                    </Col> */}
+                                    
                                     <Col >
-                                        {/* <div className="d-flex w-100 justify-content-between">
-                                            <h5 className="mb-1">{std.name} ({std.shortName})</h5>
-                                            <small className="text-muted">ID: {std.id}</small>
-                                        </div> */}
+                                        
                                         <p className="mb-1">{std.description || "No description provided."}</p>
                                     </Col>
                                     <Col xs="auto" className="d-flex align-items-center">

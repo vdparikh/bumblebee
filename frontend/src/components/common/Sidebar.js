@@ -34,7 +34,7 @@ function Sidebar({ currentUser }) {
                 </Navbar.Brand>
 
                 {navItems
-                    .filter(Boolean) // Remove any false values from conditional rendering
+                    .filter(Boolean) 
                     .map((item, index) => {
                         if (item.type === 'divider') {
                             return (
@@ -43,7 +43,7 @@ function Sidebar({ currentUser }) {
                                 </Nav.Item>
                             );
                         }
-                        // Role-based rendering for sidebar items
+                        
                         if (item.roles && !item.roles.includes(currentUser?.role)) {
                             return null;
                         }
@@ -63,9 +63,9 @@ function Sidebar({ currentUser }) {
                                     to={item.to}
                                     eventKey={item.eventKey}
                                     className="d-flex justify-content-center align-items-center p-3 mb-1"
-                                    title={item.label} // For accessibility
-                                    // NavLink handles active state based on `to` prop
-                                    // For paths like /campaigns/:id, NavLink needs `end={false}` or a custom active check if not using startsWith
+                                    title={item.label} 
+                                    
+                                    
                                     isActive={item.activeCheck ? item.activeCheck : undefined}
                                 >
                                     {item.icon}

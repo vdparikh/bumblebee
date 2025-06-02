@@ -10,14 +10,12 @@ import (
 	"github.com/vdparikh/compliance-automation/backend/models"
 )
 
-// In-memory store for simplicity. Replace with a database.
 var (
 	checkDefinitions = make(map[string]models.CheckDefinition)
-	checkResults     = make(map[string][]models.CheckResult) // Keyed by CheckDefinitionID
+	checkResults     = make(map[string][]models.CheckResult) 
 	mu               sync.RWMutex
 )
 
-// CreateCheckDefinitionHandler handles the creation of new check definitions.
 func CreateCheckDefinitionHandler(c *gin.Context) {
 	var newCheck models.CheckDefinition
 	if err := c.ShouldBindJSON(&newCheck); err != nil {
@@ -35,7 +33,6 @@ func CreateCheckDefinitionHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, newCheck)
 }
 
-// GetCheckDefinitionsHandler lists all check definitions.
 func GetCheckDefinitionsHandler(c *gin.Context) {
 	mu.RLock()
 	defer mu.RUnlock()
@@ -47,33 +44,6 @@ func GetCheckDefinitionsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, defs)
 }
 
-// // ExecuteCheckHandler simulates executing a check (actual logic would be more complex).
-// func ExecuteCheckHandler(c *gin.Context) {
-// 	checkID := c.Param("id")
-
-// 	mu.Lock() // Lock for writing results
-// 	defer mu.Unlock()
-
-// 	if _, exists := checkDefinitions[checkID]; !exists {
-// 		c.JSON(http.StatusNotFound, gin.H{"error": "Check definition not found"})
-// 		return
-// 	}
-
-// 	// TODO: Implement actual check execution logic based on checkDefinitions[checkID].CheckType
-// 	// For now, just create a dummy result.
-// 	result := models.CheckResult{
-// 		ID:                uuid.New().String(),
-// 		CheckDefinitionID: checkID,
-// 		Timestamp:         time.Now(),
-// 		Status:            "PASS", // Placeholder
-// 		Output:            "Check executed successfully (simulated).",
-// 	}
-// 	checkResults[checkID] = append(checkResults[checkID], result)
-
-// 	c.JSON(http.StatusOK, gin.H{"message": "Check execution triggered", "result": result})
-// }
-
-// GetCheckResultsHandler retrieves results for a specific check.
 func GetCheckResultsHandler(c *gin.Context) {
 	checkID := c.Param("id")
 
@@ -82,7 +52,6 @@ func GetCheckResultsHandler(c *gin.Context) {
 
 	results, ok := checkResults[checkID]
 	if !ok {
-		// Return empty list if no results yet, or 404 if check def doesn't exist
 		if _, defExists := checkDefinitions[checkID]; !defExists {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Check definition not found"})
 			return

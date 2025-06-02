@@ -17,11 +17,10 @@ const StatusIcon = ({ status, isOverdue, size = "1.5em", type = "task" }) => {
         case 'failed':
             return <FaTimesCircle size={size} className="text-danger" title="Failed" />;
         case 'open':
-            // Differentiate icon for campaign task vs master task if needed, or unify
             return type === "masterTask" ? <FaRegFileAlt size={size} className="text-primary" title="Open" /> : <FaRegFileAlt size={size} className="text-dark" title="Open" />;
-        case 'active': // Example for campaign status
+        case 'active': 
              return <FaCheckCircle size={size} className="text-success" title="Active" />;
-        case 'draft': // Example for campaign status
+        case 'draft': 
              return <FaTasksIcon size={size} className="text-secondary" title="Draft" />;
         default:
             return <FaTasksIcon size={size} className="text-secondary" title={status || "Unknown"} />;

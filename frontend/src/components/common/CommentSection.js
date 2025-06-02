@@ -1,10 +1,10 @@
 import React from 'react';
 import { Card, Form, Button, ListGroup, Alert, Row, Col, Image } from 'react-bootstrap';
 import { FaRegComment, FaPaperPlane } from 'react-icons/fa';
-import UserDisplay from './UserDisplay'; // Assuming UserDisplay is in the same directory
+import UserDisplay from './UserDisplay'; 
 
 const CommentItem = ({ comment, allUsers }) => {
-    // Fallback for user avatar - replace with actual avatar logic if available
+    
     const userForComment = allUsers.find(u => u.id === comment.userId);
     const avatarSrc = userForComment?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.userName || 'U')}&background=random&size=40`;
 
@@ -64,7 +64,7 @@ const CommentSection = ({
                                 />
                             </Form.Group>
                         </Col>
-                         <Col xs="auto" className="d-flex align-items-end"> {/* Aligns button to bottom of its space */}
+                         <Col xs="auto" className="d-flex align-items-end"> 
                             <Button type="submit" variant="primary" className="comment-submit-btn">
                                 <FaPaperPlane />
                             </Button>

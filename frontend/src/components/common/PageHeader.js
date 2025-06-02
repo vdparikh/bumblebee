@@ -7,7 +7,6 @@ const PageHeader = ({ icon, title, actions }) => {
         <Row className="mb-3 mb-md-4 align-items-center">
             <Col>
                 <h2 className="mb-0">
-                    {/* {icon && React.cloneElement(icon, { className: `me-2 ${icon.props.className || ''}` })}  */}
                     {title}</h2>
             </Col>
             {actions && (

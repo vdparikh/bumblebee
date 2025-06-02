@@ -9,19 +9,16 @@ import (
 	"time"
 )
 
-// PortScanCheckExecutor implements CheckExecutor for checking open ports.
 type PortScanCheckExecutor struct{}
 
-// portScanSystemConfig defines expected structure for ConnectedSystem.Configuration.
 type portScanSystemConfig struct {
-	Host string `json:"host"` // e.g., "server.example.com" or "192.168.1.100"
+	Host string `json:"host"`
 }
 
-// portScanTaskParams defines parameters for port scanning.
 type portScanTaskParams struct {
-	Port           int    `json:"port"`            // Required
-	Protocol       string `json:"protocol"`        // Optional, defaults to "tcp"
-	TimeoutSeconds *int   `json:"timeout_seconds"` // Optional, defaults to 5
+	Port           int    `json:"port"`
+	Protocol       string `json:"protocol"`
+	TimeoutSeconds *int   `json:"timeout_seconds"`
 }
 
 func (e *PortScanCheckExecutor) ValidateParameters(taskParamsMap map[string]interface{}, systemConfigJSON json.RawMessage) (isValid bool, expectedParamsDesc string, err error) {
@@ -61,7 +58,7 @@ func (e *PortScanCheckExecutor) ValidateParameters(taskParamsMap map[string]inte
 
 func (e *PortScanCheckExecutor) Execute(checkCtx CheckContext) (ExecutionResult, error) {
 	var output strings.Builder
-	resultStatus := "Failed" // Default status
+	resultStatus := "Failed"
 
 	taskInstance := checkCtx.TaskInstance
 	connectedSystem := checkCtx.ConnectedSystem
@@ -79,7 +76,7 @@ func (e *PortScanCheckExecutor) Execute(checkCtx CheckContext) (ExecutionResult,
 
 	taskParamsBytes, _ := json.Marshal(taskInstance.Parameters)
 	var taskP portScanTaskParams
-	_ = json.Unmarshal(taskParamsBytes, &taskP) // Errors handled by ValidateParameters or defaults
+	_ = json.Unmarshal(taskParamsBytes, &taskP)
 
 	protocol := "tcp"
 	if taskP.Protocol != "" {

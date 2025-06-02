@@ -18,11 +18,11 @@ const TaskListItem = ({
     isOverdueFn,
     showCampaignInfo = true,
     showAssigneeInfo = true,
-    owners, // New prop for multiple owners
+    owners, 
     showOwnerInfo = false,
     actionMenu,
     className = ""
-    // className prop might need adjustment or removal if Card styling is preferred
+    
 }) => {
     if (!task) return null;
 
@@ -33,7 +33,7 @@ const TaskListItem = ({
 
                     <div className="d-flex justify-content-between align-items-start">
                         <StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1.1em" />
-                        <div className="mb-0 ms-2 text-break"> {/* Increased title size slightly */}
+                        <div className="mb-0 ms-2 text-break"> 
                             {linkTo ? <Link to={linkTo} state={linkState} className="text-decoration-none text-dark stretched-link">{task.title}</Link> : task.title}
                         </div>
                     </div>
@@ -60,7 +60,7 @@ const TaskListItem = ({
                             {owners.map((owner, index) => (
                                 <span className='me-1' key={owner.id}>
                                     <UserDisplay userId={owner.id} userName={owner.name} allUsers={allUsers} />
-                                    {/* {index < owners.length - 1 && <span className="ms-1">,</span>} */}
+                                    
                                 </span>
                             ))}
                         </span>
@@ -106,7 +106,7 @@ const TaskListItem = ({
     );
 };
 
-// Helper function to determine badge color based on priority
+
 const getPriorityBadgeColor = (priority) => {
     switch (priority?.toLowerCase()) {
         case 'critical': return 'danger';

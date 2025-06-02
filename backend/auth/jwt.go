@@ -5,11 +5,9 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/vdparikh/compliance-automation/backend/models" // Adjust to your actual models path
+	"github.com/vdparikh/compliance-automation/backend/models"
 )
 
-// jwtKey should be a strong, randomly generated secret, ideally from config.
-// For development, you can use a placeholder, but **change it for production**.
 var jwtKey = []byte("your-very-strong-secret-key-min-32-bytes-long")
 
 type Claims struct {
@@ -19,9 +17,8 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-// GenerateJWT creates a new JWT for a given user.
 func GenerateJWT(user *models.User) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour) // Token valid for 24 hours
+	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
 		UserID: user.ID,
 		Email:  user.Email,
@@ -29,7 +26,7 @@ func GenerateJWT(user *models.User) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "compliance-automation-app", // Optional: identify the issuer
+			Issuer:    "compliance-automation-app",
 		},
 	}
 
@@ -41,7 +38,6 @@ func GenerateJWT(user *models.User) (string, error) {
 	return tokenString, nil
 }
 
-// ValidateJWT parses and validates a JWT string.
 func ValidateJWT(tokenString string) (*Claims, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
@@ -52,7 +48,7 @@ func ValidateJWT(tokenString string) (*Claims, error) {
 	})
 
 	if err != nil {
-		return nil, err // Handles expired tokens, malformed tokens, etc.
+		return nil, err
 	}
 
 	if !token.Valid {

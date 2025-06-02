@@ -10,7 +10,7 @@ type ConnectedSystem struct {
 	Name            string          `json:"name" db:"name"`
 	SystemType      string          `json:"systemType" db:"system_type"`
 	Description     *string         `json:"description,omitempty" db:"description"`
-	Configuration   json.RawMessage `json:"configuration" db:"configuration"` // Stored as JSONB
+	Configuration   json.RawMessage `json:"configuration" db:"configuration"` 
 	IsEnabled       bool            `json:"isEnabled" db:"is_enabled"`
 	LastCheckedAt   *time.Time      `json:"lastCheckedAt,omitempty" db:"last_checked_at"`
 	LastCheckStatus *string         `json:"lastCheckStatus,omitempty" db:"last_check_status"`

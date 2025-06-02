@@ -4,9 +4,9 @@ import {
     createCampaign,
     getComplianceStandards,
     getRequirements,
-    // getTasks // For selecting tasks later
-} from '../services/api'; // Removed unused getTasks
-import { Link, useLocation } from 'react-router-dom'; // Added useLocation
+    
+} from '../services/api'; 
+import { Link, useLocation } from 'react-router-dom'; 
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import FloatingLabel from 'react-bootstrap/FloatingLabel';
@@ -18,14 +18,14 @@ import Tab from 'react-bootstrap/Tab';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Badge from 'react-bootstrap/Badge';
-import Modal from 'react-bootstrap/Modal'; // For selecting requirements/tasks
+import Modal from 'react-bootstrap/Modal'; 
 import { useAuth } from '../contexts/AuthContext';
 
 import {
-    FaBullhorn, // Campaign icon
+    FaBullhorn, 
     FaPlusCircle,
     FaListUl,
-    FaEdit, // For future edit functionality
+    FaEdit, 
     FaShieldAlt,
     FaFileContract,
     FaTasks as FaTasksIcon
@@ -34,13 +34,13 @@ import {
 function Campaigns() {
    const { currentUser } = useAuth();
 
-    const location = useLocation(); // For receiving navigation state
+    const location = useLocation(); 
     const [campaigns, setCampaigns] = useState([]);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [activeTabKey, setActiveTabKey] = useState('existing');
 
-    // Form state for new campaign
+    
     const [newCampaignName, setNewCampaignName] = useState('');
     const [newCampaignDescription, setNewCampaignDescription] = useState('');
     const [selectedStandard, setSelectedStandard] = useState('');
@@ -48,10 +48,10 @@ function Campaigns() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
-    // State for selecting requirements
+    
     const [showRequirementsModal, setShowRequirementsModal] = useState(false);
     const [availableRequirements, setAvailableRequirements] = useState([]);
-    const [selectedRequirementsForCampaign, setSelectedRequirementsForCampaign] = useState([]); // Array of { requirement_id, is_applicable }
+    const [selectedRequirementsForCampaign, setSelectedRequirementsForCampaign] = useState([]); 
 
     const fetchCampaigns = useCallback(async () => {
         try {
@@ -69,7 +69,7 @@ function Campaigns() {
             setAllStandards(Array.isArray(standardsRes.data) ? standardsRes.data : []);
         } catch (err) {
             console.error("Error fetching standards:", err); 
-            // setError (append or set)
+            
         }
     }, []);
 
@@ -78,7 +78,7 @@ function Campaigns() {
         fetchFormData();
         if (location.state?.successMessage) {
             setSuccess(location.state.successMessage);
-            // Clear the message from location state so it doesn't reappear on refresh
+            
             window.history.replaceState({}, document.title) 
         }
     }, [fetchCampaigns, fetchFormData]);
@@ -87,11 +87,11 @@ function Campaigns() {
         setSelectedStandard(standardId);
         if (standardId) {
             try {
-                // In a real app, you might want an API endpoint: /api/standards/{standardId}/requirements
+                
                 const reqRes = await getRequirements(); 
                 const filteredReqs = Array.isArray(reqRes.data) ? reqRes.data.filter(r => r.standardId === standardId) : [];
                 setAvailableRequirements(filteredReqs); 
-                setSelectedRequirementsForCampaign([]); // Reset previous selections when standard changes
+                setSelectedRequirementsForCampaign([]); 
             } catch (err) {
                 console.error("Error fetching requirements for modal:", err);
                 setAvailableRequirements([]);
@@ -133,7 +133,7 @@ function Campaigns() {
             standard_id: selectedStandard,
             start_date: startDate || null,
             end_date: endDate || null,
-            // Ensure only requirement_id and is_applicable are sent for selected_requirements
+            
             selected_requirements: selectedRequirementsForCampaign.map(({ requirement_id, is_applicable }) => ({ requirement_id, is_applicable })),
         };
 
@@ -147,7 +147,7 @@ function Campaigns() {
             setStartDate('');
             setEndDate('');
             setSelectedRequirementsForCampaign([]);
-            setAvailableRequirements([]); // Clear available requirements shown in modal
+            setAvailableRequirements([]); 
             fetchCampaigns();
             setActiveTabKey('existing');
         } catch (err) {
@@ -184,7 +184,7 @@ function Campaigns() {
                                 </FloatingLabel>
 
                                 <Row className="mb-3">
-                                    <Col md={12}> {/* Changed to md={12} for full width */}
+                                    <Col md={12}> 
                                         <FloatingLabel controlId="campaignStandard" label="Primary Standard*">
                                             <Form.Select value={selectedStandard} onChange={e => handleStandardChangeForModal(e.target.value)} required>
                                                 <option value="">Select a Standard</option>
@@ -242,7 +242,7 @@ function Campaigns() {
                     {campaigns.length === 0 && <Alert variant="info">No campaigns found.</Alert>}
                     <ListGroup variant="flush">
                         {campaigns.map(camp => (
-                            <ListGroup.Item key={camp.id} action as={Link} to={`/campaigns/${camp.id}`} className="p-3"> {/* Link to detail page (to be created) */}
+                            <ListGroup.Item key={camp.id} action as={Link} to={`/campaigns/${camp.id}`} className="p-3"> 
                                 <Row className="align-items-center">
                                     <Col xs="auto"><FaBullhorn size="1.5em" className="text-dark"/></Col>
                                     <Col>

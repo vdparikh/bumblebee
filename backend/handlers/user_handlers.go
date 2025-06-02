@@ -8,17 +8,14 @@ import (
 	"github.com/vdparikh/compliance-automation/backend/store"
 )
 
-// UserHandler holds the store for database operations.
 type UserHandler struct {
 	Store *store.DBStore
 }
 
-// NewUserHandler creates a new UserHandler.
 func NewUserHandler(s *store.DBStore) *UserHandler {
 	return &UserHandler{Store: s}
 }
 
-// CreateUserHandler handles the creation of new users.
 func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 	var newUser models.User
 	if err := c.ShouldBindJSON(&newUser); err != nil {
@@ -26,7 +23,6 @@ func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 		return
 	}
 
-	// Basic validation
 	if newUser.Name == "" || newUser.Email == "" || newUser.Role == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Name, Email, and Role are required"})
 		return
@@ -39,7 +35,6 @@ func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 	c.JSON(http.StatusCreated, newUser)
 }
 
-// GetUsersHandler lists all users.
 func (h *UserHandler) GetUsersHandler(c *gin.Context) {
 	users, err := h.Store.GetUsers()
 	if err != nil {

@@ -31,7 +31,7 @@ func (h *DocumentHandler) CreateDocumentHandler(c *gin.Context) {
 		sendError(c, http.StatusInternalServerError, "Failed to create document", err)
 		return
 	}
-	doc.ID = id // The store method already populates ID, CreatedAt, UpdatedAt
+	doc.ID = id 
 	c.JSON(http.StatusCreated, doc)
 }
 
@@ -41,7 +41,6 @@ func (h *DocumentHandler) GetDocumentsHandler(c *gin.Context) {
 		sendError(c, http.StatusInternalServerError, "Failed to fetch documents", err)
 		return
 	}
-	// Already handled in store: if docs == nil { docs = []models.Document{} }
 	c.JSON(http.StatusOK, docs)
 }
 
@@ -49,7 +48,6 @@ func (h *DocumentHandler) GetDocumentByIDHandler(c *gin.Context) {
 	docID := c.Param("id")
 	doc, err := h.Store.GetDocumentByID(docID)
 	if err != nil {
-		// Store's GetDocumentByID returns nil, nil for not found, so error check is primary
 		sendError(c, http.StatusInternalServerError, "Failed to fetch document", err)
 		return
 	}
@@ -69,10 +67,8 @@ func (h *DocumentHandler) UpdateDocumentHandler(c *gin.Context) {
 		return
 	}
 
-	// Ensure the ID from the path is used, not from the payload, for consistency
 	payload.ID = docID
 
-	// Fetch existing to ensure it exists, though UpdateDocument store method also checks
 	existingDoc, err := h.Store.GetDocumentByID(docID)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "Error checking if document exists before update", err)
@@ -83,31 +79,20 @@ func (h *DocumentHandler) UpdateDocumentHandler(c *gin.Context) {
 		return
 	}
 
-	// The payload will overwrite all fields sent.
-	// If partial updates are desired, fetch existingDoc and merge fields.
-	// For now, assuming full update of settable fields.
 	err = h.Store.UpdateDocument(&payload)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "Failed to update document", err)
 		return
 	}
-	// Return the updated document (payload now has updated_at from DB)
 	c.JSON(http.StatusOK, payload)
 }
 
 func (h *DocumentHandler) DeleteDocumentHandler(c *gin.Context) {
 	docID := c.Param("id")
-	// Optional: Check if document exists before attempting delete
-	// existingDoc, _ := h.Store.GetDocumentByID(docID)
-	// if existingDoc == nil {
-	// 	sendError(c, http.StatusNotFound, "Document not found to delete", nil)
-	// 	return
-	// }
 
 	err := h.Store.DeleteDocument(docID)
 	if err != nil {
-		// Check if the error is due to "not found" if your store method returns a specific error for that
-		if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "not found for deletion") { // Example check
+		if errors.Is(err, sql.ErrNoRows) || strings.Contains(err.Error(), "not found for deletion") { 
 			sendError(c, http.StatusNotFound, "Document not found to delete", err)
 			return
 		}

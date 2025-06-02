@@ -6,12 +6,12 @@ import {
     getCommentsByCampaignTaskInstanceId,
     addCommentToCampaignTaskInstance,
     getEvidenceByCampaignTaskInstanceId,
-    addGenericEvidenceToCampaignTaskInstance, // New for text/link
+    addGenericEvidenceToCampaignTaskInstance, 
     uploadEvidenceToCampaignTaskInstance,
     updateCampaignTaskInstance,
-    executeCampaignTaskInstance, copyEvidenceToCampaignTaskInstance, // New API for execution
-    getCampaignTaskInstanceResults, // New API for results
-} from '../services/api'; // Assuming getStatusColor is imported if not already
+    executeCampaignTaskInstance, copyEvidenceToCampaignTaskInstance, 
+    getCampaignTaskInstanceResults, 
+} from '../services/api'; 
 import Card from 'react-bootstrap/Card';
 import Alert from 'react-bootstrap/Alert';
 import Badge from 'react-bootstrap/Badge';
@@ -25,7 +25,7 @@ import Col from 'react-bootstrap/Col';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
-import Dropdown from 'react-bootstrap/Dropdown'; // Added for status dropdown
+import Dropdown from 'react-bootstrap/Dropdown'; 
 import {
     FaArrowLeft,
     FaClipboardCheck,
@@ -43,54 +43,54 @@ import {
     FaFileAlt,
     FaCommentDots,
     FaBullhorn,
-    FaPlayCircle, // For execute icon
-    FaPoll, // For results icon
-    FaExclamationCircle, // For Priority
+    FaPlayCircle, 
+    FaPoll, 
+    FaExclamationCircle, 
     FaFileMedicalAlt,
     FaTerminal,
-    FaPlus, // For Evidence Types
-    FaBookOpen, // For Linked Documents
+    FaPlus, 
+    FaBookOpen, 
 
 } from 'react-icons/fa';
 import { ListGroupItem } from 'react-bootstrap';
-import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils'; // Assuming this is the path
+import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils'; 
 import { useAuth } from '../contexts/AuthContext';
 import UserDisplay from './common/UserDisplay';
-import CopyEvidenceModal from './modals/CopyEvidenceModal'; // We will create this new component
+import CopyEvidenceModal from './modals/CopyEvidenceModal'; 
 
-import CommentSection from './common/CommentSection'; // Import the new component
+import CommentSection from './common/CommentSection'; 
 
 function CampaignTaskInstanceDetail() {
     const { currentUser } = useAuth();
     const { instanceId } = useParams();
-    const location = useLocation(); // Get location object
+    const location = useLocation(); 
     const [taskInstance, setTaskInstance] = useState(null);
     const [users, setUsers] = useState([]);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [evidenceList, setEvidenceList] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
-    const [evidenceType, setEvidenceType] = useState('file'); // 'file', 'link', or 'text'
+    const [evidenceType, setEvidenceType] = useState('file'); 
     const [evidenceLink, setEvidenceLink] = useState('');
     const [evidenceText, setEvidenceText] = useState('');
-    const [evidenceDescription, setEvidenceDescription] = useState(''); // Common description field
+    const [evidenceDescription, setEvidenceDescription] = useState(''); 
     const [showCopyEvidenceModal, setShowCopyEvidenceModal] = useState(false);
 
-    // const [currentStatus, setCurrentStatus] = useState(''); // No longer needed as status is directly updated
-    const [executionResults, setExecutionResults] = useState([]); // New state for execution results
+    
+    const [executionResults, setExecutionResults] = useState([]); 
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [commentError, setCommentError] = useState('');
-    const [addEvidenceError, setAddEvidenceError] = useState(''); // Consolidated error for adding evidence
+    const [addEvidenceError, setAddEvidenceError] = useState(''); 
     const [evidenceError, setEvidenceError] = useState('');
     const [statusError, setStatusError] = useState('');
-    const [executionError, setExecutionError] = useState(''); // New
-    const [executionSuccess, setExecutionSuccess] = useState(''); // New
-    const [lastExecutionAttempt, setLastExecutionAttempt] = useState(null); // New state for immediate output
-    const [loadingResults, setLoadingResults] = useState(false); // New
+    const [executionError, setExecutionError] = useState(''); 
+    const [executionSuccess, setExecutionSuccess] = useState(''); 
+    const [lastExecutionAttempt, setLastExecutionAttempt] = useState(null); 
+    const [loadingResults, setLoadingResults] = useState(false); 
 
-    // User can edit basic task details (like status) if they are admin, auditor, or the assigned user.
+    
     const canUpdateTaskStatus = useMemo(() => {
         if (!currentUser || !taskInstance) return false;
         return currentUser.role === 'admin' ||
@@ -98,7 +98,7 @@ function CampaignTaskInstanceDetail() {
             (currentUser.role === 'user' && taskInstance.assignee_user_id === currentUser.id);
     }, [currentUser, taskInstance]);
 
-    // Only admin/auditor can manage evidence and execute automated tasks.
+    
     const canManageEvidenceAndExecution = useMemo(() => {
         if (!currentUser || !taskInstance) return false;
         return currentUser.role === 'admin' ||
@@ -130,15 +130,15 @@ function CampaignTaskInstanceDetail() {
         }
         try {
             await copyEvidenceToCampaignTaskInstance(instanceId, selectedEvidenceIds);
-            // Refresh evidence list for the current task instance
+            
             const evidenceResponse = await getEvidenceByCampaignTaskInstanceId(instanceId);
             setEvidenceList(Array.isArray(evidenceResponse.data) ? evidenceResponse.data : []);
             setShowCopyEvidenceModal(false);
-            // Optionally, show a success message
+            
         } catch (err) {
             console.error("Error copying evidence:", err);
             setError(`Failed to copy evidence. ${err.response?.data?.error || 'Please try again.'}`);
-            // Keep modal open or handle error display appropriately
+            
         }
     };
 
@@ -156,13 +156,13 @@ function CampaignTaskInstanceDetail() {
             const usersPromise = getUsers();
             const commentsPromise = getCommentsByCampaignTaskInstanceId(instanceId);
             const evidencePromise = getEvidenceByCampaignTaskInstanceId(instanceId);
-            // Results are not fetched initially, but on demand or after execution
+            
             const [taskResponse, usersResponse, commentsResponse, evidenceResponse] = await Promise.allSettled([
                 taskInstancePromise, usersPromise, commentsPromise, evidencePromise
             ]);
             if (taskResponse.status === 'fulfilled' && taskResponse.value.data) {
-                setTaskInstance(taskResponse.value.data); // Corrected: Access data from taskResponse.value
-                // setCurrentStatus(taskResponse.value.data.status); // No longer needed
+                setTaskInstance(taskResponse.value.data); 
+                
             } else {
                 setError('Task Instance not found.');
             }
@@ -219,7 +219,7 @@ function CampaignTaskInstanceDetail() {
         setEvidenceLink('');
         setEvidenceText('');
         setEvidenceDescription('');
-        // setEvidenceType('file'); // Optionally reset type or keep current
+        
         if (document.getElementById('evidenceFile')) {
             document.getElementById('evidenceFile').value = null;
         }
@@ -229,7 +229,7 @@ function CampaignTaskInstanceDetail() {
         setAddEvidenceError('');
         let evidencePayload = {
             description: evidenceDescription,
-            // uploader_user_id would be set by backend based on auth
+            
         };
         let response;
 
@@ -241,26 +241,26 @@ function CampaignTaskInstanceDetail() {
                 }
                 const formData = new FormData();
                 formData.append('file', selectedFile);
-                formData.append('description', evidenceDescription); // Send description with file
+                formData.append('description', evidenceDescription); 
                 response = await uploadEvidenceToCampaignTaskInstance(instanceId, formData);
             } else if (evidenceType === 'link') {
                 if (!evidenceLink.trim()) {
                     setAddEvidenceError("Please enter a valid URL for the link.");
                     return;
                 }
-                evidencePayload.file_path = evidenceLink; // Use file_path for URL
-                evidencePayload.file_name = "Link Evidence"; // Or derive from URL/description
-                evidencePayload.mime_type = "text/url"; // Custom type for links
+                evidencePayload.file_path = evidenceLink; 
+                evidencePayload.file_name = "Link Evidence"; 
+                evidencePayload.mime_type = "text/url"; 
                 response = await addGenericEvidenceToCampaignTaskInstance(instanceId, evidencePayload);
             } else if (evidenceType === 'text') {
                 if (!evidenceText.trim()) {
                     setAddEvidenceError("Please enter the evidence text/description.");
                     return;
                 }
-                // For text, the main content is in the description.
-                // We can use the existing description field in the payload.
-                // If you need a separate field for "text content" vs "description of text content", adjust model and payload.
-                evidencePayload.description = evidenceText; // Overwrite if general description was also filled
+                
+                
+                
+                evidencePayload.description = evidenceText; 
                 evidencePayload.mime_type = "text/plain";
                 response = await addGenericEvidenceToCampaignTaskInstance(instanceId, evidencePayload);
             }
@@ -278,25 +278,25 @@ function CampaignTaskInstanceDetail() {
         try {
             const updatedTaskData = { status: newStatus };
             const response = await updateCampaignTaskInstance(instanceId, updatedTaskData);
-            setTaskInstance(response.data); // Update local task state with the full response
+            setTaskInstance(response.data); 
         } catch (err) {
             console.error("Error updating status:", err);
             setStatusError("Failed to update status. " + (err.response?.data?.error || ''));
-            // No need to revert currentStatus state as it's removed
+            
         }
     };
 
     const handleExecuteInstance = async () => {
         setExecutionError('');
         setExecutionSuccess('');
-        setLoadingResults(true); // Indicate activity
-        setLastExecutionAttempt(null); // Clear previous attempt details
+        setLoadingResults(true); 
+        setLastExecutionAttempt(null); 
         try {
             const response = await executeCampaignTaskInstance(instanceId);
             setExecutionSuccess(response.data.message || "Execution triggered successfully. Results will be available shortly.");
             setLastExecutionAttempt({ output: response.data.output, status: response.data.status });
-            // Optionally, fetch results immediately or prompt user to refresh
-            await fetchInstanceResults(); // Fetch results after triggering
+            
+            await fetchInstanceResults(); 
         } catch (err) {
             console.error("Error executing task instance:", err);
             setExecutionError(`Failed to execute task. ${err.response?.data?.error || ''}`);
@@ -324,7 +324,7 @@ function CampaignTaskInstanceDetail() {
     if (error) return <Alert variant="danger" className="mt-3">{error}</Alert>;
     if (!taskInstance) return <Alert variant="warning" className="mt-3">Task Instance data not available.</Alert>;
 
-    // Determine the "Back" button's link and text
+    
     let backLinkTarget = location.state?.from;
     let backButtonText = "Back";
 
@@ -334,9 +334,9 @@ function CampaignTaskInstanceDetail() {
         } else if (backLinkTarget.startsWith('/campaigns/')) {
             backButtonText = "Back to Campaign";
         }
-        // If 'from' is something else, it will say "Back" and go to that 'from' location.
+        
     } else {
-        // Fallback if 'from' state is not available
+        
         backLinkTarget = taskInstance.campaign_id ? `/campaigns/${taskInstance.campaign_id}` : "/my-tasks";
         backButtonText = taskInstance.campaign_id ? "Back to Campaign" : "Back to My Tasks";
     }
@@ -354,9 +354,7 @@ function CampaignTaskInstanceDetail() {
 
     return (
         <div>
-            {/* <Button as={Link} to={backLinkTarget} variant="outline-dark" size="sm" className="mb-3">
-                <FaArrowLeft className="me-1" /> {backButtonText}
-            </Button> */}
+            
 
             <Row>
                 <Col md={12}>
@@ -413,7 +411,7 @@ function CampaignTaskInstanceDetail() {
                                         {taskInstance.owners && taskInstance.owners.length > 0 ?
                                             taskInstance.owners.map((owner, index) => (
                                                 <React.Fragment key={owner.id}>
-                                                    {/* Using UserDisplay directly for consistency if renderUserWithPopover is not needed for other specific logic */}
+                                                    
                                                     <UserDisplay userId={owner.id} userName={owner.name} allUsers={users} />
                                                     {index < taskInstance.owners.length - 1 && ' '}
                                                 </React.Fragment>
@@ -422,7 +420,7 @@ function CampaignTaskInstanceDetail() {
                                     <ListGroupItem><FaUserCheck className="me-2 text-muted" /><strong className="me-1">Assignee:</strong>
 
                                         <UserDisplay userId={taskInstance.assignee_user_id} userName={taskInstance.assignee_user_id} allUsers={users} />
-                                        {/* renderUserWithPopover is replaced by UserDisplay */}
+                                        
 
                                     </ListGroupItem>
                                     <ListGroupItem>
@@ -444,23 +442,7 @@ function CampaignTaskInstanceDetail() {
                                     <ListGroupItem>
                                         <FaClipboardList className="me-2 text-muted" /><strong>Requirement:</strong>
 
-                                        {/* {taskInstance.requirement_control_id_reference || 'N/A'}
-                                        {taskInstance.requirement_control_id_reference && (
-                                            <OverlayTrigger
-                                                placement="top"
-                                                delay={{ show: 250, hide: 400 }}
-                                                overlay={
-                                                    <Popover id={`popover-req-details-${taskInstance.id}`} style={{ maxWidth: '600px', minWidth: '300px' }}>
-                                                        <Popover.Header as="h3">{taskInstance.requirement_control_id_reference} ({taskInstance.requirement_standard_name || 'Standard N/A'})</Popover.Header>
-                                                        <Popover.Body>
-                                                            <p style={{ whiteSpace: 'pre-wrap' }}>{taskInstance.requirement_text || 'No detailed text available.'}</p>
-                                                        </Popover.Body>
-                                                    </Popover>
-                                                }
-                                            >
-                                                <Button variant="link" size="sm" className="p-0 ms-1 align-baseline"><FaInfoCircle /></Button>
-                                            </OverlayTrigger>
-                                        )} */}
+                                        
 
                                         <h6 className='mt-3'>{taskInstance.requirement_control_id_reference} - {taskInstance.requirement_standard_name || 'Standard N/A'}</h6>
                                         <p className='mt-2 text-muted' style={{ whiteSpace: 'pre-wrap' }}>{taskInstance.requirement_text || 'No detailed text available.'}</p>
@@ -550,7 +532,7 @@ function CampaignTaskInstanceDetail() {
                                                     <Form.Control as="textarea" rows={2} placeholder="Optional: Describe this piece of evidence..." value={evidenceDescription} onChange={(e) => setEvidenceDescription(e.target.value)} />
                                                 </Form.Group>
 
-                                                {/* <Button variant='success' onClick={handleAddEvidence} className="w-100 mb-3">Add Evidence</Button> */}
+                                                
 
                                                 <Row>
                                                     <Col>
@@ -572,20 +554,20 @@ function CampaignTaskInstanceDetail() {
                                     <h6 className='mt-3 p-3'>Existing Evidences</h6>
                                     {evidenceList.map(evidence => {
                                         let icon = <FaFileAlt className="me-2 text-muted" />;
-                                        let mainDisplay = evidence.file_name || evidence.id; // Default
+                                        let mainDisplay = evidence.file_name || evidence.id; 
                                         let showSeparateDescription = true;
 
                                         if (evidence.mimeType === 'text/url') {
                                             icon = <FaLink className="me-2 text-primary" />;
                                             const linkText = evidence.description || evidence.fileName || evidence.filePath;
                                             mainDisplay = <a href={evidence.filePath} target="_blank" rel="noopener noreferrer">{linkText}</a>;
-                                            showSeparateDescription = !evidence.description; // Only show separate if description wasn't used as link text
+                                            showSeparateDescription = !evidence.description; 
                                         } else if (evidence.mimeType === 'text/plain') {
                                             icon = <FaAlignLeft className="me-2 text-info" />;
                                             mainDisplay = <span style={{ whiteSpace: 'pre-wrap' }}>{evidence.description || 'No text content'}</span>;
                                             showSeparateDescription = false;
-                                        } else if (evidence.filePath) { // Assumed to be a file
-                                            // Icon remains default FaFileAlt or could be more specific based on actual mime_type
+                                        } else if (evidence.filePath) { 
+                                            
                                             mainDisplay = <a href={`http://localhost:8080/${evidence.filePath}`} target="_blank" rel="noopener noreferrer">{evidence.fileName || evidence.id}</a>;
                                         }
 
@@ -625,7 +607,7 @@ function CampaignTaskInstanceDetail() {
                                         {executionSuccess && <Alert variant="success" onClose={() => setExecutionSuccess('')} dismissible>{executionSuccess}</Alert>}
 
                                         {canManageEvidenceAndExecution && taskInstance.check_type ? (
-                                            // This block is shown if the task IS configured for automation
+                                            
                                             <>
                                                 <p>This task instance is configured for automated execution.</p>
                                                 <Button className='rounded-pill small w-100' onClick={handleExecuteInstance} disabled={loadingResults}>
@@ -633,33 +615,20 @@ function CampaignTaskInstanceDetail() {
                                                 </Button>
                                             </>
                                         ) : !canManageEvidenceAndExecution ? (
-                                            // This block is shown if the user doesn't have permission
+                                            
                                             <Alert variant="info">Task execution is restricted.</Alert>
                                         ) : !taskInstance.check_type ? (
-                                            // THIS IS THE KEY CONDITION:
-                                            // If taskInstance.check_type is null, undefined, or an empty string,
-                                            // this message is displayed.
+                                            
+                                            
+                                            
                                             <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
                                         ) : (
-                                            // Fallback, also shows the same message
+                                            
                                             <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
                                         )}
 
 
-                                        {/* {canManageEvidenceAndExecution && taskInstance.check_type ? (
-                                    <>
-                                        <p>This task instance is configured for automated execution.</p>
-                                        <Button onClick={handleExecuteInstance} disabled={loadingResults}>
-                                            {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1" /> Executing...</> : <><FaPlayCircle className="me-1" />Execute Task</>}
-                                        </Button>
-                                    </>
-                                ) : !canManageEvidenceAndExecution ? (
-                                    <Alert variant="info">Task execution is restricted.</Alert>
-                                ) : !taskInstance.check_type ? (
-                                    <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
-                                ) : (
-                                    <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
-                                )} */}
+                                        
                                     </Card.Footer></Card>
                             </div>
                         </Tab>
@@ -709,7 +678,7 @@ function CampaignTaskInstanceDetail() {
                 <CopyEvidenceModal
                     show={showCopyEvidenceModal}
                     onHide={() => setShowCopyEvidenceModal(false)}
-                    targetCampaignId={taskInstance.campaign_id} // Pass current campaign ID as a starting point
+                    targetCampaignId={taskInstance.campaign_id} 
                     onCopySubmit={handleCopyEvidenceSubmit}
                 />
             )}
