@@ -7,7 +7,8 @@ import {
     getRequirements,
     getUsers,
     getComplianceStandards,
-    getConnectedSystems // Assuming this function exists in your API service
+    getConnectedSystems,
+    getDocuments // For linking documents
 } from '../services/api';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
@@ -49,7 +50,8 @@ import {
     FaWindowClose,
     FaEllipsisV, // Added for action menu
     // FaCheckCircle, // Status icons removed from list
-    FaFileSignature, // For Policy category
+    FaFileSignature, // For Policy category (example)
+    FaBookOpen, // For linked documents
     FaShieldAlt, // For Data Security category
     FaFileContract // For Vulnerability Management category
 } from 'react-icons/fa';
@@ -80,6 +82,7 @@ function Tasks() {
     const [newCheckTarget, setNewCheckTarget] = useState(''); // Will store Connected System ID if applicable
     const [newCheckParams, setNewCheckParams] = useState({}); // Changed from string to object
     const [newEvidenceTypesExpected, setNewEvidenceTypesExpected] = useState([]); // For react-select
+    const [newLinkedDocumentIDs, setNewLinkedDocumentIDs] = useState([]); // For react-select, stores {value, label}
     const [newDefaultPriority, setNewDefaultPriority] = useState('');
 
     const [error, setError] = useState('');
@@ -90,6 +93,7 @@ function Tasks() {
     const [allRequirements, setAllRequirements] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
     const [allConnectedSystems, setAllConnectedSystems] = useState([]);
+    const [allDocuments, setAllDocuments] = useState([]); // State for all documents
 
     const [filteredTasks, setFilteredTasks] = useState([]);
     const [selectedStandardIdForFilter, setSelectedStandardIdForFilter] = useState('');
@@ -186,6 +190,15 @@ function Tasks() {
             setError(prev => prev + ' Failed to fetch connected systems for selection.');
             setAllConnectedSystems([]);
         }
+        try {
+            const docsResponse = await getDocuments();
+            setAllDocuments(Array.isArray(docsResponse.data) ? docsResponse.data : []);
+        } catch (err) {
+            console.error("Error fetching documents for selection:", err);
+            setError(prev => prev + ' Failed to fetch documents for selection.');
+            setAllDocuments([]);
+        }
+
     }, []);
 
     useEffect(() => {
@@ -222,6 +235,7 @@ function Tasks() {
         setNewCheckTarget('');
         setNewCheckParams({}); // Reset to empty object
         setNewEvidenceTypesExpected([]);
+        setNewLinkedDocumentIDs([]);
         setNewDefaultPriority('');
     };
 
@@ -233,6 +247,16 @@ function Tasks() {
             return;
         }
 
+            console.log('Current newLinkedDocumentIDs state:', newLinkedDocumentIDs); // <-- Add this
+    // // ... rest of the function
+    // const taskData = {
+    //     // ...
+    //     linked_document_ids: newLinkedDocumentIDs.map(option => option.value),
+    //     // ...
+    // };
+    // console.log('Submitting taskData with linked_document_ids:', taskData.linked_document_ids); // <-- Add this
+
+    
         let processedParams = { ...newCheckParams }; // Use a copy to modify
 
         // Validate and process parameters based on check type
@@ -289,9 +313,11 @@ function Tasks() {
             target: newCheckTarget.trim() || null,
             parameters: Object.keys(processedParams).length > 0 ? processedParams : null,
             evidenceTypesExpected: newEvidenceTypesExpected.map(option => option.value), // Get array of strings
+            linked_document_ids: newLinkedDocumentIDs.map(option => option.value), // Send array of document IDs
             defaultPriority: newDefaultPriority.trim() || null,
         };
 
+        console.log(taskData)
         try {
             if (editingTaskId) {
                 await updateTask(editingTaskId, taskData);
@@ -328,6 +354,8 @@ function Tasks() {
         setNewCheckParams(task.parameters || {}); // Set to task's parameters object or empty object
         // Convert string array from task.evidenceTypesExpected to {value, label} for react-select
         setNewEvidenceTypesExpected(task.evidenceTypesExpected ? task.evidenceTypesExpected.map(et => ({ value: et, label: evidenceTypeOptions.find(opt => opt.value === et)?.label || et })) : []);
+        // Convert linked documents to {value, label} for react-select
+        setNewLinkedDocumentIDs(task.linked_documents ? task.linked_documents.map(doc => ({ value: doc.id, label: doc.name })) : []);
         setNewDefaultPriority(task.defaultPriority || '');
         setActiveTabKey('create');
         setError('');
@@ -563,6 +591,20 @@ function Tasks() {
                                     </Form.Group>
                                 </Row>
 
+                                <Form.Group className="mb-3" controlId="linkedDocuments">
+                                    <Form.Label><FaBookOpen className="me-1" />Link Documents</Form.Label>
+                                    <Select
+                                        isMulti
+                                        options={allDocuments.map(doc => ({ value: doc.id, label: `${doc.name} (${doc.document_type})` }))}
+                                        value={newLinkedDocumentIDs}
+                                        onChange={setNewLinkedDocumentIDs}
+                                        placeholder="Select documents to link..."
+                                        isClearable
+                                        isSearchable
+                                    />
+                                    <Form.Text muted>Associate relevant policies, procedures, or regulatory documents with this task.</Form.Text>
+                                </Form.Group>
+
 
                                 <Accordion className="mb-3">
                                     <Accordion.Item eventKey="0">
@@ -709,6 +751,16 @@ function Tasks() {
                                                 <div className="mt-2 p-2 bg-light border rounded">
                                                     <small><FaCogs className="me-1" /><strong>Automated Check:</strong> {task.checkType} on {task.target || 'N/A'}</small>
                                                     <small className="d-block"><strong>Parameters:</strong> {task.parameters ? JSON.stringify(task.parameters) : 'None'}</small>
+                                                </div>
+                                            )}
+                                            {task.linked_documents && task.linked_documents.length > 0 && (
+                                                <div className="mt-2">
+                                                    <small><FaBookOpen className="me-1" /><strong>Linked Documents:</strong></small>
+                                                    <ul className="list-unstyled list-inline mb-0">
+                                                        {task.linked_documents.map(doc => (
+                                                            <li key={doc.id} className="list-inline-item"><Badge bg="light" text="dark" className="border me-1">{doc.name}</Badge></li>
+                                                        ))}
+                                                    </ul>
                                                 </div>
                                             )}
                                         </Col>

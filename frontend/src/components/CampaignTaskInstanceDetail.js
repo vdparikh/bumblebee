@@ -49,6 +49,7 @@ import {
     FaFileMedicalAlt,
     FaTerminal,
     FaPlus, // For Evidence Types
+    FaBookOpen, // For Linked Documents
 
 } from 'react-icons/fa';
 import { ListGroupItem } from 'react-bootstrap';
@@ -360,7 +361,11 @@ function CampaignTaskInstanceDetail() {
             <Row>
                 <Col md={12}>
                     <div className="d-flex justify-content-between align-items-center mb-2">
-                        <h2 className="mb-0">{taskInstance.title}</h2>
+                        <h2 className="mb-0">
+                                            <div className='mb-1 small fs-6 fw-normal text-muted'>Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> / Req: {taskInstance.requirement_standard_name}</div>
+
+                            {taskInstance.title}
+                        </h2>
                         <div className="d-flex justify-content-between align-items-center mb-2">
                             {isOverdue(taskInstance.due_date, taskInstance.status) && <span className="me-2 fs-6 bg-danger mt-2 p-1 pt-2 pb-2 ps-3 pe-3 h6 text-white rounded-pill">Overdue</span>}
                             <Dropdown>
@@ -378,7 +383,6 @@ function CampaignTaskInstanceDetail() {
                         </div>
                     </div>
                     <small className="text-muted d-block mb-3">
-                        Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> |
                         Created: {new Date(taskInstance.created_at).toLocaleString()} |
                         Last Updated: {new Date(taskInstance.updatedAt).toLocaleString()}
                     </small>
@@ -460,15 +464,33 @@ function CampaignTaskInstanceDetail() {
 
                                         <h6 className='mt-3'>{taskInstance.requirement_control_id_reference} - {taskInstance.requirement_standard_name || 'Standard N/A'}</h6>
                                         <p className='mt-2 text-muted' style={{ whiteSpace: 'pre-wrap' }}>{taskInstance.requirement_text || 'No detailed text available.'}</p>
-
-
                                     </ListGroupItem>
 
+                                    {taskInstance.linked_documents && taskInstance.linked_documents.length > 0 && (
+                                        <ListGroupItem>
+                                            <FaBookOpen className="me-2 text-muted" /><strong>Linked Documents:</strong>
+                                            <ul className="list-unstyled list-inline mb-0 mt-1">
+                                                {taskInstance.linked_documents.map(doc => (
+                                                    <li key={doc.id} className="list-inline-item">
+                                                        <Badge bg="light" text="dark" className="border me-1 p-2">
+                                                            {doc.source_url ? (
+                                                                <a href={doc.source_url} target="_blank" rel="noopener noreferrer" title={doc.description || doc.name}>
+                                                                    {doc.name} <FaLink size="0.8em"/>
+                                                                </a>
+                                                            ) : (
+                                                                <span title={doc.description || doc.name}>{doc.name}</span>
+                                                            )}
+                                                            {doc.internal_reference && <small className="text-muted ms-1">({doc.internal_reference})</small>}
+                                                        </Badge>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </ListGroupItem>
+                                    )}
 
                                 </ListGroup>
                                 <Card.Footer>
-                                    <strong>Instance ID:</strong> {taskInstance.id}
-
+                                   <div className='text-muted'><strong>Instance ID:</strong> {taskInstance.id}</div>
                                 </Card.Footer>
                             </Card>
 

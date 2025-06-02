@@ -11,6 +11,7 @@ import Spinner from 'react-bootstrap/Spinner';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
+import Table from 'react-bootstrap/Table'; // Added for table view
 import { useAuth } from '../contexts/AuthContext';
 
 import {
@@ -21,7 +22,9 @@ import {
     FaTag,
     FaSearch,
     FaListUl, FaThLarge,
-    FaFilter
+    FaFilter,
+    FaSort, FaSortUp, FaSortDown, // Icons for sorting
+    FaTable
 } from 'react-icons/fa';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { defaults } from 'chart.js';
@@ -56,7 +59,8 @@ function MyTasks() {
     const [selectedCampaignIdForColumnView, setSelectedCampaignIdForColumnView] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [viewMode, setViewMode] = useState('list');
+    const [viewMode, setViewMode] = useState('list'); // 'list', 'board', or 'table'
+    const [sortConfig, setSortConfig] = useState({ key: 'due_date', direction: 'ascending' });
 
     // const loggedInUserId = "36a95829-f890-43dc-aff3-289c50ce83c2";
     const statusChartRef = useRef(null);
@@ -133,8 +137,33 @@ function MyTasks() {
             tasksToFilter = tasksToFilter.filter(task => task.campaign_id === selectedCampaignIdForColumnView);
         }
 
+        // Apply sorting
+        if (sortConfig.key !== null && viewMode === 'table') { // Only sort if in table view and a key is set
+            tasksToFilter.sort((a, b) => {
+                let valA = a[sortConfig.key];
+                let valB = b[sortConfig.key];
+
+                if (sortConfig.key === 'due_date') {
+                    valA = a.due_date ? new Date(a.due_date) : new Date(0);
+                    valB = b.due_date ? new Date(b.due_date) : new Date(0);
+                } else if (sortConfig.key === 'campaign_name') {
+                    valA = (a.campaign_name || '').toLowerCase();
+                    valB = (b.campaign_name || '').toLowerCase();
+                }
+                // Add more specific comparators if needed (e.g., for assignee name if that column is added)
+
+                if (valA < valB) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (valA > valB) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+
         setFilteredTasks(tasksToFilter);
-    }, [myTasks, activeStatusFilter, activeCategoryFilter, searchTerm, selectedCampaignIdForColumnView]);
+    }, [myTasks, activeStatusFilter, activeCategoryFilter, searchTerm, selectedCampaignIdForColumnView, sortConfig, viewMode]);
 
     const isOverdue = (dueDate, status) => { // Added status to align with TaskListItem
         if (!dueDate || status === "Closed") return false;
@@ -250,6 +279,20 @@ function MyTasks() {
         }
     };
 
+    const requestSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key) => {
+        if (sortConfig.key !== key) return <FaSort size="0.8em" className="ms-1 text-muted" />;
+        if (sortConfig.direction === 'ascending') return <FaSortUp size="0.8em" className="ms-1" />;
+        return <FaSortDown size="0.8em" className="ms-1" />;
+    };
+
 
     if (loading) {
         return (
@@ -274,6 +317,9 @@ function MyTasks() {
                         </Button>
                         <Button variant={viewMode === 'board' ? "primary" : "outline-secondary"} onClick={() => setViewMode('board')} title="Board View">
                             <FaThLarge />
+                        </Button>
+                        <Button variant={viewMode === 'table' ? "primary" : "outline-secondary"} onClick={() => setViewMode('table')} title="Table View">
+                            <FaTable />
                         </Button>
                     </ButtonGroup>
                 }
@@ -340,7 +386,7 @@ function MyTasks() {
             <Row className="mb-4 gx-2">
                 <Col md={12}>
 
-                    <div className='bg-white rounded-2 p-3'>
+                    <div className='bg-white rounded-pill p-3'>
                         <Form.Control
                         type="search"
                         placeholder="Search tasks by title, campaign..."
@@ -455,6 +501,43 @@ function MyTasks() {
                                 ))}
                         
                         </div>
+                    )}
+                    {viewMode === 'table' && (
+                        <Card>
+                            <Table responsive hover striped size="sm">
+                                <thead>
+                                    <tr>
+                                        <th onClick={() => requestSort('title')} style={{ cursor: 'pointer' }}>Title {getSortIcon('title')}</th>
+                                        <th onClick={() => requestSort('campaign_name')} style={{ cursor: 'pointer' }}>Campaign {getSortIcon('campaign_name')}</th>
+                                        <th onClick={() => requestSort('status')} style={{ cursor: 'pointer' }}>Status {getSortIcon('status')}</th>
+                                        <th onClick={() => requestSort('due_date')} style={{ cursor: 'pointer' }}>Due Date {getSortIcon('due_date')}</th>
+                                        {/* Assignee might be redundant if "My Tasks" are always assigned to current user, but good for consistency */}
+                                        {/* <th onClick={() => requestSort('assignee_user_id')} style={{ cursor: 'pointer' }}>Assignee {getSortIcon('assignee_user_id')}</th> */}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredTasks.map(task => (
+                                        <tr key={task.id} className={isOverdue(task.due_date, task.status) ? 'table-danger-light' : ''}>
+                                            <td>
+                                                <Link to={`/campaign-task/${task.id}`} state={{ from: '/my-tasks' }}>
+                                                    {task.title}
+                                                </Link>
+                                                {task.category && <Badge pill bg="light" text="dark" className="ms-2 fw-normal">{task.category}</Badge>}
+                                            </td>
+                                            <td>
+                                                <Link to={`/campaigns/${task.campaign_id}`}>
+                                                    {task.campaign_name || 'N/A'}
+                                                </Link>
+                                            </td>
+                                            <td><Badge bg={getStatusColor(task.status)}>{task.status}</Badge></td>
+                                            <td>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</td>
+                                            {/* <td><UserDisplay userId={task.assignee_user_id} allUsers={users} /></td> */}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                            {filteredTasks.length === 0 && <Card.Body className="text-center text-muted">No tasks match the current filters or no tasks available.</Card.Body>}
+                        </Card>
                     )}
 
                     {myTasks.length === 0 && !loading && !error && (

@@ -26,23 +26,50 @@ func NewTaskHandler(s *store.DBStore) *TaskHandler {
 
 // CreateTaskHandler handles the creation of new tasks.
 func (h *TaskHandler) CreateTaskHandler(c *gin.Context) {
-	var newTask models.Task
-	if err := c.ShouldBindJSON(&newTask); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
+	var payload struct {
+		Title                 string                 `json:"title" binding:"required"`
+		Description           string                 `json:"description"`
+		Category              string                 `json:"category"`
+		RequirementID         string                 `json:"requirementId"`
+		CheckType             *string                `json:"checkType"`
+		Target                *string                `json:"target"`
+		Parameters            map[string]interface{} `json:"parameters"`
+		EvidenceTypesExpected []string               `json:"evidenceTypesExpected"`
+		DefaultPriority       *string                `json:"defaultPriority"`
+		LinkedDocumentIDs     []string               `json:"linked_document_ids"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		sendError(c, http.StatusBadRequest, "Invalid request body for task", err)
 		return
 	}
 
 	// Basic validation (add more as needed)
-	if newTask.Title == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Title, OwnerUserID, and Status are required"})
+	if payload.Title == "" {
+		sendError(c, http.StatusBadRequest, "Title is required for task", nil)
 		return
 	}
 
-	if err := h.Store.CreateTask(&newTask); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create task: " + err.Error()})
+	task := models.Task{
+		Title:                 payload.Title,
+		Description:           payload.Description,
+		Category:              payload.Category,
+		RequirementID:         payload.RequirementID,
+		CheckType:             payload.CheckType,
+		Target:                payload.Target,
+		Parameters:            payload.Parameters,
+		EvidenceTypesExpected: payload.EvidenceTypesExpected,
+		DefaultPriority:       payload.DefaultPriority,
+		LinkedDocumentIDs:     payload.LinkedDocumentIDs,
+	}
+
+	taskID, err := h.Store.CreateTask(&task)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "Failed to create task", err)
 		return
 	}
-	c.JSON(http.StatusCreated, newTask)
+	task.ID = taskID // Populate the ID from the store
+	c.JSON(http.StatusCreated, task)
 }
 
 // GetTasksHandler lists all tasks.

@@ -29,6 +29,7 @@ import {
     Modal,
     OverlayTrigger, // Added for popovers
     Dropdown,
+    Table, // Added for table view
     ListGroupItem, // For status change    
     // ButtonGroup // For view toggle (though not used in this request, good to have if needed later)
 } from 'react-bootstrap';
@@ -56,7 +57,11 @@ import {
     FaFilter,
     FaAddressBook,
     FaUserEdit,
-    FaExternalLinkAlt,       // For filter indication
+    FaExternalLinkAlt,
+    FaThList, // Icon for Card/List view
+    FaTable, // Icon for Table view
+    FaSort, FaSortUp, FaSortDown // Icons for sorting
+
     // FaExclamationCircle // Part of StatusIcon
 } from 'react-icons/fa';
 import Popover from 'react-bootstrap/Popover';
@@ -105,6 +110,8 @@ function CampaignDetail() {
     const [activeStatusFilter, setActiveStatusFilter] = useState(null); // From chart
     const [activeCategoryFilter, setActiveCategoryFilter] = useState(null); // From chart
     const [filteredTaskInstances, setFilteredTaskInstances] = useState([]);
+    const [taskViewMode, setTaskViewMode] = useState('list'); // 'list' or 'table'
+    const [sortConfig, setSortConfig] = useState({ key: 'due_date', direction: 'ascending' });
 
     // Determine if the current user can edit campaign details
     const canEditCampaign = useMemo(() => {
@@ -166,8 +173,37 @@ function CampaignDetail() {
         if (activeCategoryFilter) {
             tempTasks = tempTasks.filter(task => (task.category || 'Uncategorized') === activeCategoryFilter);
         }
+
+        // Apply sorting
+        if (sortConfig.key !== null) {
+            tempTasks.sort((a, b) => {
+                let valA = a[sortConfig.key];
+                let valB = b[sortConfig.key];
+
+                // Handle special cases like dates or nested properties if needed
+                if (sortConfig.key === 'due_date') {
+                    valA = a.due_date ? new Date(a.due_date) : new Date(0); // Treat null/undefined as very old
+                    valB = b.due_date ? new Date(b.due_date) : new Date(0);
+                } else if (sortConfig.key === 'assignee_user_id') {
+                    // Sort by assignee name if available, otherwise ID
+                    const userA = allUsers.find(u => u.id === a.assignee_user_id);
+                    const userB = allUsers.find(u => u.id === b.assignee_user_id);
+                    valA = userA ? userA.name.toLowerCase() : (a.assignee_user_id || '').toLowerCase();
+                    valB = userB ? userB.name.toLowerCase() : (b.assignee_user_id || '').toLowerCase();
+                }
+
+
+                if (valA < valB) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (valA > valB) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
         setFilteredTaskInstances(tempTasks);
-    }, [taskInstances, searchTerm, selectedRequirementFilterId, activeStatusFilter, activeCategoryFilter]);
+    }, [taskInstances, searchTerm, selectedRequirementFilterId, activeStatusFilter, activeCategoryFilter, sortConfig, allUsers]);
     const handleOpenAssignModal = (taskInstance) => {
         setCurrentTaskInstanceForAssignment(taskInstance);
         // Assuming taskInstance.owners is an array of {id, name} objects after backend changes
@@ -306,19 +342,21 @@ function CampaignDetail() {
     // Chart and Metrics data preparation (adapted from MyTasks.js)
     const taskStats = useMemo(() => {
         if (!taskInstances || taskInstances.length === 0) {
-            return { statusCounts: {}, overdueCount: 0, categoryCounts: {}, totalTasks: 0 };
+            return { statusCounts: {}, overdueCount: 0, categoryCounts: {}, totalTasks: 0, completedTasksCount: 0, overallCompletionPercentage: 0 };
         }
         const statusCounts = taskInstances.reduce((acc, task) => {
             acc[task.status] = (acc[task.status] || 0) + 1;
             return acc;
         }, {});
         const overdueCount = taskInstances.filter(task => task.status !== "Closed" && isOverdue(task.due_date, task.status)).length;
+        const completedTasksCount = taskInstances.filter(task => task.status === "Closed").length;
         const categoryCounts = taskInstances.reduce((acc, task) => {
             const category = task.category || 'Uncategorized';
             acc[category] = (acc[category] || 0) + 1;
             return acc;
         }, {});
-        return { statusCounts, overdueCount, categoryCounts, totalTasks: taskInstances.length };
+        const overallCompletionPercentage = taskInstances.length > 0 ? (completedTasksCount / taskInstances.length) * 100 : 0;
+        return { statusCounts, overdueCount, categoryCounts, totalTasks: taskInstances.length, completedTasksCount, overallCompletionPercentage };
     }, [taskInstances]);
 
 
@@ -392,6 +430,20 @@ function CampaignDetail() {
         // setActiveCategoryFilter(null);
     };
 
+    const requestSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key) => {
+        if (sortConfig.key !== key) return <FaSort size="0.8em" className="ms-1 text-muted" />;
+        if (sortConfig.direction === 'ascending') return <FaSortUp size="0.8em" className="ms-1" />;
+        return <FaSortDown size="0.8em" className="ms-1" />;
+    };
+
     if (loading) return <Container className="text-center mt-5"><Spinner animation="border" /> Loading campaign details...</Container>;
     if (error) return <Container><Alert variant="danger">{error}</Alert></Container>;
     if (!campaign) return <Container><Alert variant="warning">Campaign not found.</Alert></Container>;
@@ -442,7 +494,7 @@ function CampaignDetail() {
                         )}
                     </div>
                     </Card.Body>
-                    <ListGroup>
+                    <ListGroup variant='flush'>
                     <ListGroupItem><strong>Description:</strong> {campaign.description || 'N/A'}</ListGroupItem>
                     <ListGroupItem><strong>Standard:</strong> {campaign.standard_name || 'N/A'}</ListGroupItem>
                     <ListGroupItem>
@@ -457,7 +509,7 @@ function CampaignDetail() {
             {/* Charts and Metrics Section */}
             {taskInstances.length > 0 && (
                 <Row className="mb-4">
-                     <Col md={4}>
+                     <Col md={4} className="mb-3 mb-md-0">
                         <PieChartCard
                             title="Task Status Overview"
                             chartRef={statusChartRef}
@@ -465,7 +517,7 @@ function CampaignDetail() {
                             onClickHandler={handleStatusChartClick}
                         />
                     </Col>
-                     <Col md={5}>
+                     <Col md={5} className="mb-3 mb-md-0">
                         <BarChartCard
                             title="Tasks by Category"
                             chartRef={categoryChartRef}
@@ -474,10 +526,11 @@ function CampaignDetail() {
                             options={{ indexAxis: 'y' }}
                         />
                     </Col>
-                    <Col md={3}>
+                    <Col md={3} className="mb-3 mb-md-0">
                         <KeyMetricsCard title="Key Metrics" metrics={[
                             { label: "Total Tasks", value: taskStats.totalTasks },
-                            { label: "Overdue Tasks", value: taskStats.overdueCount, variant: "danger" }
+                            { label: "Overdue Tasks", value: taskStats.overdueCount, variant: "danger" },
+                            { label: "Overall Completion", value: `${taskStats.overallCompletionPercentage.toFixed(1)}%`, variant: "success" }
                         ]} />
                     </Col>
                 </Row>
@@ -485,20 +538,24 @@ function CampaignDetail() {
 
             {/* Search and Filter Controls */}
             <Row className="mb-3 gx-2">
-                <Col md={10}>
+                <Col>
+                <div className='bg-white rounded-pill p-3'>
                     <Form.Control
                         type="search"
                         placeholder="Search campaign tasks by title, description, owner, assignee..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className=""
+                        className="h-100 border-0"
                     />
+                    </div>
                 </Col>
-                <Col md={2} className="d-flex align-items-center">
+                
                     {(searchTerm || selectedRequirementFilterId || activeStatusFilter || activeCategoryFilter) &&
+                    <Col md={2} className="d-flex align-items-center">
                         <Button variant="outline-secondary" onClick={clearAllTaskFilters} className="w-100 h-100">Clear Filters</Button>
+                    </Col>
                     }
-                </Col>
+                
             </Row>
 
             {(selectedRequirementFilterId || activeStatusFilter || activeCategoryFilter || searchTerm) && (
@@ -544,8 +601,19 @@ function CampaignDetail() {
 
                 {/* Right Column: Campaign Tasks */}
                 <Col md={8}>
-                    <div>
-                        
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                        <h5>Tasks ({filteredTaskInstances.length})</h5>
+                        <div>
+                            <Button variant={taskViewMode === 'list' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => setTaskViewMode('list')} className="me-2" title="Card View">
+                                <FaThList />
+                            </Button>
+                            <Button variant={taskViewMode === 'table' ? 'primary' : 'outline-secondary'} size="sm" onClick={() => setTaskViewMode('table')} title="Table View">
+                                <FaTable />
+                            </Button>
+                        </div>
+                    </div>
+                    {taskViewMode === 'list' && (
+                        <div>
                             {filteredTaskInstances.map(task => {
                                 const taskActionMenu = (
                                     <div className="d-flex align-items-center">
@@ -591,6 +659,53 @@ function CampaignDetail() {
                             {filteredTaskInstances.length === 0 && taskInstances.length > 0 && <ListGroup.Item>No tasks match the current filters.</ListGroup.Item>}
                             {taskInstances.length === 0 && <ListGroup.Item>No task instances found for this campaign.</ListGroup.Item>}
                         </div>
+                    )}
+                    {taskViewMode === 'table' && (
+                        <Card>
+                            <Table responsive hover striped size="sm">
+                                <thead>
+                                    <tr>
+                                        <th onClick={() => requestSort('title')} style={{ cursor: 'pointer' }}>Title {getSortIcon('title')}</th>
+                                        <th onClick={() => requestSort('status')} style={{ cursor: 'pointer' }}>Status {getSortIcon('status')}</th>
+                                        <th width="100px" onClick={() => requestSort('assignee_user_id')} style={{ cursor: 'pointer' }}>Assignee {getSortIcon('assignee_user_id')}</th>
+                                        <th>Owner(s)</th> {/* Sorting owners can be complex, skipping for now */}
+                                        <th width="100px" onClick={() => requestSort('due_date')} style={{ cursor: 'pointer' }}>Due Date {getSortIcon('due_date')}</th>
+                                        <th>Actions </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredTaskInstances.map(task => (
+                                        <tr key={task.id} className={isOverdue(task.due_date, task.status) ? 'table-danger-light' : ''}>
+                                            <td>
+                                                <Link to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }}>
+                                                    {task.title}
+                                                </Link>
+                                                {task.category && <Badge pill bg="light" text="dark" className="ms-2 fw-normal">{task.category}</Badge>}
+                                            </td>
+                                            <td><Badge bg={getStatusColor(task.status)}>{task.status}</Badge></td>
+                                            <td><UserDisplay userId={task.assignee_user_id} allUsers={allUsers} /></td>
+                                            <td>
+                                                {task.owners && task.owners.map((owner, index) => (
+                                                    <React.Fragment key={owner.id}>
+                                                        <UserDisplay userId={owner.id} userName={owner.name} allUsers={allUsers} />
+                                                        {index < task.owners.length - 1 && ', '}
+                                                    </React.Fragment>
+                                                ))}
+                                            </td>
+                                            <td>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</td>
+                                            <td>
+                                                {canEditCampaign && (
+                                                    <Button variant='link' size="sm" onClick={() => handleOpenAssignModal(task)} title="Assign Users & Due Date" className="p-0 me-2"><FaUserEdit /></Button>
+                                                )}
+                                                <Button variant='link' size="sm" as={Link} to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }} title="View Details" className="p-0"><FaExternalLinkAlt /></Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                            {filteredTaskInstances.length === 0 && <Card.Body className="text-center text-muted">No tasks match the current filters or no tasks available.</Card.Body>}
+                        </Card>
+                    )}
                 </Col>
             </Row>
 

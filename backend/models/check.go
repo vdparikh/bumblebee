@@ -44,6 +44,9 @@ type Task struct {
 	Target     *string                `json:"target,omitempty"`     // e.g., server IP, API endpoint, system name
 	Parameters map[string]interface{} `json:"parameters,omitempty"` // e.g., {"filePath": "/etc/passwd"}
 
+	LinkedDocumentIDs []string   `json:"linked_document_ids,omitempty"`     // For C/U operations, not stored directly in tasks table
+	LinkedDocuments   []Document `json:"linked_documents,omitempty" db:"-"` // For R operations, populated from junction table
+
 	// New fields for master task templates
 	EvidenceTypesExpected []string `json:"evidenceTypesExpected,omitempty" db:"evidence_types_expected"` // List of expected evidence types
 	DefaultPriority       *string  `json:"defaultPriority,omitempty" db:"default_priority"`              // Default priority for instances

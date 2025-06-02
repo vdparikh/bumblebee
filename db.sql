@@ -292,3 +292,40 @@ CREATE TABLE campaign_task_instance_results (
 ALTER TABLE campaign_task_instances
 ADD COLUMN last_checked_at TIMESTAMPTZ,
 ADD COLUMN last_check_status VARCHAR(50);
+
+CREATE TABLE documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    document_type VARCHAR(100) NOT NULL,
+    source_url TEXT,
+    internal_reference VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Optional: Trigger to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+   NEW.updated_at = NOW();
+   RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_documents_updated_at
+BEFORE UPDATE ON documents
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TABLE task_documents (
+    task_id UUID NOT NULL,
+    document_id UUID NOT NULL,
+    linked_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (task_id, document_id),
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+);
+
+-- Optional: Index for querying by task_id
+CREATE INDEX idx_task_documents_task_id ON task_documents(task_id);

@@ -74,8 +74,9 @@ type CampaignTaskInstance struct {
 	DefaultPriority       *string  `json:"defaultPriority,omitempty"`
 	EvidenceTypesExpected []string `json:"evidenceTypesExpected,omitempty"`
 
-	RequirementText         *string `json:"requirement_text,omitempty" db:"requirement_text"`                   // New: Full text of the requirement
-	RequirementStandardName *string `json:"requirement_standard_name,omitempty" db:"requirement_standard_name"` // New: Name of the standard for the requirement
+	RequirementText         *string    `json:"requirement_text,omitempty" db:"requirement_text"`                   // New: Full text of the requirement
+	RequirementStandardName *string    `json:"requirement_standard_name,omitempty" db:"requirement_standard_name"` // New: Name of the standard for the requirement
+	LinkedDocuments         []Document `json:"linked_documents,omitempty" db:"-"`                                  // Populated from master task
 
 }
 

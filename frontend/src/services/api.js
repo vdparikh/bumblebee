@@ -325,6 +325,14 @@ export const deleteConnectedSystem = async (systemId) => {
 };
 
 
+// Documents
+export const getDocuments = () => apiClient.get('/documents');
+export const createDocument = (documentData) => apiClient.post('/documents', documentData);
+export const getDocumentById = (id) => apiClient.get(`/documents/${id}`);
+export const updateDocument = (id, documentData) => apiClient.put(`/documents/${id}`, documentData);
+export const deleteDocument = (id) => apiClient.delete(`/documents/${id}`);
+
+
 // Add more functions for other endpoints as needed
 // export const getEvidenceForTask = (taskId) => apiClient.get(`/tasks/${taskId}/evidence`);
 // export const addCommentToTask = (taskId, commentData) => apiClient.post(`/tasks/${taskId}/comments`, commentData);

@@ -19,7 +19,7 @@ import (
 // Store defines the interface for database operations.
 // This allows for easier mocking and testing.
 type Store interface {
-	CreateTask(task *models.Task) error
+	CreateTask(task *models.Task) (string, error)
 	GetTasks(userID, userField string) ([]models.Task, error)
 	GetTaskByID(taskID string) (*models.Task, error)
 	UpdateTask(task *models.Task) error
@@ -79,10 +79,16 @@ func NewDBStore(dataSourceName string) (*DBStore, error) {
 // --- Task Methods ---
 
 // CreateTask creates a new task in the database.
-func (s *DBStore) CreateTask(task *models.Task) error {
+func (s *DBStore) CreateTask(task *models.Task) (string, error) {
 	task.ID = uuid.NewString()
 	task.CreatedAt = time.Now()
 	task.UpdatedAt = time.Now()
+
+	tx, err := s.DB.Beginx()
+	if err != nil {
+		return "", fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	// defer tx.Rollback() // Rollback if not committed - handled by explicit rollback or commit
 
 	// Handle nullable fields for automated checks
 	var checkType sql.NullString
@@ -97,11 +103,11 @@ func (s *DBStore) CreateTask(task *models.Task) error {
 	}
 
 	var paramsJSON []byte
-	var err error
 	if task.Parameters != nil {
 		paramsJSON, err = json.Marshal(task.Parameters)
 		if err != nil {
-			return fmt.Errorf("failed to marshal task parameters: %w", err)
+			tx.Rollback()
+			return "", fmt.Errorf("failed to marshal task parameters: %w", err)
 		}
 	} else {
 		paramsJSON = []byte("{}") // Default to empty JSON object if nil
@@ -110,10 +116,25 @@ func (s *DBStore) CreateTask(task *models.Task) error {
 	// Use pq.Array for EvidenceTypesExpected
 	query := `
 		INSERT INTO tasks (id, requirement_id, title, description, category, created_at, updated_at, check_type, target, parameters, evidence_types_expected, default_priority)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id
 	`
-	_, err = s.DB.Exec(query, task.ID, task.RequirementID, task.Title, task.Description, task.Category, task.CreatedAt, task.UpdatedAt, checkType, target, paramsJSON, pq.Array(task.EvidenceTypesExpected), task.DefaultPriority)
-	return err
+
+	// Execute within the transaction
+	_, err = tx.Exec(query, task.ID, task.RequirementID, task.Title, task.Description, task.Category, task.CreatedAt, task.UpdatedAt, checkType, target, paramsJSON, pq.Array(task.EvidenceTypesExpected), task.DefaultPriority)
+	if err != nil {
+		tx.Rollback()
+		return "", fmt.Errorf("failed to insert task: %w", err)
+	}
+
+	// Link documents if any are provided
+	if len(task.LinkedDocumentIDs) > 0 {
+		if err := s.linkDocumentsToTask(tx, task.ID, task.LinkedDocumentIDs); err != nil {
+			tx.Rollback()
+			return "", fmt.Errorf("failed to link documents to new task: %w", err)
+		}
+	}
+
+	return task.ID, tx.Commit()
 }
 
 // GetTasks retrieves tasks. If userID is provided, filters by owner_user_id or assignee_user_id based on userField.
@@ -148,6 +169,14 @@ func (s *DBStore) GetTasks(userID, userField string) ([]models.Task, error) {
 		} else {
 			t.Parameters = make(map[string]interface{})
 		}
+
+		// Fetch and attach linked documents
+		linkedDocs, err := s.getLinkedDocumentsForTask(t.ID)
+		if err != nil {
+			log.Printf("Warning: failed to fetch linked documents for task %s: %v", t.ID, err)
+			// Continue without linked documents for this task
+		}
+		t.LinkedDocuments = linkedDocs
 		tasks = append(tasks, t)
 	}
 	return tasks, rows.Err()
@@ -180,12 +209,27 @@ func (s *DBStore) GetTaskByID(taskID string) (*models.Task, error) {
 		t.Parameters = make(map[string]interface{})
 	}
 
+	// Fetch and attach linked documents
+	linkedDocs, err := s.getLinkedDocumentsForTask(t.ID)
+	if err != nil {
+		log.Printf("Warning: failed to fetch linked documents for task %s: %v", t.ID, err)
+		// Continue without linked documents if there's an error
+	}
+	t.LinkedDocuments = linkedDocs
+
 	return &t, nil
 }
 
 // UpdateTask updates an existing task in the database.
 func (s *DBStore) UpdateTask(task *models.Task) error {
 	task.UpdatedAt = time.Now()
+
+	tx, err := s.DB.Beginx()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction for task update: %w", err)
+	}
+	// Defer rollback in case of error, commit will override if successful
+	defer tx.Rollback()
 
 	var checkType sql.NullString
 	if task.CheckType != nil && *task.CheckType != "" {
@@ -198,9 +242,14 @@ func (s *DBStore) UpdateTask(task *models.Task) error {
 		target.Valid = true
 	}
 
-	paramsJSON, err := json.Marshal(task.Parameters)
-	if err != nil {
-		return fmt.Errorf("failed to marshal task parameters for update: %w", err)
+	var paramsJSON []byte
+	if task.Parameters != nil {
+		paramsJSON, err = json.Marshal(task.Parameters)
+		if err != nil {
+			return fmt.Errorf("failed to marshal task parameters for update: %w", err)
+		}
+	} else {
+		paramsJSON = []byte("{}")
 	}
 
 	query := `
@@ -208,11 +257,24 @@ func (s *DBStore) UpdateTask(task *models.Task) error {
 		SET requirement_id = $2, title = $3, description = $4, category = $5, updated_at = $6, 
 		    check_type = $7, target = $8, parameters = $9, evidence_types_expected = $10, default_priority = $11
 		WHERE id = $1`
-	_, err = s.DB.Exec(query, task.ID, task.RequirementID, task.Title, task.Description, task.Category, task.UpdatedAt, checkType, target, paramsJSON, pq.Array(task.EvidenceTypesExpected), task.DefaultPriority)
+	_, err = tx.Exec(query, task.ID, task.RequirementID, task.Title, task.Description, task.Category, task.UpdatedAt, checkType, target, paramsJSON, pq.Array(task.EvidenceTypesExpected), task.DefaultPriority)
 	if err != nil {
 		return fmt.Errorf("failed to update task with id %s: %w", task.ID, err)
 	}
-	return nil
+
+	// Update linked documents: Unlink all, then relink specified ones
+	if err := s.unlinkAllDocumentsFromTask(tx, task.ID); err != nil {
+		// tx.Rollback() is handled by defer
+		return fmt.Errorf("failed to clear existing document links for task %s: %w", task.ID, err)
+	}
+	if len(task.LinkedDocumentIDs) > 0 {
+		if err := s.linkDocumentsToTask(tx, task.ID, task.LinkedDocumentIDs); err != nil {
+			// tx.Rollback() is handled by defer
+			return fmt.Errorf("failed to link documents to task %s: %w", task.ID, err)
+		}
+	}
+
+	return tx.Commit()
 }
 
 // GetTasksByRequirementID retrieves all master tasks associated with a specific requirement ID.
@@ -273,6 +335,61 @@ func parsePostgresTextArray(dbValue []byte) ([]string, error) {
 	// For now, assuming simple, unescaped comma-separated values or quoted values.
 	// A proper CSV parser might be better if values can contain commas.
 	return strings.Split(s, ","), nil // This is a naive split, pq.Array(&slice) is better.
+}
+
+// --- Task Document Linking ---
+
+func (s *DBStore) getLinkedDocumentsForTask(taskID string) ([]models.Document, error) {
+	var docs []models.Document
+	query := `
+        SELECT d.id, d.name, d.description, d.document_type, d.source_url, d.internal_reference, d.created_at, d.updated_at
+        FROM documents d
+        JOIN task_documents td ON d.id = td.document_id
+        WHERE td.task_id = $1
+        ORDER BY d.name ASC
+    `
+	err := s.DB.Select(&docs, query, taskID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get linked documents for task %s: %w", taskID, err)
+	}
+	if docs == nil {
+		// Ensure an empty slice is returned instead of nil if no documents are found
+		docs = []models.Document{}
+	}
+	return docs, nil
+}
+
+func (s *DBStore) linkDocumentsToTask(tx *sqlx.Tx, taskID string, documentIDs []string) error {
+	if len(documentIDs) == 0 {
+		return nil
+	}
+	// Use sqlx.Tx for Preparex if tx is not nil, otherwise use s.DB.Preparex
+	var stmt *sqlx.Stmt
+	var err error
+	if tx != nil {
+		stmt, err = tx.Preparex("INSERT INTO task_documents (task_id, document_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+	} else {
+		stmt, err = s.DB.Preparex("INSERT INTO task_documents (task_id, document_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+	}
+	if err != nil {
+		return fmt.Errorf("failed to prepare link document statement: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, docID := range documentIDs {
+		if _, err := stmt.Exec(taskID, docID); err != nil {
+			return fmt.Errorf("failed to link document %s to task %s: %w", docID, taskID, err)
+		}
+	}
+	return nil
+}
+
+func (s *DBStore) unlinkAllDocumentsFromTask(tx *sqlx.Tx, taskID string) error {
+	_, err := tx.Exec("DELETE FROM task_documents WHERE task_id = $1", taskID)
+	if err != nil {
+		return fmt.Errorf("failed to unlink documents from task %s: %w", taskID, err)
+	}
+	return nil
 }
 
 // --- Requirement Methods ---
@@ -1195,6 +1312,16 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
 		cti.Parameters = make(map[string]interface{})
 	}
 
+	// If there's a master task, fetch its linked documents
+	if cti.MasterTaskID != nil && *cti.MasterTaskID != "" {
+		masterTask, err := s.GetTaskByID(*cti.MasterTaskID) // GetTaskByID already fetches linked docs for master task
+		if err != nil {
+			log.Printf("Warning: failed to fetch master task %s for CTI %s: %v", *cti.MasterTaskID, cti.ID, err)
+			// Non-fatal, continue without master task's linked documents
+		} else if masterTask != nil {
+			cti.LinkedDocuments = masterTask.LinkedDocuments
+		}
+	}
 	// Fetch owners
 	owners, err := s.getCampaignTaskInstanceOwners(cti.ID)
 	if err != nil {

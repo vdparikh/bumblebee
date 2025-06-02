@@ -37,6 +37,7 @@ code {
   --custom-body-font: 'Lato', sans-serif;
   --bs-primary: #35338C; /* Define your primary color. Avoid !important here if Bootstrap uses it. */
   --bs-primary-rgb: 223, 233, 246; /* Define your primary color. Avoid !important here if Bootstrap uses it. */
+  --bs-link-color: #35338C
   
 }
 /* If you want --bs-primary to be different in dark mode, you'd define it in [data-bs-theme="dark"] */
@@ -71,6 +72,12 @@ h3 {
   font-size: 1.1em;
   border: 0px;
 }
+
+[data-bs-theme="dark"] .card .card-header {
+  background-color: var(--bs-dark-bg-subtle)!important;
+}
+
+
 .card .card-footer {
   background-color: transparent!important;
   padding: 10px 10px!important;
@@ -144,8 +151,8 @@ a:hover {
 }
 
 [data-bs-theme="dark"] .nav-tabs .nav-link.active {
-  color: var(--bs-primary); /* Ensure it stands out in dark mode */
-  border-color: var(--bs-gray-700) var(--bs-gray-700) var(--bs-body-bg);
+  color: #fff!important;
+  border-color: var(--bs-white-700) var(--bs-gray-700) var(--bs-body-bg);
 }
 
 .nav-line-tabs .nav-link {

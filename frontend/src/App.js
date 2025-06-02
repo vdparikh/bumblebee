@@ -6,17 +6,16 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import Image from 'react-bootstrap/Image'; // For user avatar
-import Tooltip from 'react-bootstrap/Tooltip'; // For icon tooltips
+import Col from 'react-bootstrap/Col'; // Keep Col for layout
 
 import Tasks from './components/Tasks'; // Renamed from ComplianceChecks
 import Requirements from './components/Requirements';
 import Standards from './components/Standards';
 import MyTasks from './components/MyTasks';
 // import TaskDetail from './components/TaskDetail'; // Not currently used
-import { FaBullhorn, FaCheckDouble, FaList, FaTasks, FaUser, FaTachometerAlt, FaFileContract, FaShieldAlt, FaColumns, FaAngleDoubleRight, FaAngleDoubleLeft, FaQuestionCircle, FaRegQuestionCircle } from 'react-icons/fa'; // Added FaTachometerAlt
+import { FaUser, FaQuestionCircle, FaRegQuestionCircle } from 'react-icons/fa'; // Icons used in App.js directly
 import Campaigns from './components/Campaigns';
 import CampaignDetail from './components/CampaignDetail'; // Import CampaignDetail component
 import Dashboard from './components/Dashboard'; // Import the new Dashboard component
@@ -25,7 +24,7 @@ import ThemeSwitcher from './components/common/ThemeSwitcher'; // Import ThemeSw
 import CampaignTaskInstanceDetail from './components/CampaignTaskInstanceDetail'; // Assuming you create this
 import { Button, OverlayTrigger, Spinner } from 'react-bootstrap';
 import HelpSupportPanel from './components/common/HelpSupportPanel'; // Import the new panel
-import { AuthProvider, useAuth } from './contexts/AuthContext'; // Import AuthProvider and useAuth
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './components/auth/LoginPage'; // Import LoginPage
 import ProtectedRoute from './components/auth/ProtectedRoute'; // Import ProtectedRoute
 import RegisterPage from './components/auth/RegisterPage'; // Import RegisterPage
@@ -33,6 +32,8 @@ import ThreeColumnView from './components/views/ThreeColumnView'; // Import the 
 import UserProfilePage from './components/auth/UserProfilePage'; // Import UserProfilePage
 import AdminSettingsPage from './pages/AdminSettingsPage'; // New Admin Page
 // import PrivateRoute from './components/auth/PrivateRoute';
+import Sidebar from './components/common/Sidebar'; // Import the new Sidebar component
+import Documents from './components/Documents'; // Import the new component
 
 function DynamicHeader() {
   const location = useLocation();
@@ -102,71 +103,9 @@ function Layout() { // Create a new component that can use useLocation
 
           <Container fluid>
             <Row>
-              {/* Updated Sidebar Column */}
-              <Col className="p-0 sidebar d-flex flex-column align-items-center" style={{ maxWidth: "60px" /* Fixed width for icon-only sidebar */ }}>
-                <Nav variant='pills' activeKey={location.pathname} className="flex-column w-100 mt-6">
+              {/* Sidebar Column using the new Sidebar component */}
+              <Sidebar currentUser={currentUser} location={location} />
 
-                  <Navbar.Brand as={Link} to="/" className="text-center mt-3 mb-3">
-                    <Image height={44} src={process.env.PUBLIC_URL + '/logo.webp'} />
-                  </Navbar.Brand>
-
-                  {[
-                    { to: "/", eventKey: "/", icon: <FaTachometerAlt size="1.5em" />, label: "Dashboard", roles: ['admin', 'auditor', 'user'] },
-                    // { type: 'divider', label: 'Users', key: 'nav-div-user' },
-                    { to: "/my-tasks", eventKey: "/my-tasks", icon: <FaUser size="1.5em" />, label: "My Tasks", roles: ['admin', 'auditor', 'user'] },
-                    // { type: 'divider', label: 'Auditors', key: 'nav-div-auditor' },
-                    { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.5em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
-
-                    { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.5em" />, label: "Alternate View", roles: ['admin', 'auditor', 'user'] },
-                    // Admin/Auditor specific section
-                    (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management' },
-                    { to: "/tasks", eventKey: "/tasks", icon: <FaTasks size="1.5em" />, label: "Manage Tasks", roles: ['admin', 'auditor'] },
-                    { to: "/requirements", eventKey: "/requirements", icon: <FaFileContract size="1.5em" />, label: "Manage Requirements", roles: ['admin', 'auditor'] },
-                    { to: "/standards", eventKey: "/standards", icon: <FaShieldAlt size="1.5em" />, label: "Manage Standards", roles: ['admin', 'auditor'] },
-                  ]
-                    .filter(Boolean) // Remove any false values from conditional rendering
-                    .map((item, index) => {
-                      if (item.type === 'divider') {
-                        return (
-                          <Nav.Item key={item.key || `divider-${index}`} className='text-center mt-3 mb-1'>
-                            {/* Optionally show a small label or just a visual divider */}
-                            {/* <small className="text-light text-opacity-75">{item.label}</small> */}
-                            <hr className="border-light border-opacity-25 w-75 mx-auto" />
-                          </Nav.Item>
-                        );
-                      }
-                      // Role-based rendering for sidebar items
-                      if (item.roles && !item.roles.includes(currentUser?.role)) {
-                        return null;
-                      }
-                      return (
-                        <OverlayTrigger
-                          key={item.eventKey}
-                          placement="right"
-                          delay={{ show: 250, hide: 100 }}
-                          overlay={
-                            <Tooltip id={`tooltip-${item.eventKey.replace(/\//g, '')}`}>
-                              {item.label}
-                            </Tooltip>
-                          }
-                        >
-                          <Nav.Link
-                            as={NavLink} // Use NavLink for better active state handling
-                            to={item.to}
-                            eventKey={item.eventKey}
-                            className="d-flex justify-content-center align-items-center p-3 mb-1" // Centering icon
-                            // active={item.activeCheck ? item.activeCheck() : location.pathname === item.eventKey} // NavLink handles this
-                            title={item.label} // For accessibility
-                          >
-                            {item.icon}
-                            {/* Text label is removed from direct display */}
-                          </Nav.Link>
-                        </OverlayTrigger>
-                      );
-                    })}
-
-                </Nav>
-              </Col>
               {/* This Col now wraps the main content area and the new right details panel */}
               <Col className="p-0 "> {/* Removed padding to let child columns manage it */}
 
@@ -225,13 +164,17 @@ function Layout() { // Create a new component that can use useLocation
                         <Routes>
                           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                           <Route path="/tasks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Tasks /></ProtectedRoute>} />
+
+                          <Route path="/documents" element={<ProtectedRoute roles={['admin', 'auditor']}><Documents /></ProtectedRoute>} />
+
+
                           <Route path="/requirements" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Requirements /></ProtectedRoute>} />
                           <Route path="/standards" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Standards /></ProtectedRoute>} />
                           <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
                           <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
                           <Route path="/campaign-task/:instanceId" element={<ProtectedRoute><CampaignTaskInstanceDetail /></ProtectedRoute>} />
                           <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
-                                                          <Route path="/admin-settings" element={<ProtectedRoute requiredRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
+                          <Route path="/admin-settings" element={<ProtectedRoute requiredRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
 
                           <Route path="/alt-view" element={<ProtectedRoute><ThreeColumnView /></ProtectedRoute>} />
                           <Route path="/campaigns/:campaignId" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />

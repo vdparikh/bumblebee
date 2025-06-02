@@ -88,6 +88,7 @@ func main() {
 	campaignHandler := handlers.NewCampaignHandler(dbStore) // New Campaign Handler
 	authAPI := handlers.NewAuthAPI(dbStore)
 	systemIntegrationHandler := handlers.NewSystemIntegrationHandler(dbStore) // New System Integration Handler
+	documentHandler := handlers.NewDocumentHandler(dbStore)
 
 	apiV1 := router.Group("/api")
 
@@ -168,6 +169,15 @@ func main() {
 		systemRoutes.GET("/:id", systemIntegrationHandler.GetConnectedSystemHandler)
 		systemRoutes.PUT("/:id", systemIntegrationHandler.UpdateConnectedSystemHandler)
 		systemRoutes.DELETE("/:id", systemIntegrationHandler.DeleteConnectedSystemHandler)
+
+		documents := api.Group("/documents")
+
+		documents.POST("", documentHandler.CreateDocumentHandler)
+		documents.GET("", documentHandler.GetDocumentsHandler)
+		documents.GET("/:id", documentHandler.GetDocumentByIDHandler)
+		documents.PUT("/:id", documentHandler.UpdateDocumentHandler)
+		documents.DELETE("/:id", documentHandler.DeleteDocumentHandler)
+
 	}
 
 	// Serve static files from the "uploads" directory
