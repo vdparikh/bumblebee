@@ -8,7 +8,7 @@ import {
     getUsers,
     getComplianceStandards,
     getConnectedSystems,
-    getDocuments 
+    getDocuments
 } from '../services/api';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
@@ -23,46 +23,46 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Popover from 'react-bootstrap/Popover';
 import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
-import Select from 'react-select'; 
+import Select from 'react-select';
 import Badge from 'react-bootstrap/Badge';
-import Dropdown from 'react-bootstrap/Dropdown'; 
+import Dropdown from 'react-bootstrap/Dropdown';
 
 import {
     FaTasks as FaTasksIcon,
     FaPlusCircle,
     FaListUl,
     FaInfoCircle,
-    
-    
-    
+
+
+
     FaTag,
     FaClipboardList,
     FaCogs,
     FaCalendarAlt,
     FaUserShield,
     FaUserCheck,
-    
-    
-    
-    
-    
+
+
+
+
+
     FaEdit,
     FaWindowClose,
-    FaEllipsisV, 
-    
-    FaFileSignature, 
-    FaBookOpen, 
-    FaShieldAlt, 
-    FaFileContract 
+    FaEllipsisV,
+
+    FaFileSignature,
+    FaBookOpen,
+    FaShieldAlt,
+    FaFileContract
 } from 'react-icons/fa';
 import PageHeader from './common/PageHeader';
 
 function Tasks() {
     const [tasks, setTasks] = useState([]);
 
-    
+
     const [newTitle, setNewTitle] = useState('');
-    
+
     const taskCategories = [
         "Asset Management",
         "Configuration Management",
@@ -80,21 +80,21 @@ function Tasks() {
     const [newDueDate, setNewDueDate] = useState('');
     const [newRequirementId, setNewRequirementId] = useState('');
     const [newCheckType, setNewCheckType] = useState('');
-    const [newCheckTarget, setNewCheckTarget] = useState(''); 
-    const [newCheckParams, setNewCheckParams] = useState({}); 
-    const [newEvidenceTypesExpected, setNewEvidenceTypesExpected] = useState([]); 
-    const [newLinkedDocumentIDs, setNewLinkedDocumentIDs] = useState([]); 
+    const [newCheckTarget, setNewCheckTarget] = useState('');
+    const [newCheckParams, setNewCheckParams] = useState({});
+    const [newEvidenceTypesExpected, setNewEvidenceTypesExpected] = useState([]);
+    const [newLinkedDocumentIDs, setNewLinkedDocumentIDs] = useState([]);
     const [newDefaultPriority, setNewDefaultPriority] = useState('');
 
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    
+
     const [allStandards, setAllStandards] = useState([]);
     const [allRequirements, setAllRequirements] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
     const [allConnectedSystems, setAllConnectedSystems] = useState([]);
-    const [allDocuments, setAllDocuments] = useState([]); 
+    const [allDocuments, setAllDocuments] = useState([]);
 
     const [filteredTasks, setFilteredTasks] = useState([]);
     const [selectedStandardIdForFilter, setSelectedStandardIdForFilter] = useState('');
@@ -119,7 +119,7 @@ function Tasks() {
                 { name: 'apiPath', label: 'API Path', type: 'text', required: true, placeholder: '/health or /api/v1/status', helpText: 'The specific path to append to the base URL of the target system (e.g., /api/status).' },
                 { name: 'expected_status_code', label: 'Expected Status Code', type: 'number', placeholder: '200', helpText: 'The HTTP status code expected for a successful check. Defaults to 200 if not specified.' }
             ],
-            targetType: 'connected_system', 
+            targetType: 'connected_system',
             targetLabel: 'Target Connected System'
         },
         'script_run_check': {
@@ -149,7 +149,7 @@ function Tasks() {
 
     const fetchTasks = useCallback(async () => {
         try {
-            const response = await getTasks(); 
+            const response = await getTasks();
             setTasks(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error("Error fetching tasks:", error);
@@ -226,7 +226,7 @@ function Tasks() {
     const resetFormFields = () => {
         setNewTitle('');
         setNewDescription('');
-        setNewCategory(''); 
+        setNewCategory('');
         setNewOwnerUserId('');
         setNewAssigneeUserId('');
         setNewStatus('Open');
@@ -234,7 +234,7 @@ function Tasks() {
         setNewRequirementId('');
         setNewCheckType('');
         setNewCheckTarget('');
-        setNewCheckParams({}); 
+        setNewCheckParams({});
         setNewEvidenceTypesExpected([]);
         setNewLinkedDocumentIDs([]);
         setNewDefaultPriority('');
@@ -242,27 +242,27 @@ function Tasks() {
 
     const handleSubmitTask = async (e) => {
         e.preventDefault();
-        if (!newTitle.trim()) { 
+        if (!newTitle.trim()) {
             setError("Title is required.");
             setSuccess('');
             return;
         }
 
-            console.log('Current newLinkedDocumentIDs state:', newLinkedDocumentIDs); 
-    
-    
-    
-    
-    
-    
-    
-    
-    
+        console.log('Current newLinkedDocumentIDs state:', newLinkedDocumentIDs);
 
-    
-        let processedParams = { ...newCheckParams }; 
 
-        
+
+
+
+
+
+
+
+
+
+        let processedParams = { ...newCheckParams };
+
+
         const currentCheckConfig = checkTypeConfigurations[newCheckType];
         if (newCheckType && currentCheckConfig && currentCheckConfig.parameters) {
             for (const paramDef of currentCheckConfig.parameters) {
@@ -273,11 +273,11 @@ function Tasks() {
                     return;
                 }
 
-                
+
                 if (paramDef.name === 'script_args' && paramValue) {
                     if (typeof paramValue === 'string') {
                         if (paramValue.trim() === '') {
-                            processedParams.script_args = null; 
+                            processedParams.script_args = null;
                         } else {
                             try {
                                 const parsed = JSON.parse(paramValue);
@@ -306,17 +306,17 @@ function Tasks() {
         const taskData = {
             title: newTitle.trim(),
             description: newDescription.trim(),
-            category: newCategory, 
-            
-            
-            
-            
+            category: newCategory,
+
+
+
+
             requirementId: newRequirementId.trim() || null,
             checkType: newCheckType.trim() || null,
             target: newCheckTarget.trim() || null,
             parameters: Object.keys(processedParams).length > 0 ? processedParams : null,
-            evidenceTypesExpected: newEvidenceTypesExpected.map(option => option.value), 
-            linked_document_ids: newLinkedDocumentIDs.map(option => option.value), 
+            evidenceTypesExpected: newEvidenceTypesExpected.map(option => option.value),
+            linked_document_ids: newLinkedDocumentIDs.map(option => option.value),
             defaultPriority: newDefaultPriority.trim() || null,
         };
 
@@ -346,18 +346,18 @@ function Tasks() {
         setEditingTaskId(task.id);
         setNewTitle(task.title || '');
         setNewDescription(task.description || '');
-        setNewCategory(task.category || ''); 
-        
-        
-        
-        
+        setNewCategory(task.category || '');
+
+
+
+
         setNewRequirementId(task.requirementId || '');
         setNewCheckType(task.checkType || '');
         setNewCheckTarget(task.target || '');
-        setNewCheckParams(task.parameters || {}); 
-        
+        setNewCheckParams(task.parameters || {});
+
         setNewEvidenceTypesExpected(task.evidenceTypesExpected ? task.evidenceTypesExpected.map(et => ({ value: et, label: evidenceTypeOptions.find(opt => opt.value === et)?.label || et })) : []);
-        
+
         setNewLinkedDocumentIDs(task.linked_documents ? task.linked_documents.map(doc => ({ value: doc.id, label: doc.name })) : []);
         setNewDefaultPriority(task.defaultPriority || '');
         setActiveTabKey('create');
@@ -373,27 +373,27 @@ function Tasks() {
         setSuccess('');
     };
 
-    const handleParamChange = (paramName, value, paramDef) => { 
+    const handleParamChange = (paramName, value, paramDef) => {
         setNewCheckParams(prevParams => ({
             ...prevParams,
             [paramName]: (() => {
                 if (paramDef.type === 'number') {
                     if (value.trim() === '') {
-                        return null; 
+                        return null;
                     }
                     const num = parseInt(value, 10);
-                    return isNaN(num) ? null : num; 
+                    return isNaN(num) ? null : num;
                 }
-                
-                
+
+
                 return value;
             })()
         }));
     };
     const handleCheckTypeChange = (e) => {
         setNewCheckType(e.target.value);
-        setNewCheckParams({}); 
-        setNewCheckTarget(''); 
+        setNewCheckParams({});
+        setNewCheckTarget('');
     };
 
     const handleClearFilters = () => {
@@ -418,7 +418,7 @@ function Tasks() {
         return <OverlayTrigger placement="top" overlay={userPopover} delay={{ show: 250, hide: 400 }}><span>{user.name}</span></OverlayTrigger>;
     };
 
-    const getUserDetails = (userId) => { 
+    const getUserDetails = (userId) => {
         if (!userId || !allUsers || allUsers.length === 0) return null;
         return allUsers.find(user => user.id === userId);
     };
@@ -573,8 +573,8 @@ function Tasks() {
                                             placeholder="Select or type to add evidence types..."
                                             isClearable
                                             isSearchable
-                                        
-                                        
+
+
                                         />
                                         <Form.Text muted>Specify the types of evidence typically required for this task.</Form.Text>
                                     </Form.Group>
@@ -643,7 +643,7 @@ function Tasks() {
                                                             <Form.Text muted>{checkTypeConfigurations[newCheckType].targetHelpText || 'Enter the target for the check.'}</Form.Text>
                                                         </FloatingLabel>
                                                     )}
-                                                    
+
 
                                                     {checkTypeConfigurations[newCheckType].parameters.map(paramDef => (
                                                         <FloatingLabel key={paramDef.name} controlId={`floatingParam-${paramDef.name}`} label={`${paramDef.label}${paramDef.required ? '*' : ''}`} className="mb-3">
@@ -659,11 +659,11 @@ function Tasks() {
                                                             ) : paramDef.type === 'textarea' ? (
                                                                 <Form.Control
                                                                     as="textarea"
-                                                                    
-                                                                    
+
+
                                                                     value={paramDef.name === 'script_args' && Array.isArray(newCheckParams[paramDef.name])
-                                                                            ? JSON.stringify(newCheckParams[paramDef.name])
-                                                                            : (newCheckParams[paramDef.name] || '')}
+                                                                        ? JSON.stringify(newCheckParams[paramDef.name])
+                                                                        : (newCheckParams[paramDef.name] || '')}
                                                                     onChange={(e) => handleParamChange(paramDef.name, e.target.value, paramDef)}
                                                                     placeholder={paramDef.placeholder}
                                                                     required={paramDef.required}
@@ -702,21 +702,22 @@ function Tasks() {
                         <Alert variant="warning">No tasks match the current filter criteria.</Alert>
                     }
                     {filteredTasks.length === 0 && tasks.length === 0 && <Alert variant="info">No tasks found.</Alert>}
-                    <ListGroup variant="flush">
-                        {filteredTasks.map(task => {
-                            const requirement = getRequirementDetailsById(task.requirementId);
-                            const standardName = requirement ? getStandardNameByStandardId(requirement.standardId) : null;
+                    {/* <ListGroup variant="flush"> */}
+                    {filteredTasks.map(task => {
+                        const requirement = getRequirementDetailsById(task.requirementId);
+                        const standardName = requirement ? getStandardNameByStandardId(requirement.standardId) : null;
 
-                            return (
-                                <ListGroup.Item key={task.id} className=" p-3">
-                                    <Row className="align-items-start">
-                                        <Col xs="auto" className="pe-2 d-flex align-items-center pt-1">
-                                            {getCategoryIcon(task.category)}
-                                        </Col>
-                                        <Col>
-                                            <h5 className="mb-1">{task.title}</h5>
-                                            {task.description && <p className="mb-1 ">{task.description}</p>}
-                                            <small className="text-muted d-block mt-1">
+                        return (
+                            <Card key={task.id} className="mb-3">
+
+                                <Card.Header>
+                                    <div className="d-flex align-items-start justify-content-between">
+                                        <div className="d-flex justify-content-between">
+                                         {getCategoryIcon(task.category)}
+<div className='ms-2'>
+                                            <h5 className="mb-0">{task.title}</h5>
+
+                                            <small className='text-muted'>
                                                 ID: {task.id}
                                                 {task.category && <> <span className="mx-1">|</span> <FaTag className="me-1" />Category: {task.category}</>}
                                                 {task.requirementId && requirement && (
@@ -743,61 +744,63 @@ function Tasks() {
                                                 )}
                                                 {task.defaultPriority && (
                                                     <>
-                                                        <span className="mx-1">|</span> Priority: 
-                                                        
-                                                        <Badge bg={ getPriorityBadgeColor(task.defaultPriority) }>{task.defaultPriority}</Badge>
+                                                        <span className="mx-1">|</span> Priority:
+
+                                                        <Badge bg={getPriorityBadgeColor(task.defaultPriority)}>{task.defaultPriority}</Badge>
                                                     </>
                                                 )}
 
-                                                <div>
-                                                    Expected Evidence: 
-                                                {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 ?
-                                            task.evidenceTypesExpected.map((evidenceType, index) => (
-                                                <React.Fragment key={evidenceType}>
-
-                                                    <Badge variant="secondary" className='fw-normal bg-light text-dark me-1 ms-1'>{evidenceType}</Badge>
-
-                                                </React.Fragment>
-                                            )) : ' N/A'}
-
+                                            </small>
 </div>
+                                        </div>
+                                            <div><Button variant='outline-primary' className='btn-sm' onClick={() => handleEditTask(task)}>Edit Task</Button></div>
+
+                                    </div>
+                                </Card.Header>
+                                <Card.Body>
+
+                                            {task.description && <p className="">{task.description}</p>}
+                                            <small className="text-muted d-block mt-1">
+                                                
+                                                <div>
+                                                    Expected Evidence:
+                                                    {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 ?
+                                                        task.evidenceTypesExpected.map((evidenceType, index) => (
+                                                            <React.Fragment key={evidenceType}>
+                                                                <Badge variant="secondary" className='fw-normal bg-light text-dark me-1 ms-1'>{evidenceType}</Badge>
+                                                            </React.Fragment>
+                                                        )) : ' N/A'}
+
+                                                </div>
                                             </small>
 
-                                            {task.checkType && (
-                                                <div className="mt-2 p-2 bg-light border rounded">
+                                </Card.Body>
+
+                                                {task.checkType && (
+                                                <Card.Footer className='border-0'>
                                                     <small><FaCogs className="me-1" /><strong>Automated Check:</strong> {task.checkType} on {task.target || 'N/A'}</small>
                                                     <small className="d-block"><strong>Parameters:</strong> {task.parameters ? JSON.stringify(task.parameters) : 'None'}</small>
-                                                </div>
+                                                </Card.Footer>
                                             )}
                                             {task.linked_documents && task.linked_documents.length > 0 && (
-                                                <div className="mt-2">
+                                                <Card.Footer className='border-0'>
                                                     <small><FaBookOpen className="me-1" /><strong>Linked Documents:</strong></small>
                                                     <ul className="list-unstyled list-inline mb-0">
                                                         {task.linked_documents.map(doc => (
                                                             <li key={doc.id} className="list-inline-item"><Badge bg="light" text="dark" className="border me-1">{doc.name}</Badge></li>
                                                         ))}
                                                     </ul>
-                                                </div>
+                                                </Card.Footer>
                                             )}
-                                        </Col>
-                                        <Col xs="auto" className="text-end">
-                                            <div className="d-flex align-items-center">
 
-                                                <Button variant='outline-primary' className='btn-sm' onClick={() => handleEditTask(task)}>Edit Task</Button>
-
-                                                
-                                                
-                                            </div>
-                                        </Col>
-                                    </Row>
-                                </ListGroup.Item>
-                            );
-                        })}
-                    </ListGroup>
+                            </Card>
+                        );
+                    })}
+                    {/* </ListGroup> */}
                 </Tab>
             </Tabs>
 
-        </div>
+        </div >
     );
 }
 

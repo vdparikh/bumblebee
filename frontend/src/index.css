@@ -7,7 +7,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #F3F6FF; 
+  background-color: #EFF0F5; 
   font-size: 0.9em;
   font-weight: 400;
   color: var(--bs-body-color);
@@ -32,7 +32,8 @@ code {
   --custom-card-header-bg: #DFE9F6; /* rgb(223, 233, 246) */
 
   /* Bootstrap Theme Color Overrides */
-  --bs-primary: #35338C; 
+  --bs-primary-light: #E2E5EE; 
+  --bs-primary: #35338C;
   --bs-primary-rgb: 53, 51, 140;
 
   /* If you want to customize other Bootstrap semantic colors: */
@@ -83,17 +84,20 @@ h3 {
 .card {
   border: none; /* Consolidated from later rule */
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Consolidated from later rule */
+  box-shadow: none!important;
 }
 
 .card .card-header {
-  background-color: var(--custom-card-header-bg); /* Using the specific light blue */
+  background-color: var(--custom-card-header-bg); 
+  background-color: #fff!important;
+  padding: 15px 15px;
   font-size: 1.1em;
   border: 0px;
 }
 
 .card .card-footer {
   background-color: transparent; /* Removed !important, default is transparent */
-  padding: 10px 10px!important; /* Removed !important */
+  padding: 15px 15px!important; /* Removed !important */
 }
 
 /* General Link and Nav Styling */
@@ -149,33 +153,36 @@ a:hover {
 /* Sidebar Specific Styles */
 .navbar-brand, .sidebar .nav-link svg {
   margin-right: 5px !important; /* Consider if !important is truly needed */
-  color: rgba(255, 255, 255, 0.5) 
+  color: rgba(var(--bs-primary-rgb), 0.5) 
 }
 
 .navbar-brand,  .sidebar .nav-link.active svg {
-  color: var(--bs-white); 
+  color: var(--bs-primary); 
 }
 
 .nav-pills .nav-link {
-  color: var(--bs-light) !important; 
+  color: var(--bs-primary) !important; 
   border-radius: 0rem; 
   transition: background-color 0.15s ease-in-out;
+  color: #000!important;
 }
 
 .nav-pills .nav-link.active { 
   font-weight: 600;
   background-color: rgba(255, 255, 255, 0.2) !important; 
-  color: var(--bs-white) !important; 
+  color: var(--bs-primary) !important; 
+  color: #000!important;
 }
 
 .nav-pills .nav-link:hover:not(.active) {
     background-color: rgba(255, 255, 255, 0.1) !important; 
-    color: var(--bs-white) !important;
+    color: var(--bs-primary) !important;
+    color: #000!important;
 }
 
 .sidebar { 
-  background-color: var(--bs-primary);
-  color: var(--bs-light); 
+  background-color: var(--bs-primary-light);
+  /* color: var(--bs-light);  */
 }
 
 .nav-tabs .nav-link {
@@ -368,3 +375,32 @@ a:hover {
 .sidebar .dropdown-toggle::after {
   display: none !important; 
 }
+
+
+/* .badge.bg-light {
+  background-color: rgba(var(--bs-primary-rgb), 0.1)!important; 
+  padding: 0px 0px;
+  border-radius: 0.2rem!important;
+  border: 0px!important;
+  height: 20px;
+  line-height: 20px;
+  padding: 0px 10px 0px 25px;
+  text-align: left!important;
+  position: relative;
+  font-size: 0.9em;
+
+}
+
+
+.badge.bg-light svg {
+  background-color: rgba(var(--bs-primary-rgb), 1)!important;
+  color: #fff!important;
+  position: absolute;
+  height: 20px;
+  left: 0;
+  top: 0;
+  width: 20px;
+  padding: 4px 4px;
+  border-bottom-left-radius: 0.2rem;
+  border-top-left-radius: 0.2rem;
+} */
