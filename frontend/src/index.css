@@ -27,7 +27,7 @@ code {
   /* Custom App Variables */
   --custom-primary: #35338C; 
   --custom-theme-color: #EC5100;
-  --custom-header-font: 'Forum', sans-serif;
+  --custom-header-font: 'Outfit', sans-serif;
   /* This was the light blue color previously used for card headers via an incorrect --bs-primary-rgb */
   --custom-card-header-bg: #DFE9F6; /* rgb(223, 233, 246) */
 
@@ -71,12 +71,14 @@ color: #000!important;
 
 h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   font-family: var(--custom-header-font);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--bs-heading-color); 
 }
-
+h1 {
+  font-size: 3em;
+}
 h2 { 
-  font-size: 2.5em;
+  font-size: 2em;
 }
 
 
@@ -104,7 +106,7 @@ h3 {
 .card .card-header {
   background-color: var(--custom-card-header-bg); 
   background-color: #fff!important;
-  padding: 15px 15px;
+  padding: 10px 15px;
   font-size: 1.1em;
   border: 0px;
 }
@@ -158,7 +160,7 @@ a:hover {
   top: 0;
   left:0;
   position: absolute;
-  background-color: var(--bs-primary); /* Changed from --bs-secondary to match primary theme */
+  background-color: #35338C; /* Changed from --bs-secondary to match primary theme */
   /* border-color: var(--bs-light);
   border-left: 4px solid var(--bs-primary)!important; */
 }
@@ -171,23 +173,24 @@ a:hover {
 /* Sidebar Specific Styles */
 
 .sidebar { 
-  background-color: var(--bs-primary-light);
+  background-color: #35338C;
   /* color: var(--bs-light);  */
 }
 
 [data-bs-theme="dark"] .sidebar { 
-  background-color: var(--bs-primary-dark);
+  /* background-color: var(--bs-primary-dark); */
   /* color: var(--bs-light);  */
 }
 .sidebar .nav-pills .btn {
   margin: 2px 5px;
+  color: var(--bs-light); 
 }
 
 .sidebar .nav-pills .btn.active {
-  background-color: #fff;
+  background-color: rgba(255, 255, 255,.25)
 }
 [data-bs-theme="dark"] .sidebar .nav-pills .btn.active {
-  background-color: #000;
+  /* background-color: #000; */
 }
 
 [data-bs-theme="dark"] .list-group-item {

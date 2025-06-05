@@ -57,15 +57,36 @@ CREATE TABLE task_execution_results (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE evidence (
+
+CREATE TABLE IF NOT EXISTS evidence (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    uploaded_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    file_name VARCHAR(255) NOT NULL,
-    file_path TEXT NOT NULL, -- URL to S3, GCS, or a secured local path
+    campaign_task_instance_id UUID NOT NULL,
+    uploaded_by_user_id UUID NOT NULL,
+    file_name VARCHAR(255),
+    file_path VARCHAR(1024),
+    mime_type VARCHAR(100),
+    file_size BIGINT,
     description TEXT,
-    uploaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    mime_type VARCHAR(100)
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    review_status VARCHAR(50) DEFAULT 'Pending',
+    reviewed_by_user_id UUID,
+    reviewed_at TIMESTAMPTZ,
+    review_comments TEXT,
+
+    CONSTRAINT fk_campaign_task_instance
+        FOREIGN KEY(campaign_task_instance_id)
+        REFERENCES campaign_task_instances(id)
+        ON DELETE CASCADE, -- Or SET NULL, depending on desired behavior
+    CONSTRAINT fk_uploaded_by_user
+        FOREIGN KEY(uploaded_by_user_id)
+        REFERENCES users(id)
+        ON DELETE RESTRICT, -- Or SET NULL
+    CONSTRAINT fk_reviewed_by_user
+        FOREIGN KEY(reviewed_by_user_id)
+        REFERENCES users(id)
+        ON DELETE SET NULL
 );
 
 CREATE TABLE comments (
@@ -329,3 +350,9 @@ CREATE TABLE task_documents (
 
 -- Optional: Index for querying by task_id
 CREATE INDEX idx_task_documents_task_id ON task_documents(task_id);
+
+
+
+ALTER TABLE evidence
+ADD COLUMN IF NOT EXISTS task_id UUID NULL,
+ADD CONSTRAINT fk_evidence_task FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE SET NULL; -- Or CASCADE

@@ -12,7 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq" 
+	"github.com/lib/pq"
 	"github.com/vdparikh/compliance-automation/backend/models"
 )
 
@@ -36,7 +36,7 @@ type Store interface {
 	UpdateStandard(standard *models.ComplianceStandard) error
 	CreateTaskComment(comment *models.Comment) error
 	GetTaskComments(taskID string, campaignTaskInstanceID string) ([]models.Comment, error)
-	CreateTaskEvidence(evidence *models.Evidence) error
+	// CreateTaskEvidence(evidence *models.Evidence) error
 	GetTaskEvidence(taskID string) ([]models.Evidence, error)
 	CreateCampaign(campaign *models.Campaign, selectedReqs []models.CampaignSelectedRequirement) (string, error)
 	GetCampaigns(campaignStatus string) ([]models.Campaign, error)
@@ -53,24 +53,28 @@ type Store interface {
 	CopyEvidenceToTaskInstance(targetInstanceID string, sourceEvidenceIDs []string, uploaderUserID string) error
 }
 
+var ErrNotFound = errors.New("record not found")
+
 type DBStore struct {
-	DB *sqlx.DB 
+	DB *sqlx.DB
 }
 
 func NewDBStore(dataSourceName string) (*DBStore, error) {
-	db, err := sqlx.Open("postgres", dataSourceName) 
+	db, err := sqlx.Open("postgres", dataSourceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
 	if err = db.Ping(); err != nil {
-		db.Close() 
+		db.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	log.Println("Successfully connected to the database!")
 	return &DBStore{DB: db}, nil
 }
+
+var _ Store = (*DBStore)(nil) // Interface satisfaction check
 
 func (s *DBStore) CreateTask(task *models.Task) (string, error) {
 	task.ID = uuid.NewString()
@@ -101,7 +105,7 @@ func (s *DBStore) CreateTask(task *models.Task) (string, error) {
 			return "", fmt.Errorf("failed to marshal task parameters: %w", err)
 		}
 	} else {
-		paramsJSON = []byte("{}") 
+		paramsJSON = []byte("{}")
 	}
 
 	query := `
@@ -179,7 +183,7 @@ func (s *DBStore) GetTaskByID(taskID string) (*models.Task, error) {
 	err := row.Scan(&t.ID, &t.RequirementID, &t.Title, &t.Description, &t.Category, &t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target, &paramsJSON, pq.Array(&t.EvidenceTypesExpected), &t.DefaultPriority)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil 
+			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to scan task row: %w", err)
 	}
@@ -276,10 +280,10 @@ func (s *DBStore) GetTasksByRequirementID(requirementID string) ([]models.Task, 
 		if len(paramsJSON) > 0 && string(paramsJSON) != "null" {
 			if err := json.Unmarshal(paramsJSON, &t.Parameters); err != nil {
 				log.Printf("Warning: failed to unmarshal parameters for task %s: %v", t.ID, err)
-				t.Parameters = make(map[string]interface{}) 
+				t.Parameters = make(map[string]interface{})
 			}
 		} else {
-			t.Parameters = make(map[string]interface{}) 
+			t.Parameters = make(map[string]interface{})
 		}
 		tasks = append(tasks, t)
 	}
@@ -291,18 +295,18 @@ func parsePostgresTextArray(dbValue []byte) ([]string, error) {
 		return []string{}, nil
 	}
 	s := string(dbValue)
-	if s == "NULL" || s == "{}" { 
+	if s == "NULL" || s == "{}" {
 		return []string{}, nil
 	}
 	if !strings.HasPrefix(s, "{") || !strings.HasSuffix(s, "}") {
 		return nil, errors.New("invalid array format: missing braces")
 	}
 	s = s[1 : len(s)-1]
-	if s == "" { 
+	if s == "" {
 		return []string{}, nil
 	}
 
-	return strings.Split(s, ","), nil 
+	return strings.Split(s, ","), nil
 }
 
 func (s *DBStore) getLinkedDocumentsForTask(taskID string) ([]models.Document, error) {
@@ -357,7 +361,7 @@ func (s *DBStore) unlinkAllDocumentsFromTask(tx *sqlx.Tx, taskID string) error {
 }
 
 func (s *DBStore) CreateRequirement(req *models.Requirement) error {
-	req.ID = uuid.NewString() 
+	req.ID = uuid.NewString()
 
 	query := `
 		INSERT INTO requirements (id, standard_id, control_id_reference, requirement_text)
@@ -421,7 +425,7 @@ func (s *DBStore) GetUsers() ([]models.User, error) {
 }
 
 func (s *DBStore) CreateUser(user *models.User) error {
-	user.ID = uuid.New().String() 
+	user.ID = uuid.New().String()
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 
@@ -457,7 +461,7 @@ func (s *DBStore) GetUserByEmail(email string) (*models.User, error) {
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil 
+			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to scan user row by email %s: %w", email, err)
 	}
@@ -474,7 +478,7 @@ func (s *DBStore) GetUserByID(userID uuid.UUID) (*models.User, error) {
 	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Role, &user.HashedPassword, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil 
+			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to scan user row by ID %s: %w", userID, err)
 	}
@@ -482,7 +486,7 @@ func (s *DBStore) GetUserByID(userID uuid.UUID) (*models.User, error) {
 }
 
 func (s *DBStore) CreateComplianceStandard(standard *models.ComplianceStandard) error {
-	standard.ID = uuid.NewString() 
+	standard.ID = uuid.NewString()
 
 	query := `
 		INSERT INTO compliance_standards (id, name, short_name, description)
@@ -533,7 +537,7 @@ func (s *DBStore) GetRequirementByID(id string) (*models.Requirement, error) {
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, err 
+			return nil, err
 		}
 		return nil, fmt.Errorf("error scanning requirement by id %s: %w", id, err)
 	}
@@ -555,25 +559,27 @@ func (s *DBStore) CreateTaskComment(comment *models.Comment) error {
 	return nil
 }
 
-func (s *DBStore) CreateTaskEvidence(evidence *models.Evidence) error {
-	evidence.ID = uuid.NewString()
-	evidence.UploadedAt = time.Now()
+// func (s *DBStore) CreateTaskEvidence(evidence *models.Evidence) error {
+// 	evidence.ID = uuid.NewString()
+// 	evidence.UploadedAt = time.Now()
 
-	query := `
-		INSERT INTO task_evidence (id, task_id, campaign_task_instance_id, uploader_user_id, file_name, file_path, mime_type, file_size, description, uploaded_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`
-	_, err := s.DB.Exec(query, evidence.ID, evidence.TaskID, evidence.CampaignTaskInstanceID, evidence.UploaderUserID, evidence.FileName, evidence.FilePath, evidence.MimeType, evidence.FileSize, evidence.Description, evidence.UploadedAt)
-	if err != nil {
-		return fmt.Errorf("failed to insert task evidence: %w", err)
-	}
-	return nil
-}
+// 	query := `
+// 		INSERT INTO task_evidence (id, task_id, campaign_task_instance_id, uploader_user_id, file_name, file_path, mime_type, file_size, description, uploaded_at)
+// 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+// 	`
+// 	_, err := s.DB.Exec(query, evidence.ID, evidence.TaskID, evidence.CampaignTaskInstanceID, evidence.UploadedByUserID, evidence.FileName, evidence.FilePath, evidence.MimeType, evidence.FileSize, evidence.Description, evidence.UploadedAt)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to insert task evidence: %w", err)
+// 	}
+// 	return nil
+// }
 
 func (s *DBStore) GetTaskEvidence(taskID string) ([]models.Evidence, error) {
 	query := `
-		SELECT id, task_id, campaign_task_instance_id, uploader_user_id, file_name, file_path, mime_type, file_size, description, uploaded_at
-		FROM task_evidence
+		SELECT id, task_id, campaign_task_instance_id, uploaded_by_user_id, 
+		       file_name, file_path, mime_type, file_size, description, uploaded_at,
+		       created_at, updated_at, review_status, reviewed_by_user_id, reviewed_at, review_comments
+		FROM evidence
 		WHERE task_id = $1 AND campaign_task_instance_id IS NULL
 		ORDER BY uploaded_at DESC
 	`
@@ -586,7 +592,10 @@ func (s *DBStore) GetTaskEvidence(taskID string) ([]models.Evidence, error) {
 
 	for rows.Next() {
 		var ev models.Evidence
-		if err := rows.Scan(&ev.ID, &ev.TaskID, &ev.CampaignTaskInstanceID, &ev.UploaderUserID, &ev.FileName, &ev.FilePath, &ev.MimeType, &ev.FileSize, &ev.Description, &ev.UploadedAt); err != nil {
+		if err := rows.Scan(&ev.ID, &ev.TaskID, &ev.CampaignTaskInstanceID, &ev.UploadedByUserID,
+			&ev.FileName, &ev.FilePath, &ev.MimeType, &ev.FileSize, &ev.Description, &ev.UploadedAt,
+			&ev.CreatedAt, &ev.UpdatedAt, &ev.ReviewStatus, &ev.ReviewedByUserID, &ev.ReviewedAt, &ev.ReviewComments); err != nil {
+
 			return nil, fmt.Errorf("failed to scan task evidence row: %w", err)
 		}
 		evidences = append(evidences, ev)
@@ -598,29 +607,34 @@ func (s *DBStore) GetTaskEvidence(taskID string) ([]models.Evidence, error) {
 }
 
 func (s *DBStore) CreateCampaignTaskInstanceComment(comment *models.Comment) error {
-	if comment.CampaignTaskInstanceID == nil || *comment.CampaignTaskInstanceID == "" {
+	if comment.CampaignTaskInstanceID == nil || *comment.CampaignTaskInstanceID == "" { // Corrected nil check for pointer to string
 		return fmt.Errorf("CampaignTaskInstanceID is required for campaign task comments")
 	}
-	comment.TaskID = nil 
+	comment.TaskID = nil
 	return s.CreateTaskComment(comment)
 }
 
 func (s *DBStore) GetCampaignTaskInstanceComments(campaignTaskInstanceID string) ([]models.Comment, error) {
-	return s.GetTaskComments("", campaignTaskInstanceID) 
+	return s.GetTaskComments("", campaignTaskInstanceID)
 }
 
 func (s *DBStore) CreateCampaignTaskInstanceEvidence(evidence *models.Evidence) error {
-	if evidence.CampaignTaskInstanceID == nil || *evidence.CampaignTaskInstanceID == "" {
-		return fmt.Errorf("CampaignTaskInstanceID is required for campaign task evidence")
+	if evidence.CampaignTaskInstanceID == nil { // Corrected nil check for string
+		return fmt.Errorf("campaignTaskInstanceId is required for campaign task evidence")
 	}
-	evidence.TaskID = nil 
-	return s.CreateTaskEvidence(evidence)
+	evidence.TaskID = nil
+	// Use the consolidated CreateEvidence method from evidence_store.go
+	// This method is part of DBStore as evidence_store.go and postgres_store.go are in the same package.
+	_, err := s.CreateEvidence(evidence)
+	return err
 }
 
 func (s *DBStore) GetCampaignTaskInstanceEvidence(campaignTaskInstanceID string) ([]models.Evidence, error) {
 	query := `
-		SELECT id, task_id, campaign_task_instance_id, uploader_user_id, file_name, file_path, mime_type, file_size, description, uploaded_at
-		FROM task_evidence
+		SELECT id, task_id, campaign_task_instance_id, uploaded_by_user_id, 
+		       file_name, file_path, mime_type, file_size, description, uploaded_at,
+		       created_at, updated_at, review_status, reviewed_by_user_id, reviewed_at, review_comments
+		FROM evidence
 		WHERE campaign_task_instance_id = $1
 		ORDER BY uploaded_at DESC
 	`
@@ -633,7 +647,10 @@ func (s *DBStore) GetCampaignTaskInstanceEvidence(campaignTaskInstanceID string)
 
 	for rows.Next() {
 		var ev models.Evidence
-		if err := rows.Scan(&ev.ID, &ev.TaskID, &ev.CampaignTaskInstanceID, &ev.UploaderUserID, &ev.FileName, &ev.FilePath, &ev.MimeType, &ev.FileSize, &ev.Description, &ev.UploadedAt); err != nil {
+		if err := rows.Scan(&ev.ID, &ev.TaskID, &ev.CampaignTaskInstanceID, &ev.UploadedByUserID,
+			&ev.FileName, &ev.FilePath, &ev.MimeType, &ev.FileSize, &ev.Description, &ev.UploadedAt,
+			&ev.CreatedAt, &ev.UpdatedAt, &ev.ReviewStatus, &ev.ReviewedByUserID, &ev.ReviewedAt, &ev.ReviewComments); err != nil {
+
 			return nil, fmt.Errorf("failed to scan campaign task evidence row: %w", err)
 		}
 		evidences = append(evidences, ev)
@@ -677,7 +694,7 @@ func (s *DBStore) CreateCampaign(campaign *models.Campaign, selectedReqs []model
 	if err != nil {
 		return "", fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback() 
+	defer tx.Rollback()
 
 	query := `
 		INSERT INTO campaigns (id, name, description, standard_id, start_date, end_date, status, created_at, updated_at)
@@ -715,23 +732,23 @@ func (s *DBStore) CreateCampaign(campaign *models.Campaign, selectedReqs []model
 					campaignTaskInstance := models.CampaignTaskInstance{
 						CampaignID:                    campaign.ID,
 						MasterTaskID:                  &masterTask.ID,
-						CampaignSelectedRequirementID: &campaignSelectedRequirementID, 
+						CampaignSelectedRequirementID: &campaignSelectedRequirementID,
 						Title:                         masterTask.Title,
-						Description:                   &masterTask.Description, 
-						Category:                      &masterTask.Category,    
-						Status:                        "Open",                  
-						CheckType:  masterTask.CheckType,
-						Target:     masterTask.Target,
-						Parameters: masterTask.Parameters, 
+						Description:                   &masterTask.Description,
+						Category:                      &masterTask.Category,
+						Status:                        "Open",
+						CheckType:                     masterTask.CheckType,
+						Target:                        masterTask.Target,
+						Parameters:                    masterTask.Parameters,
 					}
-					if masterTask.Description == "" { 
+					if masterTask.Description == "" {
 						campaignTaskInstance.Description = nil
 					}
 					if masterTask.Category == "" {
 						campaignTaskInstance.Category = nil
 					}
 
-					_, err := s.CreateCampaignTaskInstance(tx, &campaignTaskInstance) 
+					_, err := s.CreateCampaignTaskInstance(tx, &campaignTaskInstance)
 					if err != nil {
 						log.Printf("Error creating campaign task instance for master task %s: %v", masterTask.ID, err)
 						continue
@@ -818,7 +835,7 @@ func (s *DBStore) UpdateCampaign(campaign *models.Campaign, newSelectedReqs []mo
 		return fmt.Errorf("failed to update campaign %s: %w", campaign.ID, err)
 	}
 
-	currentDBReqs, err := s.getCampaignSelectedRequirementsTx(tx, campaign.ID) 
+	currentDBReqs, err := s.getCampaignSelectedRequirementsTx(tx, campaign.ID)
 	if err != nil {
 		return fmt.Errorf("failed to get current selected requirements for campaign %s: %w", campaign.ID, err)
 	}
@@ -861,7 +878,7 @@ func (s *DBStore) UpdateCampaign(campaign *models.Campaign, newSelectedReqs []mo
 		}
 
 		if newReq.IsApplicable {
-			masterTasks, err := s.GetTasksByRequirementID(newReq.RequirementID) 
+			masterTasks, err := s.GetTasksByRequirementID(newReq.RequirementID)
 			if err != nil {
 				return fmt.Errorf("error fetching master tasks for requirement %s (CSR_ID: %s) during campaign update: %w", newReq.RequirementID, campaignSelectedRequirementID, err)
 			}
@@ -879,21 +896,21 @@ func (s *DBStore) UpdateCampaign(campaign *models.Campaign, newSelectedReqs []mo
 			rows, err := tx.Query(queryExistingCTIs, campaign.ID, campaignSelectedRequirementID)
 			if err != nil {
 				log.Printf("Error fetching existing CTIs for campaign %s, CSR_ID %s: %v", campaign.ID, campaignSelectedRequirementID, err)
-				return fmt.Errorf("failed to fetch existing CTIs for CSR_ID %s: %w", campaignSelectedRequirementID, err) 
+				return fmt.Errorf("failed to fetch existing CTIs for CSR_ID %s: %w", campaignSelectedRequirementID, err)
 			}
 
 			for rows.Next() {
-				var mtID sql.NullString 
+				var mtID sql.NullString
 				if err := rows.Scan(&mtID); err != nil {
 					rows.Close()
 					log.Printf("Error scanning existing CTI master_task_id for CSR_ID %s: %v", campaignSelectedRequirementID, err)
-					return fmt.Errorf("failed to scan existing CTI master_task_id for CSR_ID %s: %w", campaignSelectedRequirementID, err) 
+					return fmt.Errorf("failed to scan existing CTI master_task_id for CSR_ID %s: %w", campaignSelectedRequirementID, err)
 				}
 				if mtID.Valid {
 					existingCTIMasterTaskIDs[mtID.String] = true
 				}
 			}
-			rows.Close() 
+			rows.Close()
 
 			for _, masterTask := range masterTasks {
 				if _, exists := existingCTIMasterTaskIDs[masterTask.ID]; !exists {
@@ -904,7 +921,7 @@ func (s *DBStore) UpdateCampaign(campaign *models.Campaign, newSelectedReqs []mo
 						Title:                         masterTask.Title,
 						Description:                   &masterTask.Description,
 						Category:                      &masterTask.Category,
-						Status:                        "Open", 
+						Status:                        "Open",
 						CheckType:                     masterTask.CheckType,
 						Target:                        masterTask.Target,
 						Parameters:                    masterTask.Parameters,
@@ -939,7 +956,7 @@ func (s *DBStore) DeleteCampaign(campaignID string) error {
 		return fmt.Errorf("failed to get rows affected for delete campaign %s: %w", campaignID, err)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("campaign %s not found for deletion", campaignID) 
+		return fmt.Errorf("campaign %s not found for deletion", campaignID)
 	}
 	return nil
 }
@@ -1009,7 +1026,7 @@ func (s *DBStore) CreateCampaignTaskInstance(tx *sql.Tx, cti *models.CampaignTas
 			check_type, target, parameters
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-	` 
+	`
 
 	var execFunc func(query string, args ...interface{}) (sql.Result, error)
 	if tx != nil {
@@ -1024,7 +1041,7 @@ func (s *DBStore) CreateCampaignTaskInstance(tx *sql.Tx, cti *models.CampaignTas
 		return "", fmt.Errorf("failed to insert campaign task instance: %w", err)
 	}
 
-	err = s.updateCampaignTaskInstanceOwners(tx, cti.ID, cti.OwnerUserIDs) 
+	err = s.updateCampaignTaskInstanceOwners(tx, cti.ID, cti.OwnerUserIDs)
 
 	if err != nil {
 		return "", fmt.Errorf("failed to insert campaign task instance: %w", err)
@@ -1127,9 +1144,9 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
 	var paramsJSON []byte
 	if err := row.Scan(
 		&cti.ID, &cti.CampaignID, &cti.CampaignName, &cti.MasterTaskID, &cti.CampaignSelectedRequirementID,
-		&cti.Title, &cti.Description, &cti.Category, &cti.AssigneeUserID, &cti.LastCheckedAt, &cti.LastCheckStatus, 
+		&cti.Title, &cti.Description, &cti.Category, &cti.AssigneeUserID, &cti.LastCheckedAt, &cti.LastCheckStatus,
 		&cti.Status, &cti.DueDate, &cti.CreatedAt, &cti.UpdatedAt,
-		&cti.CheckType, &cti.Target, &paramsJSON, 
+		&cti.CheckType, &cti.Target, &paramsJSON,
 		&cti.AssigneeUserName, &cti.RequirementControlIDReference, &cti.RequirementText, &cti.RequirementStandardName,
 		&cti.DefaultPriority, pq.Array(&cti.EvidenceTypesExpected),
 	); err != nil {
@@ -1146,7 +1163,7 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
 	}
 
 	if cti.MasterTaskID != nil && *cti.MasterTaskID != "" {
-		masterTask, err := s.GetTaskByID(*cti.MasterTaskID) 
+		masterTask, err := s.GetTaskByID(*cti.MasterTaskID)
 		if err != nil {
 			log.Printf("Warning: failed to fetch master task %s for CTI %s: %v", *cti.MasterTaskID, cti.ID, err)
 		} else if masterTask != nil {
@@ -1215,7 +1232,7 @@ func (s *DBStore) updateCampaignTaskInstanceOwners(tx *sql.Tx, ctiID string, own
 	}
 
 	if len(ownerIDs) == 0 {
-		return nil 
+		return nil
 	}
 
 	var stmt *sql.Stmt
@@ -1268,7 +1285,7 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 
 	if userField == "owner" {
 		conditions = append(conditions, fmt.Sprintf("cti.id IN (SELECT cto.campaign_task_instance_id FROM campaign_task_instance_owners cto WHERE cto.user_id = $%d)", paramIndex))
-	} else { 
+	} else {
 		if userField != "assignee" {
 			return nil, fmt.Errorf("invalid userField: %s", userField)
 		}
@@ -1299,7 +1316,7 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 		var i models.CampaignTaskInstance
 		var paramsJSON []byte
 		err := rows.Scan(
-			&i.ID, &i.CampaignID, &i.CampaignName, &i.MasterTaskID, &i.CampaignSelectedRequirementID, 
+			&i.ID, &i.CampaignID, &i.CampaignName, &i.MasterTaskID, &i.CampaignSelectedRequirementID,
 			&i.Title, &i.Description, &i.Category, &i.AssigneeUserID,
 			&i.Status, &i.DueDate, &i.CreatedAt, &i.UpdatedAt,
 			&i.CheckType, &i.Target, &paramsJSON,
@@ -1309,7 +1326,7 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan campaign task instance row for user: %w", err)
-		} 
+		}
 
 		if len(paramsJSON) > 0 && string(paramsJSON) != "null" {
 			if err := json.Unmarshal(paramsJSON, &i.Parameters); err != nil {
@@ -1366,7 +1383,7 @@ func (s *DBStore) GetTaskComments(taskID string, campaignTaskInstanceID string) 
 	if campaignTaskInstanceID != "" {
 		query = baseQuery + " WHERE tc.campaign_task_instance_id = $1 ORDER BY tc.created_at ASC"
 		args = append(args, campaignTaskInstanceID)
-	} else if taskID != "" { 
+	} else if taskID != "" {
 		query = baseQuery + " WHERE tc.task_id = $1 AND tc.campaign_task_instance_id IS NULL ORDER BY tc.created_at ASC"
 		args = append(args, taskID)
 	} else {
@@ -1382,7 +1399,7 @@ func (s *DBStore) GetTaskComments(taskID string, campaignTaskInstanceID string) 
 	for rows.Next() {
 		var c models.Comment
 		if err := rows.Scan(&c.ID, &c.TaskID, &c.CampaignTaskInstanceID, &c.UserID, &c.UserName, &c.Text, &c.CreatedAt); err != nil {
-			log.Printf("Error scanning comment: %v. Row data might be unexpected.", err) 
+			log.Printf("Error scanning comment: %v. Row data might be unexpected.", err)
 			continue
 		}
 		comments = append(comments, c)
@@ -1453,17 +1470,17 @@ func (s *DBStore) CopyEvidenceToTaskInstance(targetInstanceID string, sourceEvid
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction for copying evidence: %w", err)
 	}
-	defer tx.Rollback() 
+	defer tx.Rollback()
 
 	for _, sourceEvidenceID := range sourceEvidenceIDs {
 		var sourceEvidence models.Evidence
 		querySource := `
-			SELECT id, task_id, campaign_task_instance_id, uploader_user_id, 
+			SELECT id, task_id, campaign_task_instance_id, uploaded_by_user_id,
 			       file_name, file_path, mime_type, file_size, description, uploaded_at
-			FROM task_evidence WHERE id = $1`
+			FROM evidence WHERE id = $1`
 		err := tx.QueryRow(querySource, sourceEvidenceID).Scan(
-			&sourceEvidence.ID, &sourceEvidence.TaskID, &sourceEvidence.CampaignTaskInstanceID,
-			&sourceEvidence.UploaderUserID, &sourceEvidence.FileName, &sourceEvidence.FilePath,
+			&sourceEvidence.ID, &sourceEvidence.TaskID, &sourceEvidence.CampaignTaskInstanceID, // Corrected field name
+			&sourceEvidence.UploadedByUserID, &sourceEvidence.FileName, &sourceEvidence.FilePath, // Corrected field name
 			&sourceEvidence.MimeType, &sourceEvidence.FileSize, &sourceEvidence.Description,
 			&sourceEvidence.UploadedAt,
 		)
@@ -1475,20 +1492,28 @@ func (s *DBStore) CopyEvidenceToTaskInstance(targetInstanceID string, sourceEvid
 		}
 
 		newEvidence := models.Evidence{
-			ID:                     uuid.NewString(), 
+			ID:                     uuid.NewString(),
+			TaskID:                 nil, // Copied evidence is for a campaign instance
 			CampaignTaskInstanceID: &targetInstanceID,
-			UploaderUserID:         uploaderUserID, 
-			FileName:               sourceEvidence.FileName,
-			FilePath:               sourceEvidence.FilePath, 
-			MimeType:               sourceEvidence.MimeType,
-			FileSize:               sourceEvidence.FileSize,
-			Description:            sourceEvidence.Description, 
-			UploadedAt:             time.Now(),                 
+			UploadedByUserID:       uploaderUserID,
+
+			FileName:    sourceEvidence.FileName,
+			FilePath:    sourceEvidence.FilePath,
+			MimeType:    sourceEvidence.MimeType,
+			FileSize:    sourceEvidence.FileSize,
+			Description: sourceEvidence.Description,
+			UploadedAt:  time.Now(),
+			// Reset review status for the new copy
+			ReviewStatus:     func() *string { s := "Pending"; return &s }(),
+			ReviewedByUserID: nil,
+			ReviewedAt:       nil,
+			ReviewComments:   nil,
 		}
 
-		queryInsert := `INSERT INTO task_evidence (id, campaign_task_instance_id, uploader_user_id, file_name, file_path, mime_type, file_size, description, uploaded_at)
-		                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-		_, err = tx.Exec(queryInsert, newEvidence.ID, newEvidence.CampaignTaskInstanceID, newEvidence.UploaderUserID, newEvidence.FileName, newEvidence.FilePath, newEvidence.MimeType, newEvidence.FileSize, newEvidence.Description, newEvidence.UploadedAt)
+		queryInsert := `INSERT INTO evidence (id, task_id, campaign_task_instance_id, uploaded_by_user_id, file_name, file_path, mime_type, file_size, description, uploaded_at, created_at, updated_at, review_status)
+		                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+		_, err = tx.Exec(queryInsert, newEvidence.ID, newEvidence.TaskID, newEvidence.CampaignTaskInstanceID, newEvidence.UploadedByUserID, newEvidence.FileName, newEvidence.FilePath, newEvidence.MimeType, newEvidence.FileSize, newEvidence.Description, newEvidence.UploadedAt, newEvidence.CreatedAt, newEvidence.UpdatedAt, newEvidence.ReviewStatus)
+
 		if err != nil {
 			return fmt.Errorf("failed to insert copied evidence record for source %s: %w", sourceEvidenceID, err)
 		}
@@ -1513,7 +1538,7 @@ func (s *DBStore) GetConnectedSystemByID(id string) (*models.ConnectedSystem, er
               FROM connected_systems WHERE id = $1`
 	err := s.DB.Get(&system, query, id)
 	if err == sql.ErrNoRows {
-		return nil, nil 
+		return nil, nil
 	}
 	return &system, err
 }
@@ -1593,7 +1618,7 @@ func (s *DBStore) GetCampaignTaskInstanceResults(instanceID string) ([]models.Ca
 		WHERE ctir.campaign_task_instance_id = $1
 		ORDER BY ctir.timestamp DESC
 	`
-	rows, err := s.DB.Queryx(query, instanceID) 
+	rows, err := s.DB.Queryx(query, instanceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query campaign task instance results for instance %s: %w", instanceID, err)
 	}
@@ -1609,7 +1634,7 @@ func (s *DBStore) GetCampaignTaskInstanceResults(instanceID string) ([]models.Ca
 		}
 		if userName.Valid {
 			res.ExecutedByUser = &models.UserBasicInfo{Name: userName.String}
-			if res.ExecutedByUserID != nil { 
+			if res.ExecutedByUserID != nil {
 				res.ExecutedByUser.ID = *res.ExecutedByUserID
 			}
 		}

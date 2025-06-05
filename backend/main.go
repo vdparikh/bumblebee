@@ -2,16 +2,16 @@ package main
 
 import (
 	"log"
-	"net/http"      
-	"os"            
-	"path/filepath" 
+	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/vdparikh/compliance-automation/backend/executor"   
-	"github.com/vdparikh/compliance-automation/backend/handlers"   
-	"github.com/vdparikh/compliance-automation/backend/middleware" 
-	"github.com/vdparikh/compliance-automation/backend/store"      
+	"github.com/vdparikh/compliance-automation/backend/executor"
+	"github.com/vdparikh/compliance-automation/backend/handlers"
+	"github.com/vdparikh/compliance-automation/backend/middleware"
+	"github.com/vdparikh/compliance-automation/backend/store"
 )
 
 const (
@@ -27,12 +27,12 @@ func main() {
 	if dbUser == "" {
 		dbUser = defaultDBUser
 	}
-	dbPassword := os.Getenv("DB_PASSWORD") 
+	dbPassword := os.Getenv("DB_PASSWORD")
 	if dbPassword == "" {
 		log.Fatal("DB_PASSWORD environment variable not set")
 	}
 	dbName := "compliance"
-	dbHost := "localhost" 
+	dbHost := "localhost"
 	dbPort := "5432"
 	dbNameEnv := os.Getenv("DB_NAME")
 	if dbNameEnv != "" {
@@ -68,18 +68,18 @@ func main() {
 	router := gin.Default()
 
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000"} 
+	config.AllowOrigins = []string{"http://localhost:3000"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
 	router.Use(cors.New(config))
 
-	taskHandler := handlers.NewTaskHandler(dbStore) 
+	taskHandler := handlers.NewTaskHandler(dbStore)
 	requirementHandler := handlers.NewRequirementHandler(dbStore)
 	standardHandler := handlers.NewStandardHandler(dbStore)
 	userHandler := handlers.NewUserHandler(dbStore)
-	campaignHandler := handlers.NewCampaignHandler(dbStore) 
+	campaignHandler := handlers.NewCampaignHandler(dbStore)
 	authAPI := handlers.NewAuthAPI(dbStore)
-	systemIntegrationHandler := handlers.NewSystemIntegrationHandler(dbStore) 
+	systemIntegrationHandler := handlers.NewSystemIntegrationHandler(dbStore)
 	documentHandler := handlers.NewDocumentHandler(dbStore)
 
 	apiV1 := router.Group("/api")
@@ -87,24 +87,24 @@ func main() {
 	authRoutes := apiV1.Group("/auth")
 	{
 		authRoutes.POST("/login", authAPI.Login)
-		authRoutes.POST("/register", authAPI.Register) 
+		authRoutes.POST("/register", authAPI.Register)
 
 	}
 
-	api := apiV1.Group("")               
-	api.Use(middleware.AuthMiddleware()) 
+	api := apiV1.Group("")
+	api.Use(middleware.AuthMiddleware())
 	{
 		api.GET("/auth/me", authAPI.GetCurrentUser)
-		api.POST("/auth/change-password", authAPI.ChangePasswordHandler) 
+		api.POST("/auth/change-password", authAPI.ChangePasswordHandler)
 
-		api.POST("/tasks", taskHandler.CreateTaskHandler) 
-		api.GET("/tasks", taskHandler.GetTasksHandler)    
+		api.POST("/tasks", taskHandler.CreateTaskHandler)
+		api.GET("/tasks", taskHandler.GetTasksHandler)
 		api.GET("/tasks/:id", taskHandler.GetTaskHandler)
-		api.PUT("/tasks/:id", taskHandler.UpdateTaskHandler) 
+		api.PUT("/tasks/:id", taskHandler.UpdateTaskHandler)
 
 		api.POST("/requirements", requirementHandler.CreateRequirementHandler)
 		api.GET("/requirements", requirementHandler.GetRequirementsHandler)
-		api.GET("/requirements/:id", requirementHandler.GetRequirementByIDHandler) 
+		api.GET("/requirements/:id", requirementHandler.GetRequirementByIDHandler)
 		api.PUT("/requirements/:id", requirementHandler.UpdateRequirementHandler)
 
 		api.POST("/standards", standardHandler.CreateStandardHandler)
@@ -122,15 +122,17 @@ func main() {
 		api.GET("/campaigns/:id/requirements", campaignHandler.GetCampaignSelectedRequirementsHandler)
 		api.GET("/campaigns/:id/task-instances", campaignHandler.GetCampaignTaskInstancesHandler)
 
-		api.PUT("/campaign-task-instances/:id", campaignHandler.UpdateCampaignTaskInstanceHandler)  
-		api.GET("/campaign-task-instances/:id", campaignHandler.GetCampaignTaskInstanceByIDHandler) 
-		api.GET("/user-campaign-tasks", campaignHandler.GetUserCampaignTaskInstancesHandler)        
+		api.PUT("/campaign-task-instances/:id", campaignHandler.UpdateCampaignTaskInstanceHandler)
+		api.GET("/campaign-task-instances/:id", campaignHandler.GetCampaignTaskInstanceByIDHandler)
+		api.GET("/user-campaign-tasks", campaignHandler.GetUserCampaignTaskInstancesHandler)
 
 		api.POST("/campaign-task-instances/:id/comments", campaignHandler.AddCampaignTaskInstanceCommentHandler)
 		api.GET("/campaign-task-instances/:id/comments", campaignHandler.GetCampaignTaskInstanceCommentsHandler)
 		api.POST("/campaign-task-instances/:id/evidence", campaignHandler.UploadCampaignTaskInstanceEvidenceHandler)
 		api.GET("/campaign-task-instances/:id/evidence", campaignHandler.GetCampaignTaskInstanceEvidenceHandler)
 		api.POST("/campaign-task-instances/:id/copy-evidence", campaignHandler.CopyEvidenceHandler)
+
+		api.PUT("/evidence/:evidenceId/review", handlers.HandleReviewEvidence(dbStore))
 
 		api.POST("/campaign-task-instances/:id/execute", campaignHandler.ExecuteCampaignTaskInstanceHandler)
 		api.GET("/campaign-task-instances/:id/results", campaignHandler.GetCampaignTaskInstanceResultsHandler)

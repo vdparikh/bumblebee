@@ -11,6 +11,7 @@ import {
     updateCampaignTaskInstance,
     executeCampaignTaskInstance, copyEvidenceToCampaignTaskInstance, 
     getCampaignTaskInstanceResults, 
+    reviewEvidence, // Assumed to be added in services/api.js
 } from '../services/api'; 
 import Card from 'react-bootstrap/Card';
 import Alert from 'react-bootstrap/Alert';
@@ -26,7 +27,7 @@ import ListGroup from 'react-bootstrap/ListGroup';
 import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
 import Dropdown from 'react-bootstrap/Dropdown'; 
-import createDOMPurify from 'dompurify'
+import Modal from 'react-bootstrap/Modal';
 
 import {
     FaArrowLeft,
@@ -52,7 +53,8 @@ import {
     FaTerminal,
     FaPlus, 
     FaBookOpen, 
-
+    FaThumbsUp, // For Approve
+    FaThumbsDown, // For Reject
 } from 'react-icons/fa';
 import { ListGroupItem } from 'react-bootstrap';
 import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils'; 
@@ -78,7 +80,12 @@ function CampaignTaskInstanceDetail() {
     const [evidenceDescription, setEvidenceDescription] = useState(''); 
     const [showCopyEvidenceModal, setShowCopyEvidenceModal] = useState(false);
 
-    
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [evidenceToReview, setEvidenceToReview] = useState(null);
+    const [reviewComment, setReviewComment] = useState('');
+    const [reviewError, setReviewError] = useState('');
+
+
     const [executionResults, setExecutionResults] = useState([]); 
 
     const [loading, setLoading] = useState(true);
@@ -92,15 +99,21 @@ function CampaignTaskInstanceDetail() {
     const [lastExecutionAttempt, setLastExecutionAttempt] = useState(null); 
     const [loadingResults, setLoadingResults] = useState(false); 
 
+
     
     const canUpdateTaskStatus = useMemo(() => {
         if (!currentUser || !taskInstance) return false;
         return currentUser.role === 'admin' ||
             currentUser.role === 'auditor' ||
-            (currentUser.role === 'user' && taskInstance.assignee_user_id === currentUser.id);
+            (currentUser.role === 'user' && taskInstance.owners && taskInstance.owners.some(owner => owner.id === currentUser.id));
     }, [currentUser, taskInstance]);
 
-    
+    const canReviewEvidence = useMemo(() => {
+        if (!currentUser) return false;
+        return currentUser.role === 'admin' || currentUser.role === 'auditor'; // Or task owners, etc.
+    }, [currentUser, taskInstance]);
+
+
     const canManageEvidenceAndExecution = useMemo(() => {
         if (!currentUser || !taskInstance) return false;
         return currentUser.role === 'admin' ||
@@ -117,6 +130,9 @@ function CampaignTaskInstanceDetail() {
             case 'Failed': return 'danger';
             case 'Success': return 'success';
             case 'Error': return 'danger';
+            case 'Approved': return 'success'; // Review status
+            case 'Rejected': return 'danger';  // Review status
+            case 'Pending': return 'warning'; // Review status
             default: return 'secondary';
         }
     };
@@ -152,9 +168,10 @@ function CampaignTaskInstanceDetail() {
         setAddEvidenceError('');
 
         const evidencePayload = {
-            description: `Execution Result (Status: ${result.status}, Timestamp: ${new Date(result.timestamp).toLocaleString()})<br/><b>Output:</b><br/><pre>${result.output}</pre>`,
-            file_name: `Execution Result - ${new Date(result.timestamp).toISOString()}`, // More descriptive name
+            description: "<pre>" + result.output + "</pre>", 
+            file_name: `Execution Result - ${result.status} - ${new Date(result.timestamp).toISOString()}`,
             mime_type: "text/plain", // Store as plain text
+            // review_status: "Pending", // Ideally set by backend on creation
             file_path: null, // No file path for text evidence
         };
 
@@ -166,6 +183,34 @@ function CampaignTaskInstanceDetail() {
         } catch (err) {
             console.error("Error adding result as evidence:", err);
             setAddEvidenceError(`Failed to add result as evidence. ${err.response?.data?.error || 'Please try again.'}`);
+        }
+    };
+
+    const handleOpenRejectModal = (evidence) => {
+        setEvidenceToReview(evidence);
+        setReviewComment('');
+        setReviewError('');
+        setShowRejectModal(true);
+    };
+
+    const handleEvidenceReview = async (evidenceId, status, comment = '') => {
+        setReviewError('');
+        if (!canReviewEvidence) {
+            setReviewError("You do not have permission to review evidence.");
+            return;
+        }
+        try {
+            await reviewEvidence(evidenceId, { review_status: status, review_comments: comment });
+            // After successful API call, refresh the evidence list to get the updated data
+            const evidenceResponse = await getEvidenceByCampaignTaskInstanceId(instanceId);
+            setEvidenceList(Array.isArray(evidenceResponse.data) ? evidenceResponse.data : []);
+
+            setShowRejectModal(false); // Close modal if it was open
+            setEvidenceToReview(null);
+            // Optionally, show a success message
+        } catch (err) {
+            console.error("Error reviewing evidence:", err);
+            setReviewError(`Failed to review evidence. ${err.response?.data?.error || 'Please try again.'}`);
         }
     };
 
@@ -288,6 +333,7 @@ function CampaignTaskInstanceDetail() {
                 
                 evidencePayload.description = evidenceText; 
                 evidencePayload.mime_type = "text/plain";
+                // evidencePayload.review_status = "Pending"; // Ideally set by backend
                 response = await addGenericEvidenceToCampaignTaskInstance(instanceId, evidencePayload);
             }
             setEvidenceList(prevEvidence => [...prevEvidence, response.data]);
@@ -583,6 +629,9 @@ function CampaignTaskInstanceDetail() {
                                         let mainDisplay = evidence.file_name || evidence.id; 
                                         let showSeparateDescription = true;
 
+                                        const evidenceReviewStatus = evidence.review_status || "Pending";
+                                        const reviewedByUser = evidence.reviewed_by_user_id ? users.find(u => u.id === evidence.reviewed_by_user_id) : null;
+
                                         if (evidence.mimeType === 'text/url') {
                                             icon = <FaLink className="me-2 text-primary" />;
                                             const linkText = evidence.description || evidence.fileName || evidence.filePath;
@@ -602,23 +651,48 @@ function CampaignTaskInstanceDetail() {
                                         }
 
                                         return (
-                                            <Card className='mb-2' key={evidence.id}>
-                                                <Card.Header>{icon}
-                                                    {mainDisplay}
+                                            <Card className="mb-2" key={evidence.id}>
+                                                <Card.Header className="d-flex justify-content-between align-items-center">
+                                                    <div>{icon} {mainDisplay}</div> 
+                                                    <Badge bg={getStatusColor(evidenceReviewStatus)}>{evidenceReviewStatus}</Badge>
                                                 </Card.Header>
                                                 <Card.Body>
-
-                                                    
-
                                                     {showSeparateDescription && evidence.description && 
-                                                    
-                                                    
-                                                    // <p className="mb-0 mt-1"><small>Description: {evidence.description}</small></p>
-                                                    <div className="mb-0 mt-1" dangerouslySetInnerHTML={{ __html: evidence.description }} />
+                                                        <div className="mb-0 mt-1" dangerouslySetInnerHTML={{ __html: evidence.description }} />
                                                     }
+                                                    {evidence.review_status && evidence.review_status !== "Pending" && (
+                                                        <div className="mt-2 pt-2 border-top">
+                                                            <small className="text-muted">
+                                                                Reviewed {evidence.reviewed_at ? `at ${new Date(evidence.reviewed_at).toLocaleString()}` : ''}
+                                                                {reviewedByUser && <> by <UserDisplay userId={reviewedByUser.id} userName={reviewedByUser.name} allUsers={users} /></>}
+                                                            </small>
+                                                            {evidence.review_comments && <p className="mb-0 mt-1 fst-italic">Comment: {evidence.review_comments}</p>}
+                                                        </div>
+                                                    )}
                                                 </Card.Body>
                                                 <Card.Footer>
-                                                    <small className="text-muted d-block">Uploaded: {evidence.uploadedAt ? new Date(evidence.uploadedAt).toLocaleString() : 'N/A'}</small>
+                                                    <div className="d-flex justify-content-between align-items-center">
+                                                        <small className="text-muted">Uploaded: {evidence.uploadedAt ? new Date(evidence.uploadedAt).toLocaleString() : 'N/A'}</small>
+                                                        {canReviewEvidence && evidenceReviewStatus === "Pending" && (
+                                                            <div>
+                                                                <Button 
+                                                                    variant="outline-success" 
+                                                                    size="sm" 
+                                                                    className="me-2"
+                                                                    onClick={() => handleEvidenceReview(evidence.id, "Approved")}
+                                                                >
+                                                                    <FaThumbsUp /> Approve
+                                                                </Button>
+                                                                <Button 
+                                                                    variant="outline-danger" 
+                                                                    size="sm"
+                                                                    onClick={() => handleOpenRejectModal(evidence)}
+                                                                >
+                                                                    <FaThumbsDown /> Reject
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </Card.Footer>
                                             </Card>
                                         );
@@ -738,6 +812,29 @@ function CampaignTaskInstanceDetail() {
                     onCopySubmit={handleCopyEvidenceSubmit}
                 />
             )}
+
+            <Modal show={showRejectModal} onHide={() => setShowRejectModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Reject Evidence: {evidenceToReview?.file_name || evidenceToReview?.id}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {reviewError && <Alert variant="danger">{reviewError}</Alert>}
+                    <Form.Group controlId="reviewComment">
+                        <Form.Label>Rejection Reason (Required)</Form.Label>
+                        <Form.Control 
+                            as="textarea" 
+                            rows={3} 
+                            value={reviewComment} 
+                            onChange={(e) => setReviewComment(e.target.value)}
+                            placeholder="Provide a reason for rejecting this evidence."
+                        />
+                    </Form.Group>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowRejectModal(false)}>Cancel</Button>
+                    <Button variant="danger" onClick={() => handleEvidenceReview(evidenceToReview.id, "Rejected", reviewComment)} disabled={!reviewComment.trim()}>Confirm Rejection</Button>
+                </Modal.Footer>
+            </Modal>
 
         </div>
 

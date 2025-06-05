@@ -275,3 +275,5 @@ export const createDocument = (documentData) => apiClient.post('/documents', doc
 export const getDocumentById = (id) => apiClient.get(`/documents/${id}`);
 export const updateDocument = (id, documentData) => apiClient.put(`/documents/${id}`, documentData);
 export const deleteDocument = (id) => apiClient.delete(`/documents/${id}`);
+
+export const reviewEvidence = (evidenceId, reviewData) => apiClient.put(`/evidence/${evidenceId}/review`, reviewData);

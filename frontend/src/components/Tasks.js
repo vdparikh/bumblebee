@@ -736,85 +736,85 @@ function Tasks() {
                                 <Card.Header>
                                     <div className="d-flex align-items-start justify-content-between">
                                         <div className="d-flex justify-content-between">
-                                         {getCategoryIcon(task.category)}
-<div className='ms-2'>
-                                            <h5 className="mb-0">{task.title}</h5>
+                                            {getCategoryIcon(task.category)}
+                                            <div className='ms-2'>
+                                                <div><strong className="mb-0">{task.title}</strong></div>
 
-                                            <small className='text-muted'>
-                                                ID: {task.id}
-                                                {task.category && <> <span className="mx-1">|</span> <FaTag className="me-1" />Category: {task.category}</>}
-                                                {task.requirementId && requirement && (
-                                                    <>
-                                                        <span className="mx-1">|</span> <FaClipboardList className="me-1" />
-                                                        Requirement:
-                                                        <OverlayTrigger
-                                                            placement="top"
-                                                            delay={{ show: 250, hide: 400 }}
-                                                            overlay={
-                                                                <Popover id={`popover-req-details-${task.id}`}>
-                                                                    <Popover.Header as="h3">{requirement.controlIdReference}</Popover.Header>
-                                                                    <Popover.Body>
-                                                                        <strong>Standard:</strong> {standardName || 'N/A'}<br />
-                                                                        <strong>Text:</strong> {requirement.requirementText.substring(0, 150)}...
-                                                                    </Popover.Body>
-                                                                </Popover>
-                                                            }
-                                                        >
-                                                            <span className="text-primary" style={{ cursor: 'pointer' }}> {requirement.controlIdReference}</span>
-                                                        </OverlayTrigger>
-                                                        {standardName && ` (${standardName.split('(')[1]?.replace(')', '') || standardName})`}
-                                                    </>
-                                                )}
-                                                {task.defaultPriority && (
-                                                    <>
-                                                        <span className="mx-1">|</span> Priority:
+                                                <small className='text-muted'>
+                                                    ID: {task.id}
+                                                    {task.category && <> <span className="mx-1">|</span> <FaTag className="me-1" />Category: {task.category}</>}
+                                                    {task.requirementId && requirement && (
+                                                        <>
+                                                            <span className="mx-1">|</span> <FaClipboardList className="me-1" />
+                                                            Requirement:
+                                                            <OverlayTrigger
+                                                                placement="top"
+                                                                delay={{ show: 250, hide: 400 }}
+                                                                overlay={
+                                                                    <Popover id={`popover-req-details-${task.id}`}>
+                                                                        <Popover.Header as="h3">{requirement.controlIdReference}</Popover.Header>
+                                                                        <Popover.Body>
+                                                                            <strong>Standard:</strong> {standardName || 'N/A'}<br />
+                                                                            <strong>Text:</strong> {requirement.requirementText.substring(0, 150)}...
+                                                                        </Popover.Body>
+                                                                    </Popover>
+                                                                }
+                                                            >
+                                                                <span className="text-primary" style={{ cursor: 'pointer' }}> {requirement.controlIdReference}</span>
+                                                            </OverlayTrigger>
+                                                            {standardName && ` (${standardName.split('(')[1]?.replace(')', '') || standardName})`}
+                                                        </>
+                                                    )}
+                                                    {task.defaultPriority && (
+                                                        <>
+                                                            <span className="mx-1">|</span> Priority:
 
-                                                        <Badge bg={getPriorityBadgeColor(task.defaultPriority)}>{task.defaultPriority}</Badge>
-                                                    </>
-                                                )}
+                                                            <Badge bg={getPriorityBadgeColor(task.defaultPriority)}>{task.defaultPriority}</Badge>
+                                                        </>
+                                                    )}
 
-                                            </small>
-</div>
+                                                </small>
+                                            </div>
                                         </div>
-                                            <div><Button variant='outline-primary' className='btn-sm' onClick={() => handleEditTask(task)}>Edit Task</Button></div>
+                                        <div><Button variant='outline-primary' className='btn-sm' onClick={() => handleEditTask(task)}>Edit Task</Button></div>
 
                                     </div>
                                 </Card.Header>
                                 <Card.Body>
 
-                                            {task.description && <p className="">{task.description}</p>}
-                                            <small className="text-muted d-block mt-1">
-                                                
-                                                <div>
-                                                    Expected Evidence:
-                                                    {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 ?
-                                                        task.evidenceTypesExpected.map((evidenceType, index) => (
-                                                            <React.Fragment key={evidenceType}>
-                                                                <Badge variant="secondary" className='fw-normal bg-light text-dark me-1 ms-1'>{evidenceType}</Badge>
-                                                            </React.Fragment>
-                                                        )) : ' N/A'}
+                                    {task.description && <p className="">{task.description}</p>}
+                                    <small className="text-muted d-block mt-1">
 
-                                                </div>
-                                            </small>
+                                        <div>
+                                            Expected Evidence:
+                                            {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 ?
+                                                task.evidenceTypesExpected.map((evidenceType, index) => (
+                                                    <React.Fragment key={evidenceType}>
+                                                        <Badge variant="secondary" className='fw-normal bg-light text-dark me-1 ms-1'>{evidenceType}</Badge>
+                                                    </React.Fragment>
+                                                )) : ' N/A'}
+
+                                        </div>
+                                    </small>
 
                                 </Card.Body>
 
-                                                {task.checkType && (
-                                                <Card.Footer className='border-0'>
-                                                    <small><FaCogs className="me-1" /><strong>Automated Check:</strong> {task.checkType} on {task.target || 'N/A'}</small>
-                                                    <small className="d-block"><strong>Parameters:</strong> {task.parameters ? JSON.stringify(task.parameters) : 'None'}</small>
-                                                </Card.Footer>
-                                            )}
-                                            {task.linked_documents && task.linked_documents.length > 0 && (
-                                                <Card.Footer className='border-0'>
-                                                    <small><FaBookOpen className="me-1" /><strong>Linked Documents:</strong></small>
-                                                    <ul className="list-unstyled list-inline mb-0">
-                                                        {task.linked_documents.map(doc => (
-                                                            <li key={doc.id} className="list-inline-item"><Badge bg="light" text="dark" className="border me-1">{doc.name}</Badge></li>
-                                                        ))}
-                                                    </ul>
-                                                </Card.Footer>
-                                            )}
+                                {task.checkType && (
+                                    <Card.Footer className='border-0'>
+                                        <small><FaCogs className="me-1" /><strong>Automated Check:</strong> {task.checkType} on {task.target || 'N/A'}</small>
+                                        <small className="d-block"><strong>Parameters:</strong> {task.parameters ? JSON.stringify(task.parameters) : 'None'}</small>
+                                    </Card.Footer>
+                                )}
+                                {task.linked_documents && task.linked_documents.length > 0 && (
+                                    <Card.Footer className='border-0'>
+                                        <small><FaBookOpen className="me-1" /><strong>Linked Documents:</strong></small>
+                                        <ul className="list-unstyled list-inline mb-0">
+                                            {task.linked_documents.map(doc => (
+                                                <li key={doc.id} className="list-inline-item"><Badge bg="light" text="dark" className="border me-1">{doc.name}</Badge></li>
+                                            ))}
+                                        </ul>
+                                    </Card.Footer>
+                                )}
 
                             </Card>
                         );

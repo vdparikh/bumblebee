@@ -26,7 +26,7 @@ func (s *DBStore) GetDocumentByID(id string) (*models.Document, error) {
 	err := s.DB.Get(&doc, query, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil 
+			return nil, nil
 		}
 		log.Printf("Error getting document by ID from DB: %v", err)
 		return nil, fmt.Errorf("failed to get document by ID %s: %w", id, err)
@@ -84,5 +84,3 @@ func (s *DBStore) DeleteDocument(id string) error {
 	}
 	return nil
 }
-
-var _ Store = (*DBStore)(nil)

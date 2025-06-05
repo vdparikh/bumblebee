@@ -362,8 +362,8 @@ func (h *CampaignHandler) UploadCampaignTaskInstanceEvidenceHandler(c *gin.Conte
 	uploaderUserID := claims.UserID
 
 	evidence := models.Evidence{
-		CampaignTaskInstanceID: &instanceID,
-		UploaderUserID:         uploaderUserID,
+		CampaignTaskInstanceID: &instanceID,    // instanceID is already a string
+		UploadedByUserID:       uploaderUserID, // Correct field name
 	}
 
 	contentType := c.ContentType()
