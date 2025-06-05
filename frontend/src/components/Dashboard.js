@@ -287,7 +287,8 @@ function Dashboard() {
                                             </small>
                                             <small className="text-muted">{new Date(item.createdAt).toLocaleString()}</small>
                                         </div>
-                                        <p className="mb-0 mt-1 small" style={{whiteSpace: "pre-wrap"}}>{item.text}</p>
+                                        {/* <p className="mb-0 mt-1 small" style={{whiteSpace: "pre-wrap"}}>{item.text}</p> */}
+                                        <div className="mb-0 mt-1  small" dangerouslySetInnerHTML={{ __html: item.text }} />
                                     </ListGroup.Item>
                                 ))}
                             </ListGroup>

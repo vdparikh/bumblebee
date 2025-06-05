@@ -50,12 +50,13 @@ const TaskListItem = ({
 
                 {task.description && <p className="text-muted ">{task.description.substring(0, 120)}{task.description.length > 120 ? '...' : ''}</p>}
 
-            </Card.Body>
-            <ListGroup variant="flush" className="small">
-                {showOwnerInfo && owners && owners.length > 0 && (
-                    <ListGroup.Item className="d-flex align-items-center py-1 px-3">
+
+                <Row>
+                    <Col>
+                     {showOwnerInfo && owners && owners.length > 0 && (
+                    <div className="">
                         <FaUserShield className="me-2 opacity-75" />
-                        <span className="me-1 fw-medium">Owner(s):</span>
+                        <span className="me-1 fw-medium">Owner(s):</span> 
                         <span className="ms-1">
                             {owners.map((owner, index) => (
                                 <span className='me-1' key={owner.id}>
@@ -64,23 +65,33 @@ const TaskListItem = ({
                                 </span>
                             ))}
                         </span>
-                    </ListGroup.Item>
+                    </div>
                 )}
-                {showAssigneeInfo && (
-                    <ListGroup.Item className="d-flex align-items-center py-1 px-3">
+                    </Col>
+                    <Col>
+                     {showAssigneeInfo && (
+                    <div className="">
                         <FaUserCheck className="me-2 opacity-75" />
-                        <span className="me-1 fw-medium">Assignee:</span>
+                        <span className="me-1 fw-medium">Assignee:</span> 
                         <UserDisplay userId={task.assignee_user_id} userName={task.assignee_user_name} allUsers={allUsers} />
-                    </ListGroup.Item>
+                    </div>
                 )}
+                    </Col>
+                    <Col>
 
-                <ListGroup.Item className="d-flex align-items-center py-1 px-3">
+                <div className="">
                     <FaCalendarAlt className="me-2 opacity-75" />
-                    <span className="me-1 fw-medium">Due:</span>
+                    <span className="me-1 fw-medium">Due:</span> 
                     {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}
-                </ListGroup.Item>
+                </div>
+                    </Col>
+                </Row>
+               
+               
 
-            </ListGroup>
+
+                        </Card.Body>
+
             {(task.category || task.requirement_control_id_reference) && (
                 <Card.Footer className="bg-light py-1 px-3">
                     {task.category && (

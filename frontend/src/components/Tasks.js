@@ -22,8 +22,8 @@ import Accordion from 'react-bootstrap/Accordion';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Popover from 'react-bootstrap/Popover';
 import Tabs from 'react-bootstrap/Tabs';
-import Tab from 'react-bootstrap/Tab';
-import Select from 'react-select';
+import Tab from 'react-bootstrap/Tab'; // eslint-disable-next-line no-unused-vars
+import CreatableSelect from 'react-select/creatable';
 import Badge from 'react-bootstrap/Badge';
 import Dropdown from 'react-bootstrap/Dropdown';
 
@@ -54,7 +54,8 @@ import {
     FaBookOpen,
     FaShieldAlt,
     FaFileContract
-} from 'react-icons/fa';
+} from 'react-icons/fa'; // eslint-disable-next-line no-unused-vars
+import Select from 'react-select';
 import PageHeader from './common/PageHeader';
 
 function Tasks() {
@@ -145,6 +146,28 @@ function Tasks() {
             targetHelpText: "Select a Connected System. Its configuration should contain a 'host' field (e.g., {\"host\": \"server.example.com\"})."
 
         }
+        ,
+        'file_exists_check': {
+            label: 'File Exists Check',
+            parameters: [
+                { name: 'filePath', label: 'File Path on Target Host', type: 'text', required: true, placeholder: '/etc/passwd or C:\\Windows\\System32\\...' }
+            ],
+            targetType: 'connected_system',
+            targetLabel: 'Target Host (e.g., Server, Workstation)',
+            targetHelpText: "Select the Connected System representing the host where the file should exist. Its configuration should contain a 'host' field."
+        },
+        'database_query_check': {
+            label: 'Database Query Check',
+            parameters: [
+                { name: 'query', label: 'SQL Query', type: 'textarea', required: true, placeholder: 'SELECT COUNT(*) FROM users WHERE active = TRUE;', helpText: 'The SQL query to execute.' },
+                { name: 'expected_rows', label: 'Expected Number of Rows (Optional)', type: 'number', required: false, placeholder: '0', helpText: 'Optional. The expected number of rows returned by the query for a successful check.' }
+            ],
+            targetType: 'connected_system',
+            targetLabel: 'Target Database System',
+            targetHelpText: "Select the Connected System representing the database server. Its configuration should contain connection details (e.g., 'host', 'port', 'database', 'user', 'password')."
+        }
+
+
     };
 
     const fetchTasks = useCallback(async () => {
@@ -194,6 +217,7 @@ function Tasks() {
         try {
             const docsResponse = await getDocuments();
             setAllDocuments(Array.isArray(docsResponse.data) ? docsResponse.data : []);
+            console.log(docsResponse)
         } catch (err) {
             console.error("Error fetching documents for selection:", err);
             setError(prev => prev + ' Failed to fetch documents for selection.');
@@ -564,18 +588,18 @@ function Tasks() {
 
                                 <Row className="mb-3">
                                     <Form.Group as={Col} md="6" controlId="evidenceTypesExpected">
-                                        <Form.Label>Evidence Types Expected</Form.Label>
-                                        <Select
+                                        {/* <FloatingLabel label="Evidence Types Expected"> */}
+                                        <Form.Label><FaBookOpen className="me-1" />Evidence Types Expected</Form.Label>
+                                        <CreatableSelect
                                             isMulti
                                             options={evidenceTypeOptions}
                                             value={newEvidenceTypesExpected}
                                             onChange={setNewEvidenceTypesExpected}
                                             placeholder="Select or type to add evidence types..."
                                             isClearable
-                                            isSearchable
-
 
                                         />
+                                        {/* </FloatingLabel> */}
                                         <Form.Text muted>Specify the types of evidence typically required for this task.</Form.Text>
                                     </Form.Group>
                                     <Form.Group as={Col} md="6" controlId="defaultPriority">
@@ -604,7 +628,6 @@ function Tasks() {
                                         onChange={setNewLinkedDocumentIDs}
                                         placeholder="Select documents to link..."
                                         isClearable
-                                        isSearchable
                                     />
                                     <Form.Text muted>Associate relevant policies, procedures, or regulatory documents with this task.</Form.Text>
                                 </Form.Group>

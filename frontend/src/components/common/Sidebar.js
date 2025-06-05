@@ -11,7 +11,8 @@ import Button from 'react-bootstrap/Button';
 import {
     FaTachometerAlt, FaUser, FaBullhorn, FaColumns,
     FaTasks, FaFileContract, FaShieldAlt, FaBookOpen,
-    FaQuestionCircle, FaRegQuestionCircle
+    FaQuestionCircle, FaRegQuestionCircle,
+    FaCog
 } from 'react-icons/fa';
 import ThemeSwitcher from './ThemeSwitcher';
 
@@ -61,7 +62,6 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
                     >
                         <NavDropdown.Header className="text-center small text-muted">{currentUser?.name || 'User'}</NavDropdown.Header>
                         <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
-                        {currentUser?.role === 'admin' && <NavDropdown.Item as={NavLink} to="/admin-settings">Admin Settings</NavDropdown.Item>}
                         <NavDropdown.Divider />
                         <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
                     </NavDropdown>
@@ -72,7 +72,7 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
                             if (item.type === 'divider') {
                                 return (
                                     <Nav.Item key={item.key || `divider-${index}`} className='text-center mt-3 mb-1'>
-                                        <hr className="border-light border-opacity-25 w-75 mx-auto" />
+                                        <hr className="border-light  w-75 mx-auto" />
                                     </Nav.Item>
                                 );
                             }
@@ -90,19 +90,31 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
                                         </Tooltip>
                                     }
                                 >
-                                    <Nav.Link
+                                    <Button
                                         as={NavLink}
                                         to={item.to}
+                                        size='sm'
+                                        variant='transparent'
                                         eventKey={item.eventKey}
-                                        className="d-flex justify-content-center align-items-center p-3 mb-1"
+                                        className="d-flex justify-content-center align-items-center  p-3 border-0"
                                         title={item.label}
                                         isActive={item.activeCheck ? item.activeCheck : undefined}
                                     >
                                         {item.icon}
-                                    </Nav.Link>
+                                    </Button>
                                 </OverlayTrigger>
                             );
                         })}
+
+                        {currentUser?.role === 'admin' && <Button as={NavLink} 
+                                        className="d-flex justify-content-center align-items-center  p-3  border-0"
+                         size='sm'
+                              variant='transparent'
+                        title="Settings"
+                         to="/admin-settings"
+                        isActive={location.pathname.startsWith('/settings') ? location.pathname.startsWith('/settings') : undefined}> <FaCog size="1.2em" />
+                                    </Button>}
+
                 </div>
             </Nav>
 
@@ -121,7 +133,7 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
                         variant=""
                         size="sm"
                         onClick={() => setShowDetailsPanel(!showDetailsPanel)}
-                        className="d-flex justify-content-center align-items-center text-white-50 p-3 w-100 border-0"
+                        className="d-flex justify-content-center align-items-center  p-3 w-100 border-0"
                         title={showDetailsPanel ? "Hide Help Panel" : "Show Help Panel"}
                     >
                         {showDetailsPanel ? <FaQuestionCircle size="1.2em" /> : <FaRegQuestionCircle size="1.2em" />}

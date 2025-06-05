@@ -23,7 +23,7 @@ function AdminSettingsPage() {
 
     return (
         <Container fluid className="p-3">
-            <h2 className="mb-4">Admin Settings</h2>
+            <h2 className="mb-4">Settings</h2>
             <Row>
                 <Col md={3}>
                     

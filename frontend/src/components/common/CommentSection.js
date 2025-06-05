@@ -19,7 +19,8 @@ const CommentItem = ({ comment, allUsers }) => {
                         <UserDisplay userId={comment.userId} userName={comment.userName} allUsers={allUsers} />
                         <small className="text-muted">{new Date(comment.createdAt).toLocaleString()}</small>
                     </div>
-                    <p className="mb-0 mt-1  comment-text">{comment.text}</p>
+                    {/* <p className="mb-0 mt-1  comment-text">{comment.text}</p> */}
+                    <div className="mb-0 mt-1  comment-text" dangerouslySetInnerHTML={{ __html: comment.text }} />
                 </Col>
             </Row>
         </ListGroup.Item>

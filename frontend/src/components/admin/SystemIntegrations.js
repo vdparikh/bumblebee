@@ -12,6 +12,7 @@ const systemTypeOptions = [
     { value: 'nessus', label: 'Nessus Vulnerability Scanner' },
     { value: 'qualys', label: 'Qualys Guard' },
     { value: 'generic_api', label: 'Generic API Endpoint' },
+    { value: 'database', label: 'Database (PostgreSQL, MySQL, etc.)' },
     { value: 'other', label: 'Other' },
 ];
 

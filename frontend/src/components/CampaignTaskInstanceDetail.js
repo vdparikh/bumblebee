@@ -26,6 +26,8 @@ import ListGroup from 'react-bootstrap/ListGroup';
 import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
 import Dropdown from 'react-bootstrap/Dropdown'; 
+import createDOMPurify from 'dompurify'
+
 import {
     FaArrowLeft,
     FaClipboardCheck,
@@ -142,6 +144,30 @@ function CampaignTaskInstanceDetail() {
         }
     };
 
+    const handleAddResultAsEvidence = async (result) => {
+        if (!instanceId || !result) {
+            setAddEvidenceError("Cannot add result as evidence: Missing task instance ID or result data.");
+            return;
+        }
+        setAddEvidenceError('');
+
+        const evidencePayload = {
+            description: `Execution Result (Status: ${result.status}, Timestamp: ${new Date(result.timestamp).toLocaleString()})<br/><b>Output:</b><br/><pre>${result.output}</pre>`,
+            file_name: `Execution Result - ${new Date(result.timestamp).toISOString()}`, // More descriptive name
+            mime_type: "text/plain", // Store as plain text
+            file_path: null, // No file path for text evidence
+        };
+
+        try {
+            await addGenericEvidenceToCampaignTaskInstance(instanceId, evidencePayload);
+            // Refresh the evidence list after adding
+            const evidenceResponse = await getEvidenceByCampaignTaskInstanceId(instanceId);
+            setEvidenceList(Array.isArray(evidenceResponse.data) ? evidenceResponse.data : []);
+        } catch (err) {
+            console.error("Error adding result as evidence:", err);
+            setAddEvidenceError(`Failed to add result as evidence. ${err.response?.data?.error || 'Please try again.'}`);
+        }
+    };
 
     const fetchData = useCallback(async () => {
         if (!instanceId) {
@@ -564,7 +590,11 @@ function CampaignTaskInstanceDetail() {
                                             showSeparateDescription = !evidence.description; 
                                         } else if (evidence.mimeType === 'text/plain') {
                                             icon = <FaAlignLeft className="me-2 text-info" />;
-                                            mainDisplay = <span style={{ whiteSpace: 'pre-wrap' }}>{evidence.description || 'No text content'}</span>;
+                                            mainDisplay = (
+                                                <pre className="bg-light p-2 rounded mt-1 mb-0" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.9em' }}>
+                                                    {evidence.description || 'No text content'}
+                                                </pre>
+                                            );
                                             showSeparateDescription = false;
                                         } else if (evidence.filePath) { 
                                             
@@ -577,10 +607,18 @@ function CampaignTaskInstanceDetail() {
                                                     {mainDisplay}
                                                 </Card.Header>
                                                 <Card.Body>
-                                                    {showSeparateDescription && evidence.description && <p className="mb-0 mt-1"><small>Description: {evidence.description}</small></p>}
+
+                                                    
+
+                                                    {showSeparateDescription && evidence.description && 
+                                                    
+                                                    
+                                                    // <p className="mb-0 mt-1"><small>Description: {evidence.description}</small></p>
+                                                    <div className="mb-0 mt-1" dangerouslySetInnerHTML={{ __html: evidence.description }} />
+                                                    }
                                                 </Card.Body>
                                                 <Card.Footer>
-                                                    <small className="text-muted d-block">Uploaded: {evidence.uploaded_at ? new Date(evidence.uploaded_at).toLocaleString() : 'N/A'}</small>
+                                                    <small className="text-muted d-block">Uploaded: {evidence.uploadedAt ? new Date(evidence.uploadedAt).toLocaleString() : 'N/A'}</small>
                                                 </Card.Footer>
                                             </Card>
                                         );
@@ -639,24 +677,42 @@ function CampaignTaskInstanceDetail() {
                                 <Button onClick={fetchInstanceResults} disabled={loadingResults} className="mb-3">
                                     {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1" /> Loading...</> : "Refresh Results"}
                                 </Button>
+
+                                </Card.Body>
                                 {executionResults.length > 0 ? (
                                     <ListGroup variant="flush">
                                         {executionResults.map((res, index) => (
-                                            <ListGroup.Item key={res.id}>
-                                                <small><strong>Timestamp:</strong> {new Date(res.timestamp).toLocaleString()}</small><br />
-                                                <small><strong>Status:</strong> <Badge bg={getStatusColor(res.status)}>{res.status}</Badge></small><br />
-                                                {res.executedByUser && res.executedByUser.name && (
-                                                    <small>
-                                                        <strong>Executed By:</strong> <UserDisplay userId={res.executedByUserId} userName={res.executedByUser.name} allUsers={users} />
-                                                    </small>
+                                            <ListGroup.Item key={res.id} >
+                                                <div>
+                                                    <div className="d-flex justify-content-between align-items-start">
+                                                    
+                                                    <div><small><strong>Timestamp:</strong> {new Date(res.timestamp).toLocaleString()}</small><br />
+                                                    <small><strong>Status:</strong> <Badge bg={getStatusColor(res.status)}>{res.status}</Badge></small>
+                                                    {res.executedByUser && res.executedByUser.name && (
+                                                        <small className='ms-1 ps-1 border-start'>
+                                                            <strong>Executed By:</strong> <UserDisplay userId={res.executedByUserId} userName={res.executedByUser.name} allUsers={users} />
+                                                        </small>
+                                                    )}
+                                                    </div>
+                                                    <div>
+                                                                                                        {canManageEvidenceAndExecution && (
+                                                    <Button variant="outline-secondary" size="sm" onClick={() => handleAddResultAsEvidence(res)} title="Add as Evidence">
+                                                        <FaPlus className="me-1" /> Evidence
+                                                    </Button>
                                                 )}
-                                                <small><strong>Output:</strong></small>
-                                                <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>{res.output}</pre>
+
+                                                        </div></div>
+                                                    <small className="d-block mt-1"><strong>Output:</strong></small>
+                                                    <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>{res.output}</pre>
+                                                    
+                                                </div>
+                                                {/* <small><strong>Output:</strong></small>
+                                                <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>{res.output}</pre> */}
                                             </ListGroup.Item>
                                         ))}
                                     </ListGroup>
-                                ) : <p className="text-muted">No execution results available for this task instance. Execute the task or refresh if recently executed.</p>}
-                            </Card.Body></Card>
+                                ) : <Card.Footer><p className="text-muted">No execution results available for this task instance. Execute the task or refresh if recently executed.</p></Card.Footer>}
+</Card>
                         </Tab>
                     </Tabs>
                 </Col>

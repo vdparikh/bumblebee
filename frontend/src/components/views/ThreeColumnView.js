@@ -161,7 +161,7 @@ function ThreeColumnView() {
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
                             <span><FaShieldAlt className="me-2" />Standards ({standards.length})</span>
                         </Card.Header>
-                        <ListGroup variant="flush" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+                        <ListGroup variant="flush" style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto' }}>
                             {loadingStandards ? (
                                 <ListGroup.Item className="text-center"><Spinner animation="border" size="sm" /> Loading Standards...</ListGroup.Item>
                             ) : standards.length > 0 ? (
@@ -192,7 +192,7 @@ function ThreeColumnView() {
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
                             <span><FaFileContract className="me-2" />Requirements ({requirements.length})</span>
                         </Card.Header>
-                        <ListGroup variant="flush" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+                        <ListGroup variant="flush" style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto' }}>
                             {!selectedStandardId ? (
                                 <ListGroup.Item>Select a standard to see its requirements.</ListGroup.Item>
                             ) : loadingRequirements ? (
@@ -227,7 +227,7 @@ function ThreeColumnView() {
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
                             <span><FaTasks className="me-2" />Tasks ({tasks.length})</span>
                         </Card.Header>
-                        <ListGroup variant="flush" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+                        <ListGroup variant="flush" style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto' }}>
                            {loadingTasks ? (
                                 <ListGroup.Item className="text-center"><Spinner animation="border" size="sm" /> Loading Tasks...</ListGroup.Item>
                             ) : !selectedStandardId ? ( 

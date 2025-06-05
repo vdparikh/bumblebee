@@ -8,6 +8,13 @@ import (
 	"github.com/vdparikh/compliance-automation/backend/store"
 )
 
+// Execution Status Constants
+const (
+	StatusSuccess = "Success"
+	StatusFailed  = "Failed"
+	StatusError   = "Error"
+)
+
 type ExecutionResult struct {
 	Status string
 	Output string
@@ -43,4 +50,6 @@ func InitExecutors() {
 	RegisterExecutor("http_get_check", &HTTPGetCheckExecutor{})
 	RegisterExecutor("script_run_check", &ScriptRunCheckExecutor{})
 	RegisterExecutor("port_scan_check", &PortScanCheckExecutor{})
+	RegisterExecutor("file_exists_check", &FileExistsCheckExecutor{})
+	RegisterExecutor("database_query_check", &DatabaseQueryCheckExecutor{})
 }

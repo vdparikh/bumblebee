@@ -55,6 +55,20 @@ code {
   --bs-dropdown-link-active-bg: var(--bs-primary);
 }
 
+[data-bs-theme="dark"]:root {
+  --bs-primary: #ffffff;
+  --bs-link-color: var(--bs-primary)!important;
+  --bs-body-color: #fff!important;
+}
+
+[data-bs-theme="dark"] .badge.bg-dark, [data-bs-theme="dark"] .badge.bg-secondary {
+color: #000!important;
+}
+
+[data-bs-theme="dark"] .list-group-item.active, [data-bs-theme="dark"] .list-group-item.active .text-muted {
+  color: #000!important;
+}
+
 h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   font-family: var(--custom-header-font);
   font-weight: 700;
@@ -95,6 +109,9 @@ h3 {
   border: 0px;
 }
 
+.card .card-body {
+  /* padding: 0px 15px; */
+}
 .card .card-footer {
   background-color: transparent; /* Removed !important, default is transparent */
   padding: 15px 15px!important; /* Removed !important */
@@ -107,6 +124,7 @@ a {
 a:hover {
   color: var(--bs-link-hover-color);
 }
+
 
 [data-bs-theme="dark"] .card .card-header {
   background-color: var(--bs-dark-bg-subtle)!important;
@@ -151,16 +169,32 @@ a:hover {
 }
 
 /* Sidebar Specific Styles */
-.navbar-brand, .sidebar .nav-link svg {
-  margin-right: 5px !important; /* Consider if !important is truly needed */
-  color: rgba(var(--bs-primary-rgb), 0.5) 
+
+.sidebar { 
+  background-color: var(--bs-primary-light);
+  /* color: var(--bs-light);  */
 }
 
-.navbar-brand,  .sidebar .nav-link.active svg {
-  color: var(--bs-primary); 
+[data-bs-theme="dark"] .sidebar { 
+  background-color: var(--bs-primary-dark);
+  /* color: var(--bs-light);  */
+}
+.sidebar .nav-pills .btn {
+  margin: 2px 5px;
 }
 
-.nav-pills .nav-link {
+.sidebar .nav-pills .btn.active {
+  background-color: #fff;
+}
+[data-bs-theme="dark"] .sidebar .nav-pills .btn.active {
+  background-color: #000;
+}
+
+[data-bs-theme="dark"] .list-group-item {
+  border-color: #000!important;
+}
+
+/* .nav-pills .nav-link {
   color: var(--bs-primary) !important; 
   border-radius: 0rem; 
   transition: background-color 0.15s ease-in-out;
@@ -180,10 +214,10 @@ a:hover {
     color: #000!important;
 }
 
-.sidebar { 
-  background-color: var(--bs-primary-light);
-  /* color: var(--bs-light);  */
-}
+[data-bs-theme="dark"] .sidebar .nav-pills .nav-link { 
+  color: var(--bs-primary-light);
+} */
+
 
 .nav-tabs .nav-link {
   color: var(--bs-body-color); 
@@ -242,7 +276,11 @@ a:hover {
 
 /* Specific Component Styling */
 .details-pane, .topnav {
-  background-color: #fff!important;
+  background-color: var(--bs-light)!important;
+}
+
+[data-bs-theme="dark"] .details-pane, .topnav {
+  background-color: var(--bs-dark)!important;
 }
 
 
