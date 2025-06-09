@@ -49,6 +49,17 @@ type Store interface {
 	GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTaskInstance, error)
 	UpdateCampaignTaskInstance(cti *models.CampaignTaskInstance) error
 	GetCampaignTaskInstancesForUser(userID string, userField string, campaignStatus string) ([]models.CampaignTaskInstance, error)
+
+	// Team Management
+	CreateTeam(team *models.Team) (string, error)
+	GetTeamByID(teamID string) (*models.Team, error)
+	GetTeams() ([]models.Team, error)
+	UpdateTeam(team *models.Team) error
+	DeleteTeam(teamID string) error
+	AddUserToTeam(teamID string, userID string, roleInTeam string) error
+	RemoveUserFromTeam(teamID string, userID string) error
+	GetTeamMembers(teamID string) ([]models.User, error)
+
 	GetUserActivityFeed(userID string, limit, offset int) ([]models.Comment, error)
 	CopyEvidenceToTaskInstance(targetInstanceID string, sourceEvidenceIDs []string, uploaderUserID string) error
 }
@@ -1023,9 +1034,9 @@ func (s *DBStore) CreateCampaignTaskInstance(tx *sql.Tx, cti *models.CampaignTas
 		INSERT INTO campaign_task_instances (
 			id, campaign_id, master_task_id, campaign_selected_requirement_id, title, description, category, 
 			assignee_user_id, status, due_date, created_at, updated_at, 
-			check_type, target, parameters
+			check_type, target, parameters, owner_team_id, assignee_team_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 	`
 
 	var execFunc func(query string, args ...interface{}) (sql.Result, error)
@@ -1035,7 +1046,9 @@ func (s *DBStore) CreateCampaignTaskInstance(tx *sql.Tx, cti *models.CampaignTas
 		execFunc = s.DB.Exec
 	}
 
-	_, err = execFunc(query, cti.ID, cti.CampaignID, cti.MasterTaskID, cti.CampaignSelectedRequirementID, cti.Title, cti.Description, cti.Category, cti.AssigneeUserID, cti.Status, cti.DueDate, cti.CreatedAt, cti.UpdatedAt, cti.CheckType, cti.Target, paramsJSON)
+	_, err = execFunc(query, cti.ID, cti.CampaignID, cti.MasterTaskID, cti.CampaignSelectedRequirementID,
+		cti.Title, cti.Description, cti.Category, cti.AssigneeUserID, cti.Status, cti.DueDate,
+		cti.CreatedAt, cti.UpdatedAt, cti.CheckType, cti.Target, paramsJSON, cti.OwnerTeamID, cti.AssigneeTeamID)
 
 	if err != nil {
 		return "", fmt.Errorf("failed to insert campaign task instance: %w", err)
@@ -1054,17 +1067,21 @@ func (s *DBStore) GetCampaignTaskInstances(campaignID string, userID string, use
 		SELECT 
 			cti.id, cti.campaign_id, cti.master_task_id, cti.campaign_selected_requirement_id, 
 			cti.title, cti.description, cti.category, cti.assignee_user_id, 
-			cti.status, cti.due_date, cti.created_at, cti.updated_at, 
-			cti.check_type, cti.target, cti.parameters,
+			cti.owner_team_id, cti.assignee_team_id, cti.status, cti.due_date, cti.created_at, cti.updated_at,
+			cti.check_type, cti.target,
 			assignee.name as assignee_user_name,
 			req.control_id_reference as requirement_control_id_reference,
 			req.requirement_text as requirement_text,
-			std.name as requirement_standard_name
+			std.name as requirement_standard_name,
+			owner_team.id AS "ownerteam.id", owner_team.name AS "ownerteam.name",
+			assignee_team.id AS "assigneeteam.id", assignee_team.name AS "assigneeteam.name"
 		FROM campaign_task_instances cti
 		LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
 		LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
 		LEFT JOIN requirements req ON csr.requirement_id = req.id
 		LEFT JOIN compliance_standards std ON req.standard_id = std.id
+		LEFT JOIN teams owner_team ON cti.owner_team_id = owner_team.id
+		LEFT JOIN teams assignee_team ON cti.assignee_team_id = assignee_team.id
 		WHERE cti.campaign_id = $1
 	`
 	args := []interface{}{campaignID}
@@ -1072,55 +1089,54 @@ func (s *DBStore) GetCampaignTaskInstances(campaignID string, userID string, use
 
 	if userID != "" {
 		if userField == "assignee" {
-			fullQuery = baseQuery + " AND cti.assignee_user_id = $2 ORDER BY cti.created_at DESC"
+			fullQuery = baseQuery + " AND cti.assignee_user_id = $2 ORDER BY cti.due_date ASC NULLS LAST, cti.created_at DESC"
 			args = append(args, userID)
 		} else {
-			fullQuery = baseQuery + " ORDER BY cti.created_at DESC"
+			fullQuery = baseQuery + " ORDER BY cti.due_date ASC NULLS LAST, cti.created_at DESC"
 		}
 	} else {
-		fullQuery = baseQuery + " ORDER BY cti.created_at DESC"
+		fullQuery = baseQuery + " ORDER BY cti.due_date ASC NULLS LAST, cti.created_at DESC"
 	}
 
-	rows, err := s.DB.Query(fullQuery, args...)
+	fmt.Println(fullQuery)
+	var instances []models.CampaignTaskInstance
+	err := s.DB.Select(&instances, fullQuery, args...)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return []models.CampaignTaskInstance{}, nil
+		}
 		return nil, fmt.Errorf("failed to query campaign task instances for campaign %s: %w", campaignID, err)
 	}
-	defer rows.Close()
 
-	var instances []models.CampaignTaskInstance
-	for rows.Next() {
-		var i models.CampaignTaskInstance
-		var paramsJSON []byte
-		if err := rows.Scan(
-			&i.ID, &i.CampaignID, &i.MasterTaskID, &i.CampaignSelectedRequirementID,
-			&i.Title, &i.Description, &i.Category, &i.AssigneeUserID,
-			&i.Status, &i.DueDate, &i.CreatedAt, &i.UpdatedAt,
-			&i.CheckType, &i.Target, &paramsJSON,
-			&i.AssigneeUserName, &i.RequirementControlIDReference, &i.RequirementText, &i.RequirementStandardName,
-		); err != nil {
-			return nil, fmt.Errorf("failed to scan campaign task instance row: %w", err)
-		}
-		if len(paramsJSON) > 0 && string(paramsJSON) != "null" {
-			if err := json.Unmarshal(paramsJSON, &i.Parameters); err != nil {
-				log.Printf("Warning: failed to unmarshal parameters for CTI %s: %v", i.ID, err)
-				i.Parameters = make(map[string]interface{})
-			}
-		} else {
-			i.Parameters = make(map[string]interface{})
-		}
-		owners, err := s.getCampaignTaskInstanceOwners(i.ID)
+	// Post-process to fetch owners for each instance
+	// This is done separately as sqlx.Select doesn't easily handle one-to-many for nested slices like Owners.
+	for i := range instances {
+		// Unmarshal Parameters from JSONB to ParametersMap
+		// if instances[i].Parameters != nil && len(instances[i].Parameters) > 0 && string(instances[i].Parameters) != "null" {
+		// 	var tempMap map[string]interface{}
+		// 	if err := json.Unmarshal(instances[i].Parameters, &tempMap); err != nil {
+		// 		log.Printf("Warning: failed to unmarshal parameters (JSONB) for CTI %s: %v", instances[i].ID, err)
+		// 		instances[i].ParametersMap = make(map[string]interface{})
+		// 	} else {
+		// 		instances[i].ParametersMap = tempMap
+		// 	}
+		// } else {
+		// 	instances[i].ParametersMap = make(map[string]interface{})
+		// }
+
+		owners, err := s.getCampaignTaskInstanceOwners(instances[i].ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch owners for CTI %s: %w", i.ID, err)
+			return nil, fmt.Errorf("failed to fetch owners for CTI %s: %w", instances[i].ID, err)
 		}
-		i.Owners = owners
-		instances = append(instances, i)
+		instances[i].Owners = owners
 	}
-	return instances, rows.Err()
+	return instances, nil
 }
 
 func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTaskInstance, error) {
 	query := `SELECT cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id,
-	cti.campaign_selected_requirement_id, cti.title, cti.description, cti.category, cti.assignee_user_id, cti.last_checked_at, cti.last_check_status,
+	cti.campaign_selected_requirement_id, cti.title, cti.description, cti.category, 
+	cti.assignee_user_id, cti.owner_team_id, cti.assignee_team_id, cti.last_checked_at, cti.last_check_status,
     cti.status, cti.due_date, cti.created_at, cti.updated_at,
     mt.check_type, mt.target, mt.parameters,
     assignee.name as assignee_user_name,
@@ -1128,27 +1144,40 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
     req.requirement_text as requirement_text,
     std.name as requirement_standard_name,
     mt.default_priority,
-    mt.evidence_types_expected
+    mt.evidence_types_expected,
+	owner_team.id, owner_team.name,
+	assignee_team.id, assignee_team.name 
     FROM campaign_task_instances cti
     LEFT JOIN campaigns c ON cti.campaign_id = c.id
     LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
     LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
     LEFT JOIN requirements req ON csr.requirement_id = req.id
     LEFT JOIN compliance_standards std ON req.standard_id = std.id
-    LEFT JOIN tasks mt ON cti.master_task_id = mt.id 
+    LEFT JOIN tasks mt ON cti.master_task_id = mt.id
+	LEFT JOIN teams owner_team ON cti.owner_team_id = owner_team.id
+	LEFT JOIN teams assignee_team ON cti.assignee_team_id = assignee_team.id
     WHERE cti.id = $1
 `
 
+	fmt.Println(query)
+
 	row := s.DB.QueryRow(query, ctiID)
 	var cti models.CampaignTaskInstance
+	// Initialize nested structs that will have their fields scanned into
+	cti.OwnerTeam = &models.TeamBasicInfo{}
+	cti.AssigneeTeam = &models.TeamBasicInfo{}
+
 	var paramsJSON []byte
 	if err := row.Scan(
 		&cti.ID, &cti.CampaignID, &cti.CampaignName, &cti.MasterTaskID, &cti.CampaignSelectedRequirementID,
-		&cti.Title, &cti.Description, &cti.Category, &cti.AssigneeUserID, &cti.LastCheckedAt, &cti.LastCheckStatus,
+		&cti.Title, &cti.Description, &cti.Category, &cti.AssigneeUserID, &cti.OwnerTeamID, &cti.AssigneeTeamID,
+		&cti.LastCheckedAt, &cti.LastCheckStatus,
 		&cti.Status, &cti.DueDate, &cti.CreatedAt, &cti.UpdatedAt,
 		&cti.CheckType, &cti.Target, &paramsJSON,
 		&cti.AssigneeUserName, &cti.RequirementControlIDReference, &cti.RequirementText, &cti.RequirementStandardName,
-		&cti.DefaultPriority, pq.Array(&cti.EvidenceTypesExpected),
+		&cti.DefaultPriority, pq.Array(&cti.EvidenceTypesExpected), // pq.Array handles NULL arrays
+		&cti.OwnerTeam.ID, &cti.OwnerTeam.Name, // Scan into initialized struct fields
+		&cti.AssigneeTeam.ID, &cti.AssigneeTeam.Name, // Scan into initialized struct fields
 	); err != nil {
 		return nil, fmt.Errorf("failed to scan campaign task instance by ID %s: %w", ctiID, err)
 	}
@@ -1160,6 +1189,14 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
 		}
 	} else {
 		cti.Parameters = make(map[string]interface{})
+	}
+
+	// If team IDs are nil after scan, it means no team was joined. Set the team struct to nil.
+	if cti.OwnerTeam != nil && cti.OwnerTeam.ID == nil {
+		cti.OwnerTeam = nil
+	}
+	if cti.AssigneeTeam != nil && cti.AssigneeTeam.ID == nil {
+		cti.AssigneeTeam = nil
 	}
 
 	if cti.MasterTaskID != nil && *cti.MasterTaskID != "" {
@@ -1196,12 +1233,12 @@ func (s *DBStore) UpdateCampaignTaskInstance(cti *models.CampaignTaskInstance) e
 	ctiQuery := `
 		UPDATE campaign_task_instances
 		SET title = $2, description = $3, category = $4, 
-		    assignee_user_id = $5, status = $6, due_date = $7, updated_at = $8,
-		    check_type = $9, target = $10, parameters = $11
+		    assignee_user_id = $5, owner_team_id = $6, assignee_team_id = $7, status = $8, due_date = $9, updated_at = $10,
+		    check_type = $11, target = $12, parameters = $13
 		WHERE id = $1
 	`
 	_, err = tx.Exec(ctiQuery, cti.ID, cti.Title, cti.Description, cti.Category,
-		cti.AssigneeUserID, cti.Status, cti.DueDate, cti.UpdatedAt,
+		cti.AssigneeUserID, cti.OwnerTeamID, cti.AssigneeTeamID, cti.Status, cti.DueDate, cti.UpdatedAt,
 		cti.CheckType, cti.Target, paramsJSON)
 
 	if err != nil {
@@ -1256,14 +1293,15 @@ func (s *DBStore) updateCampaignTaskInstanceOwners(tx *sql.Tx, ctiID string, own
 }
 
 func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField string, campaignStatus string) ([]models.CampaignTaskInstance, error) {
-	if userID == "" || (userField != "owner" && userField != "assignee") {
+	if userID == "" || (userField != "owner" && userField != "assignee" && userField != "owner_team" && userField != "assignee_team") {
 		return nil, fmt.Errorf("userID and a valid userField ('owner' or 'assignee') are required")
 	}
 	var args []interface{}
+
 	query := `
 		SELECT 
 			cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id, cti.campaign_selected_requirement_id, 
-			cti.title, cti.description, cti.category, cti.assignee_user_id, 
+			cti.title, cti.description, cti.category, cti.assignee_user_id, cti.owner_team_id, cti.assignee_team_id,
 			cti.status, cti.due_date, cti.created_at, cti.updated_at, 
 			cti.check_type, cti.target, cti.parameters,
 			assignee.name as assignee_user_name,
@@ -1271,7 +1309,9 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 			req.requirement_text as requirement_text,
 			std.name as requirement_standard_name,
 			mt.default_priority,
-			mt.evidence_types_expected
+			mt.evidence_types_expected,
+			owner_team.id AS "ownerteam.id", owner_team.name AS "ownerteam.name",
+			assignee_team.id AS "assigneeteam.id", assignee_team.name AS "assigneeteam.name"
 		FROM campaign_task_instances cti
 		LEFT JOIN campaigns c ON cti.campaign_id = c.id
 		LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
@@ -1279,17 +1319,25 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 		LEFT JOIN requirements req ON csr.requirement_id = req.id
 		LEFT JOIN compliance_standards std ON req.standard_id = std.id
 		LEFT JOIN tasks mt ON cti.master_task_id = mt.id
+		LEFT JOIN teams owner_team ON cti.owner_team_id = owner_team.id
+		LEFT JOIN teams assignee_team ON cti.assignee_team_id = assignee_team.id
     	`
 	conditions := []string{}
 	paramIndex := 1
 
 	if userField == "owner" {
-		conditions = append(conditions, fmt.Sprintf("cti.id IN (SELECT cto.campaign_task_instance_id FROM campaign_task_instance_owners cto WHERE cto.user_id = $%d)", paramIndex))
-	} else {
-		if userField != "assignee" {
-			return nil, fmt.Errorf("invalid userField: %s", userField)
-		}
+		conditions = append(conditions, fmt.Sprintf(
+			"(EXISTS (SELECT 1 FROM campaign_task_instance_owners cto WHERE cto.campaign_task_instance_id = cti.id AND cto.user_id = $%d) OR EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = cti.owner_team_id AND tm.user_id = $%d))",
+			paramIndex, paramIndex,
+		))
+	} else if userField == "assignee" {
 		conditions = append(conditions, fmt.Sprintf("cti.assignee_user_id = $%d", paramIndex))
+	} else if userField == "owner_team" {
+		conditions = append(conditions, fmt.Sprintf("EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = cti.owner_team_id AND tm.user_id = $%d)", paramIndex))
+	} else if userField == "assignee_team" {
+		conditions = append(conditions, fmt.Sprintf("EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = cti.assignee_team_id AND tm.user_id = $%d)", paramIndex))
+	} else {
+		return nil, fmt.Errorf("invalid userField: %s", userField)
 	}
 	args = append(args, userID)
 	paramIndex++
@@ -1312,16 +1360,23 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 	defer rows.Close()
 
 	var instances []models.CampaignTaskInstance
+
 	for rows.Next() {
 		var i models.CampaignTaskInstance
+
+		i.OwnerTeam = &models.TeamBasicInfo{}
+		i.AssigneeTeam = &models.TeamBasicInfo{}
+
 		var paramsJSON []byte
 		err := rows.Scan(
 			&i.ID, &i.CampaignID, &i.CampaignName, &i.MasterTaskID, &i.CampaignSelectedRequirementID,
-			&i.Title, &i.Description, &i.Category, &i.AssigneeUserID,
+			&i.Title, &i.Description, &i.Category, &i.AssigneeUserID, &i.OwnerTeamID, &i.AssigneeTeamID,
 			&i.Status, &i.DueDate, &i.CreatedAt, &i.UpdatedAt,
 			&i.CheckType, &i.Target, &paramsJSON,
 			&i.AssigneeUserName, &i.RequirementControlIDReference, &i.RequirementText, &i.RequirementStandardName,
 			&i.DefaultPriority, pq.Array(&i.EvidenceTypesExpected),
+			&i.OwnerTeam.ID, &i.OwnerTeam.Name, // For owner_team
+			&i.AssigneeTeam.ID, &i.AssigneeTeam.Name, // For assignee_team
 		)
 
 		if err != nil {

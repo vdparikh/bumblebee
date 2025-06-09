@@ -54,12 +54,14 @@ import {
     FaPlus, 
     FaBookOpen, 
     FaThumbsUp, // For Approve
+    FaUsers, // For Teams
     FaThumbsDown, // For Reject
 } from 'react-icons/fa';
 import { ListGroupItem } from 'react-bootstrap';
 import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils'; 
 import { useAuth } from '../contexts/AuthContext';
 import UserDisplay from './common/UserDisplay';
+import TeamDisplay from './common/TeamDisplay'; // Import TeamDisplay
 import CopyEvidenceModal from './modals/CopyEvidenceModal'; 
 
 import CommentSection from './common/CommentSection'; 
@@ -495,6 +497,19 @@ function CampaignTaskInstanceDetail() {
                                         
 
                                     </ListGroupItem>
+                                    {taskInstance.owner_team && taskInstance.owner_team.name && (
+                                        <ListGroupItem>
+                                            <FaUsers className="me-2 text-muted" /><strong>Owner Team:</strong>
+                                            <TeamDisplay teamId={taskInstance.owner_team.id} teamName={taskInstance.owner_team.name} teamDescription={taskInstance.owner_team.description} teamMembers={taskInstance.owner_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} /> 
+                                            {/* Note: allTeams prop might need adjustment based on how you fetch all teams globally or pass them down */}
+                                        </ListGroupItem>
+                                    )}
+                                    {/* {taskInstance.assignee_team && taskInstance.assignee_team.name && (
+                                        <ListGroupItem>
+                                            <FaUsers className="me-2 text-muted" /><strong>Assignee Team:</strong>
+                                            <TeamDisplay teamId={taskInstance.assignee_team.id} teamName={taskInstance.assignee_team.name} teamDescription={taskInstance.assignee_team.description} teamMembers={taskInstance.assignee_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} />
+                                        </ListGroupItem>
+                                    )} */}
                                     <ListGroupItem>
                                         <FaExclamationCircle className="me-2 text-muted" /><strong>Priority:</strong>
                                         {taskInstance.defaultPriority ? <Badge bg={getPriorityBadgeColor(taskInstance.defaultPriority)} className="ms-2">{taskInstance.defaultPriority}</Badge> : ' N/A'}

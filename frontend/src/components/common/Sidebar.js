@@ -9,7 +9,7 @@ import Tooltip from 'react-bootstrap/Tooltip';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Button from 'react-bootstrap/Button';
 import {
-    FaTachometerAlt, FaUser, FaBullhorn, FaColumns,
+    FaTachometerAlt, FaUser, FaBullhorn, FaColumns, FaUsers,
     FaTasks, FaFileContract, FaShieldAlt, FaBookOpen,
     FaQuestionCircle, FaRegQuestionCircle,
     FaCog
@@ -30,6 +30,7 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
         { to: "/tasks", eventKey: "/tasks", icon: <FaTasks size="1.2em" />, label: "Manage Tasks", roles: ['admin', 'auditor'] },
         { to: "/requirements", eventKey: "/requirements", icon: <FaFileContract size="1.2em" />, label: "Manage Requirements", roles: ['admin', 'auditor'] },
         { to: "/standards", eventKey: "/standards", icon: <FaShieldAlt size="1.2em" />, label: "Manage Standards", roles: ['admin', 'auditor'] },
+        { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Manage Teams", roles: ['admin', 'auditor'] },
     ];
 
     return (

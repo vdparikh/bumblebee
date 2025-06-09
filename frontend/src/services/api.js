@@ -277,3 +277,13 @@ export const updateDocument = (id, documentData) => apiClient.put(`/documents/${
 export const deleteDocument = (id) => apiClient.delete(`/documents/${id}`);
 
 export const reviewEvidence = (evidenceId, reviewData) => apiClient.put(`/evidence/${evidenceId}/review`, reviewData);
+
+// Team Management API calls
+export const getTeams = () => apiClient.get('/teams');
+export const getTeamById = (teamId) => apiClient.get(`/teams/${teamId}`);
+export const createTeam = (teamData) => apiClient.post('/teams', teamData);
+export const updateTeam = (teamId, teamData) => apiClient.put(`/teams/${teamId}`, teamData);
+export const deleteTeam = (teamId) => apiClient.delete(`/teams/${teamId}`);
+export const addMemberToTeam = (teamId, userId, roleInTeam) => apiClient.post(`/teams/${teamId}/members`, { user_id: userId, role_in_team: roleInTeam });
+export const removeMemberFromTeam = (teamId, userId) => apiClient.delete(`/teams/${teamId}/members/${userId}`);
+export const getTeamMembers = (teamId) => apiClient.get(`/teams/${teamId}/members`);

@@ -81,6 +81,7 @@ func main() {
 	authAPI := handlers.NewAuthAPI(dbStore)
 	systemIntegrationHandler := handlers.NewSystemIntegrationHandler(dbStore)
 	documentHandler := handlers.NewDocumentHandler(dbStore)
+	teamHandler := handlers.NewTeamHandler(dbStore)
 
 	apiV1 := router.Group("/api")
 
@@ -153,6 +154,16 @@ func main() {
 		documents.GET("/:id", documentHandler.GetDocumentByIDHandler)
 		documents.PUT("/:id", documentHandler.UpdateDocumentHandler)
 		documents.DELETE("/:id", documentHandler.DeleteDocumentHandler)
+
+		// Team Routes (Protected by authMiddleware)
+		api.POST("/teams", teamHandler.CreateTeamHandler)                               // Create a new team
+		api.GET("/teams", teamHandler.GetTeamsHandler)                                  // Get all teams
+		api.GET("/teams/:id", teamHandler.GetTeamByIDHandler)                           // Get a specific team by ID
+		api.PUT("/teams/:id", teamHandler.UpdateTeamHandler)                            // Update a team
+		api.DELETE("/teams/:id", teamHandler.DeleteTeamHandler)                         // Delete a team
+		api.POST("/teams/:id/members", teamHandler.AddUserToTeamHandler)                // Add a user to a team
+		api.DELETE("/teams/:id/members/:userId", teamHandler.RemoveUserFromTeamHandler) // Remove a user from a team
+		api.GET("/teams/:id/members", teamHandler.GetTeamMembersHandler)                // Get members of a team
 
 	}
 

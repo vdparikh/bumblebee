@@ -199,6 +199,8 @@ func (h *CampaignHandler) GetCampaignTaskInstancesHandler(c *gin.Context) {
 func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 	ctiID := c.Param("id")
 
+	fmt.Println(ctiID)
+
 	existingInstance, err := h.Store.GetCampaignTaskInstanceByID(ctiID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -215,6 +217,8 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 		Category       *string                `json:"category"`
 		OwnerUserIDs   *[]string              `json:"owner_user_ids"`
 		AssigneeUserID *string                `json:"assignee_user_id"`
+		OwnerTeamID    *string                `json:"owner_team_id"`
+		AssigneeTeamID *string                `json:"assignee_team_id"`
 		Status         *string                `json:"status"`
 		DueDate        *models.CustomDate     `json:"due_date"`
 		CheckType      *string                `json:"check_type"`
@@ -241,6 +245,12 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 	}
 	if payload.AssigneeUserID != nil {
 		existingInstance.AssigneeUserID = payload.AssigneeUserID
+	}
+	if payload.OwnerTeamID != nil {
+		existingInstance.OwnerTeamID = payload.OwnerTeamID
+	}
+	if payload.AssigneeTeamID != nil {
+		existingInstance.AssigneeTeamID = payload.AssigneeTeamID
 	}
 	if payload.Status != nil {
 		existingInstance.Status = *payload.Status

@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Card from 'react-bootstrap/Card';
-import ListGroup from 'react-bootstrap/ListGroup';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Badge from 'react-bootstrap/Badge';
-import { FaUserShield, FaUserCheck, FaCalendarAlt, FaBullhorn, FaExternalLinkAlt, FaTag, FaExclamationCircle, FaFileContract } from 'react-icons/fa';
+import { FaUserShield, FaUserCheck, FaCalendarAlt, FaBullhorn, FaExternalLinkAlt, FaTag, FaExclamationCircle, FaFileContract, FaUsers } from 'react-icons/fa';
 import StatusIcon from './StatusIcon';
+import TeamDisplay from './TeamDisplay'; // Import TeamDisplay
 import UserDisplay from './UserDisplay';
 import { getStatusColor } from '../../utils/displayUtils';
 
@@ -20,6 +20,8 @@ const TaskListItem = ({
     showAssigneeInfo = true,
     owners, 
     showOwnerInfo = false,
+    ownerTeam,      // New prop
+    assigneeTeam,   // New prop
     actionMenu,
     className = ""
     
@@ -52,7 +54,7 @@ const TaskListItem = ({
 
 
                 <Row>
-                    <Col>
+                    <Col md={showAssigneeInfo ? 6 : 6}>
                      {showOwnerInfo && owners && owners.length > 0 && (
                     <div className="">
                         <FaUserShield className="me-2 opacity-75" />
@@ -67,8 +69,26 @@ const TaskListItem = ({
                         </span>
                     </div>
                 )}
+
+                    {(ownerTeam || assigneeTeam) && (
+                    <div>
+                        {ownerTeam && ownerTeam.name && (
+                            <div className="mb-1">
+                                <span className="me-1 fw-medium">Owner Team:</span>
+                                <TeamDisplay teamId={ownerTeam.id} teamName={ownerTeam.name} teamDescription={ownerTeam.description} teamMembers={ownerTeam.members} />
+                            </div>
+                        )}
+                        {/* {assigneeTeam && assigneeTeam.name && (
+                            <div>
+                                <span className="me-1 fw-medium">Assignee Team:</span>
+                                <TeamDisplay teamId={assigneeTeam.id} teamName={assigneeTeam.name} teamDescription={assigneeTeam.description} teamMembers={assigneeTeam.members} />
+                            </div>
+                        )} */}
+                    </div>
+                    )}
+                                    
                     </Col>
-                    <Col>
+                    <Col md={showAssigneeInfo ? 4 : (showOwnerInfo ? 6 : 12) }>
                      {showAssigneeInfo && (
                     <div className="">
                         <FaUserCheck className="me-2 opacity-75" />
@@ -77,7 +97,8 @@ const TaskListItem = ({
                     </div>
                 )}
                     </Col>
-                    <Col>
+
+                    <Col md={12} className="mt-2">
 
                 <div className="">
                     <FaCalendarAlt className="me-2 opacity-75" />

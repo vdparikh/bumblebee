@@ -29,6 +29,7 @@ import AdminSettingsPage from './pages/AdminSettingsPage';
 
 import Sidebar from './components/common/Sidebar'; 
 import Documents from './components/Documents'; 
+import TeamsPage from './components/TeamsPage'; 
 
 function DynamicHeader() {
   const location = useLocation();
@@ -52,6 +53,9 @@ function DynamicHeader() {
       break; 
     case "/campaigns":
       headerText = "Campaigns";
+      break;
+    case "/teams":
+      headerText = "Manage Teams";
       break;
     default:
       if (location.pathname.startsWith("/task/")) {
@@ -139,6 +143,7 @@ function Layout() {
                           <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
                           <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
                           <Route path="/campaign-task/:instanceId" element={<ProtectedRoute><CampaignTaskInstanceDetail /></ProtectedRoute>} />
+                          <Route path="/teams" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TeamsPage /></ProtectedRoute>} />
                           <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
                           <Route path="/admin-settings" element={<ProtectedRoute requiredRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
 

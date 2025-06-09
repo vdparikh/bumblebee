@@ -356,3 +356,43 @@ CREATE INDEX idx_task_documents_task_id ON task_documents(task_id);
 ALTER TABLE evidence
 ADD COLUMN IF NOT EXISTS task_id UUID NULL,
 ADD CONSTRAINT fk_evidence_task FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE SET NULL; -- Or CASCADE
+
+-- Create teams table
+CREATE TABLE IF NOT EXISTS teams (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Trigger to automatically update 'updated_at' on teams table
+CREATE TRIGGER update_teams_updated_at
+BEFORE UPDATE ON teams
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column(); -- Assuming this function exists from previous setup
+
+-- Create team_members table (join table)
+CREATE TABLE IF NOT EXISTS team_members (
+    team_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    role_in_team VARCHAR(50) DEFAULT 'member', -- e.g., 'member', 'lead', 'admin'
+    added_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (team_id, user_id),
+    CONSTRAINT fk_team_members_team FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE,
+    CONSTRAINT fk_team_members_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Add columns to campaign_task_instances for team ownership/assignment
+ALTER TABLE campaign_task_instances
+ADD COLUMN IF NOT EXISTS owner_team_id UUID NULL,
+ADD COLUMN IF NOT EXISTS assignee_team_id UUID NULL,
+ADD CONSTRAINT fk_cti_owner_team FOREIGN KEY(owner_team_id) REFERENCES teams(id) ON DELETE SET NULL,
+ADD CONSTRAINT fk_cti_assignee_team FOREIGN KEY(assignee_team_id) REFERENCES teams(id) ON DELETE SET NULL;
+
+-- Optional: Add columns to tasks (master tasks) if teams can be default owners/assignees
+ALTER TABLE tasks
+ADD COLUMN IF NOT EXISTS default_owner_team_id UUID NULL,
+ADD COLUMN IF NOT EXISTS default_assignee_team_id UUID NULL,
+ADD CONSTRAINT fk_task_default_owner_team FOREIGN KEY(default_owner_team_id) REFERENCES teams(id) ON DELETE SET NULL,
+ADD CONSTRAINT fk_task_default_assignee_team FOREIGN KEY(default_assignee_team_id) REFERENCES teams(id) ON DELETE SET NULL;

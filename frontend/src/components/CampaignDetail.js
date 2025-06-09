@@ -12,7 +12,8 @@ import {
     getUsers,
     getComplianceStandards,
     getRequirements as getAllMasterRequirements, 
-    getTasks as getAllMasterTasks 
+    getTasks as getAllMasterTasks,
+    getTeams
 } from '../services/api';
 import {
     Container,
@@ -73,6 +74,7 @@ import UserDisplay from './common/UserDisplay';
 import PieChartCard from './common/PieChartCard';
 import BarChartCard from './common/BarChartCard';
 import KeyMetricsCard from './common/KeyMetricsCard';
+import TeamDisplay from './common/TeamDisplay'; // Import TeamDisplay
 import { useAuth } from '../contexts/AuthContext'; 
 import { getStatusColor } from '../utils/displayUtils'; 
 
@@ -90,12 +92,15 @@ function CampaignDetail() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    
+        const [allTeams, setAllTeams] = useState([]); // State for all teams
+
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [currentTaskInstanceForAssignment, setCurrentTaskInstanceForAssignment] = useState(null);
     const [selectedOwnerIDs, setSelectedOwnerIDs] = useState([]); 
     const [selectedAssignee, setSelectedAssignee] = useState('');
     const [selectedDueDate, setSelectedDueDate] = useState('');
+    const [selectedOwnerTeam, setSelectedOwnerTeam] = useState(''); // State for selected owner team
+    const [selectedAssigneeTeam, setSelectedAssigneeTeam] = useState(''); // State for selected assignee team
 
     
     const [showRequirementsModal, setShowRequirementsModal] = useState(false);
@@ -138,6 +143,10 @@ function CampaignDetail() {
             const usersRes = await getUsers();
             setAllUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
 
+                        const teamsRes = await getTeams(); // Fetch teams
+            setAllTeams(Array.isArray(teamsRes.data) ? teamsRes.data : []);
+
+
         } catch (err) {
             console.error("Error fetching campaign details:", err);
             setError('Failed to load campaign details. ' + (err.response?.data?.error || err.message));
@@ -160,7 +169,10 @@ function CampaignDetail() {
                 task.title?.toLowerCase().includes(lowerSearchTerm) ||
                 task.description?.toLowerCase().includes(lowerSearchTerm) ||
                 task.owner_user_name?.toLowerCase().includes(lowerSearchTerm) ||
-                task.assignee_user_name?.toLowerCase().includes(lowerSearchTerm)
+                task.assignee_user_name?.toLowerCase().includes(lowerSearchTerm) ||
+                task.owner_team?.name?.toLowerCase().includes(lowerSearchTerm) ||
+                task.assignee_team?.name?.toLowerCase().includes(lowerSearchTerm)
+
             );
         }
         if (selectedRequirementFilterId) {
@@ -211,6 +223,10 @@ function CampaignDetail() {
         setSelectedOwnerIDs(allUsers.filter(u => currentOwnerIds.includes(u.id)).map(u => ({ value: u.id, label: u.name })));
         setSelectedAssignee(taskInstance.assignee_user_id || (currentUser ? currentUser.id : ''));
         
+                setSelectedOwnerTeam(taskInstance.owner_team_id || '');
+        setSelectedAssigneeTeam(taskInstance.assignee_team_id || '');
+
+
         setSelectedDueDate(taskInstance.due_date ? new Date(taskInstance.due_date).toISOString().split('T')[0] : '');
         setShowAssignModal(true);
     };
@@ -223,6 +239,9 @@ function CampaignDetail() {
             
             owner_user_ids: selectedOwnerIDs.map(owner => owner.value) || [], 
             assignee_user_id: selectedAssignee || null,
+                        owner_team_id: selectedOwnerTeam || null,
+            assignee_team_id: selectedAssigneeTeam || null,
+
             due_date: selectedDueDate || null, 
         };
 
@@ -230,7 +249,9 @@ function CampaignDetail() {
             await updateCampaignTaskInstance(currentTaskInstanceForAssignment.id, updatedTaskData); 
             setShowAssignModal(false);
             fetchCampaignData(); 
-            
+                        setSelectedOwnerTeam('');
+            setSelectedAssigneeTeam('');
+
         } catch (err) {
             console.error("Error assigning task:", err);
             
@@ -638,7 +659,9 @@ function CampaignDetail() {
                                         isOverdueFn={isOverdue}
                                         showCampaignInfo={false} 
                                         showOwnerInfo={true}
-                                        
+                                        ownerTeam={task.owner_team} 
+                                        assigneeTeam={task.assignee_team}
+
                                         
                                         owners={task.owners} 
                                         actionMenu={taskActionMenu} 
@@ -658,6 +681,8 @@ function CampaignDetail() {
                                         <th onClick={() => requestSort('status')} style={{ cursor: 'pointer' }}>Status {getSortIcon('status')}</th>
                                         <th width="100px" onClick={() => requestSort('assignee_user_id')} style={{ cursor: 'pointer' }}>Assignee {getSortIcon('assignee_user_id')}</th>
                                         <th>Owner(s)</th> 
+                                                                                <th>Team(s)</th>
+
                                         <th width="100px" onClick={() => requestSort('due_date')} style={{ cursor: 'pointer' }}>Due Date {getSortIcon('due_date')}</th>
                                         <th>Actions </th>
                                     </tr>
@@ -680,6 +705,21 @@ function CampaignDetail() {
                                                         {index < task.owners.length - 1 && ', '}
                                                     </React.Fragment>
                                                 ))}
+                                            </td>
+                                             <td>
+                                                {task.owner_team && task.owner_team.name && (
+                                                    <div className="mb-1">
+                                                        <small className="text-muted me-1">Own:</small>
+                                                        <TeamDisplay teamId={task.owner_team.id} teamName={task.owner_team.name} teamDescription={task.owner_team.description} teamMembers={task.owner_team.members} allTeams={allTeams} />
+                                                    </div>
+                                                )}
+                                                {task.assignee_team && task.assignee_team.name && (
+                                                    <div>
+                                                        <small className="text-muted me-1">Assign:</small>
+                                                        <TeamDisplay teamId={task.assignee_team.id} teamName={task.assignee_team.name} teamDescription={task.assignee_team.description} teamMembers={task.assignee_team.members} allTeams={allTeams} />
+                                                    </div>
+                                                )}
+                                                {!task.owner_team && !task.assignee_team && <small className="text-muted">N/A</small>}
                                             </td>
                                             <td>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</td>
                                             <td>
@@ -706,7 +746,17 @@ function CampaignDetail() {
                 </Modal.Header>
                 <Modal.Body>
                     <Form>
-                        <Form.Group className="mb-3">
+                        <Form.Group>
+                            <Form.Label>Assignee</Form.Label>
+                            <Form.Select value={selectedAssignee} onChange={e => setSelectedAssignee(e.target.value)}>
+                                <option value="">Select Assignee</option>
+                                {allUsers.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+                            </Form.Select>
+                        </Form.Group>
+
+                        <Row>
+                            <Col>
+                            <Form.Group className="mt-3">
                             <Form.Label>Owners</Form.Label>
                             <Select
                                 isMulti
@@ -717,13 +767,25 @@ function CampaignDetail() {
                                 closeMenuOnSelect={false}
                             />
                         </Form.Group>
-                        <Form.Group>
-                            <Form.Label>Assignee</Form.Label>
-                            <Form.Select value={selectedAssignee} onChange={e => setSelectedAssignee(e.target.value)}>
-                                <option value="">Select Assignee</option>
-                                {allUsers.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+                        
+                             </Col>
+                             <Col>
+                             <Form.Group className="mt-3">
+                            <Form.Label>Owner Team</Form.Label>
+                            <Form.Select value={selectedOwnerTeam} onChange={e => setSelectedOwnerTeam(e.target.value)}>
+                                <option value="">Select Owner Team</option>
+                                {allTeams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}
                             </Form.Select>
                         </Form.Group>
+                             </Col>
+                        </Row>
+                        {/* <Form.Group className="mt-3">
+                            <Form.Label>Assignee Team</Form.Label>
+                            <Form.Select value={selectedAssigneeTeam} onChange={e => setSelectedAssigneeTeam(e.target.value)}>
+                                <option value="">Select Assignee Team</option>
+                                {allTeams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}
+                            </Form.Select>
+                        </Form.Group> */}
                         <Form.Group className="mt-3">
                             <Form.Label>Due Date</Form.Label>
                             <Form.Control

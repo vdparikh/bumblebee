@@ -496,7 +496,11 @@ function MyTasks() {
                                         showAssigneeInfo={true}
                                         showOwnerInfo={true} 
                                         owners={task.owners} 
+                                        assigneeTeam={task.assignee_team}
+                                        ownerTeam={task.owner_team} 
                                     />
+
+                                    
                                 ))}
                         
                         </div>
