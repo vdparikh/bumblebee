@@ -439,7 +439,7 @@ function CampaignTaskInstanceDetail() {
                             {taskInstance.title}
                         </h2>
                         <div className="d-flex justify-content-between align-items-center mb-2">
-                            {isOverdue(taskInstance.due_date, taskInstance.status) && <span className="me-2 fs-6 bg-danger mt-2 p-1 pt-2 pb-2 ps-3 pe-3 h6 text-white rounded-pill">Overdue</span>}
+                            {isOverdue(taskInstance.due_date, taskInstance.status) && <span className="me-2 fs-6 bg-danger p-1 pt-2 pb-2 ps-3 pe-3 text-white rounded-2">Overdue</span>}
                             <Dropdown>
                                 <Dropdown.Toggle variant={getStatusColor(taskInstance.status)} id="dropdown-status" size="sm" className="rounded-pill p-1 pt-2 pb-2 ps-3 pe-3">
                                     {taskInstance.status}

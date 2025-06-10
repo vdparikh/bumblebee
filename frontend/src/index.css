@@ -1,5 +1,5 @@
 /* IMPORTS */
-@import url('https://fonts.googleapis.com/css2?family=Forum&family=Outfit:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Quicksand&family=Outfit:wght@100..900&display=swap');
 
 /* GLOBAL & BODY STYLES */
 
@@ -10,7 +10,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #EFF0F5; 
+  background-color: #f5f7fa; /* Flexy: Very light gray background */
   font-size: 0.9em;
   font-weight: 400;
   color: var(--bs-body-color);
@@ -25,26 +25,30 @@ code {
 
 :root {
   /* Custom App Variables */
-  --custom-primary: #35338C; 
+  --custom-primary: #5D87FF; /* Flexy: Primary Blue */
   --custom-theme-color: #EC5100;
-  --custom-header-font: 'Outfit', sans-serif;
-  /* This was the light blue color previously used for card headers via an incorrect --bs-primary-rgb */
-  --custom-card-header-bg: #DFE9F6; /* rgb(223, 233, 246) */
+  --custom-header-font: 'Quicksand', sans-serif;
+  --custom-card-header-bg: #ffffff; /* White card headers */
 
   /* Bootstrap Theme Color Overrides */
-  --bs-primary-light: #E2E5EE; 
-  --bs-primary: #35338C;
-  --bs-primary-rgb: 53, 51, 140;
+  --bs-primary: #5D87FF; /* Flexy: Primary Blue */
+  --bs-primary-rgb: 93, 135, 255;
+  --bs-primary-light: #ECF2FF; /* Flexy: Very Light Blue (for backgrounds) */
+  --bs-primary-dark: #4a6ecc; /* Darker shade for hover/active */
 
   /* If you want to customize other Bootstrap semantic colors: */
-  /* --bs-secondary: #your-secondary-color; */
-  /* --bs-secondary-rgb: r, g, b; */
-  /* --bs-success: #your-success-color; */
-  /* --bs-success-rgb: r, g, b; */
+  --bs-secondary: #49BEFF; /* Flexy: Light Blue Accent */
+  --bs-secondary-rgb: 73, 190, 255;
+  --bs-success: #13DEB9; /* Flexy: Green Accent */
+  --bs-success-rgb: 19, 222, 185;
+  --bs-danger: #FA896B; /* Flexy: Red/Orange Accent */
+  --bs-danger-rgb: 250, 137, 107;
+  --bs-warning: #FFAE1F; /* Flexy: Yellow Accent */
+  --bs-warning-rgb: 255, 174, 31;
 
   /* Customizing Info Color (used by .bg-info, .text-info, .alert-info etc.) */
-  --bs-info: #ff9610; /* Orange color */
-  --bs-info-rgb: 255, 150, 16;
+  --bs-info: #539BFF; /* Flexy: Another Blue Shade */
+  --bs-info-rgb: 83, 155, 255;
 
   /* Link color to match primary */
   --bs-link-color: var(--bs-primary);
@@ -52,14 +56,14 @@ code {
 
   /* Dropdown active background */
   --bs-dropdown-link-bg: var(--bs-primary);
-  --bs-dropdown-link-active-bg: var(--bs-primary);
+  --bs-dropdown-link-active-bg: var(--bs-primary-dark);
 }
 
 /* DARK THEME CSS VARIABLES OVERRIDES */
 
 [data-bs-theme="dark"]:root {
-  --bs-primary: #ffffff;
-  --bs-link-color: var(--bs-primary)!important;
+  --bs-primary: #799cff; /* Lighter Flexy blue for dark mode primary */
+  --bs-link-color: var(--bs-primary) !important;
   --bs-body-color: #fff!important;
 }
 
@@ -67,9 +71,10 @@ code {
 
 h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   font-family: var(--custom-header-font);
-  font-weight: 500;
+  font-weight: 700;
   color: var(--bs-heading-color); 
 }
+
 h1 {
   font-size: 3em;
 }
@@ -103,6 +108,7 @@ form, select, input, .form-control, .form-select {
   font-weight: 400 !important;
   padding: 0.35em 0.65em !important;
   color: #333 !important;
+  font-size: 0.7em!important;
 }
 
 /* Pastel Backgrounds for Badges */
@@ -136,7 +142,7 @@ form, select, input, .form-control, .form-select {
 }
 
 .card .card-header {
-  background-color: #fff!important;
+  background-color: var(--custom-card-header-bg) !important; /* White */
   padding: 10px 15px;
   font-size: 1.1em;
   border: 0px;
@@ -170,12 +176,15 @@ form, select, input, .form-control, .form-select {
   background-color: transparent!important;
   margin-bottom: -1px; 
   font-weight: 400;
-  color: var(--bs-secondary); 
+  color: var(--bs-dark); 
+  opacity: 0.5;
 }
+
 .nav-line-tabs .nav-link.active {
   border-bottom-color: var(--bs-primary); 
   color: var(--bs-primary) !important; 
   font-weight: 600 !important; 
+  opacity: 1;
 }
 
 /* List Groups */
@@ -196,7 +205,7 @@ form, select, input, .form-control, .form-select {
   top: 0;
   left:0;
   position: absolute;
-  background-color: #35338C; /* Changed from --bs-secondary to match primary theme */
+  background-color: var(--bs-primary);
 }
 
 .list-group-item.active, .list-group-item.active .text-muted {
@@ -215,20 +224,20 @@ form, select, input, .form-control, .form-select {
 }
 
 .btn-primary {
-  background-color: #1e69e3 !important; /* Pastel Blue */
-  border-color: #1e69e3 !important;
-  color: #ffffff !important; /* Dark text for contrast */
+  background-color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
+  color: #ffffff !important;
 }
 
 .btn-primary:hover {
-  background-color: #1e69e3 !important; /* Slightly darker pastel blue for hover */
-  border-color: #1e69e3 !important;
+  background-color: var(--bs-primary-dark) !important;
+  border-color: var(--bs-primary-dark) !important;
 }
 
 .btn-primary:active, .btn-primary:focus {
-  background-color: #1e69e3 !important; /* Even darker for active/focus */
-  border-color: #1e69e3 !important;
-  box-shadow: 0 0 0 0.25rem rgba(160, 196, 255, 0.5) !important; /* Focus shadow matching the pastel blue */
+  background-color: var(--bs-primary-dark) !important;
+  border-color: var(--bs-primary-dark) !important;
+  box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.5) !important;
 }
 
 .btn-outline-primary {
@@ -238,16 +247,16 @@ form, select, input, .form-control, .form-select {
 }
 
 .btn-outline-primary:hover {
-  color: #ffffff !important; /* Dark text on hover */
-  background-color: #1e69e3 !important; /* Pastel Blue background on hover */
-  border-color: #1e69e3 !important;
+  color: #ffffff !important;
+  background-color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
 }
 
 .btn-outline-primary:active, .btn-outline-primary:focus {
-  background-color: #8cb5f5 !important; /* Slightly darker pastel blue for active/focus background */
-  border-color: #8cb5f5 !important;
-  color: #212529 !important; /* Dark text for active/focus */
-  box-shadow: 0 0 0 0.25rem rgba(160, 196, 255, 0.5) !important; /* Focus shadow matching the pastel blue */
+  background-color: var(--bs-primary-dark) !important;
+  border-color: var(--bs-primary-dark) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.5) !important;
 }
 
 /* Alerts */
@@ -258,9 +267,9 @@ form, select, input, .form-control, .form-select {
 }
 
 .alert-primary {
-  background-color: #e6e6fa !important; /* Pastel Lavender */
-  border-left-color: #b3b3d9 !important;
-  color: #3c3c5b !important;
+  background-color: var(--bs-primary-light) !important;
+  border-left-color: var(--bs-primary) !important;
+  color: var(--bs-primary-dark) !important;
 }
 .alert-success {
   background-color: #d4edda !important; /* Pastel Green */
@@ -292,19 +301,20 @@ form, select, input, .form-control, .form-select {
 /* Sidebar Specific Styles */
 
 .sidebar { 
-  background-color: #35338C;
-  /* color: var(--bs-light);  */
+  background-color: #2A3547; /* Flexy: Dark Sidebar Background */
+  /* border-right: 1px solid #dee2e6; */ /* No border in Flexy */
 }
 
 .sidebar .nav-pills .btn {
   margin: 2px 5px;
-  color: var(--bs-light); 
+  color: #A6B7D4; /* Flexy: Inactive icon/text color */
   height: 50px;
   border-radius: 0.2rem!important;
 }
 
 .sidebar .nav-pills .btn.active {
-  background-color: rgba(255, 255, 255,.25);
+  background-color: var(--bs-primary); /* Flexy: Active item background (Primary Blue) */
+  color: #ffffff; /* Active item icon color */
 }
 
 .sidebar .dropdown-toggle::after {
@@ -314,7 +324,7 @@ form, select, input, .form-control, .form-select {
 .sidebar-dropdown-button .dropdown-toggle {
   background-color: transparent !important;
   border: none !important;
-  color: var(--bs-light) !important;
+  color: #A6B7D4 !important; /* Flexy: Inactive icon/text color */
   padding: 0 !important;
   width: 100%;
   display: flex;
@@ -349,7 +359,7 @@ form, select, input, .form-control, .form-select {
 /* SPECIFIC COMPONENT STYLING (Application Specific) */
 
 .details-pane, .topnav {
-  background-color: var(--bs-light)!important;
+  background-color: #ffffff !important; /* Flexy: White topnav and details pane */
 }
 
 .requirements-panel .list-group-item.active {
@@ -421,7 +431,7 @@ form, select, input, .form-control, .form-select {
 
 [data-bs-theme="dark"] {
   body {
-    background-color: #27252B; 
+    background-color: #202936; /* Darker background for dark theme (Flexy style) */
     color: var(--bs-body-color); 
   }
 
@@ -436,7 +446,7 @@ form, select, input, .form-control, .form-select {
   .text-dark { color: #fff!important; }
 
   .topnav {
-    background-color: #000 !important;
+    background-color: #2A3547 !important; /* Darker topnav for dark theme (matches sidebar) */
   }
 
   .details-pane {
@@ -452,16 +462,20 @@ form, select, input, .form-control, .form-select {
   }
 
   .list-group-item.active, .list-group-item.active .text-muted {
-    color: #000 !important; /* This might need adjustment for readability */
+    color: #ffffff !important; 
   }
 
   .nav-tabs .nav-link.active {
     color: #fff !important;
     border-color: var(--bs-white-700) var(--bs-gray-700) var(--bs-body-bg);
   }
-
-  .sidebar { 
-    /* background-color: var(--bs-primary-dark); */ /* Example if you had a dark primary */
+  
+  .sidebar .nav-pills .btn {
+    color: #A6B7D4; /* Consistent with light mode inactive */
+  }
+  .sidebar .nav-pills .btn.active {
+    background-color: var(--bs-primary); /* Dark theme primary for active background */
+    color: #ffffff!important; /* White icon for active in dark mode */
   }
 
   .badge.bg-dark, .badge.bg-secondary { /* Ensure text is readable on dark badges */

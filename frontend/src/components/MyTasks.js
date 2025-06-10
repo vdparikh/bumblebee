@@ -311,13 +311,13 @@ function MyTasks() {
                 title="My Tasks"
                 actions={
                     <ButtonGroup>
-                        <Button variant={viewMode === 'list' ? "primary" : "outline-secondary"} onClick={() => setViewMode('list')} title="List View">
+                        <Button variant={viewMode === 'list' ? "primary" : "outline-secondary"} onClick={() => setViewMode('list')} title="List View" className='border-0'>
                             <FaListUl />
                         </Button>
-                        <Button variant={viewMode === 'board' ? "primary" : "outline-secondary"} onClick={() => setViewMode('board')} title="Board View">
+                        <Button variant={viewMode === 'board' ? "primary" : "outline-secondary"} onClick={() => setViewMode('board')} title="Board View" className='border-0'>
                             <FaThLarge />
                         </Button>
-                        <Button variant={viewMode === 'table' ? "primary" : "outline-secondary"} onClick={() => setViewMode('table')} title="Table View">
+                        <Button variant={viewMode === 'table' ? "primary" : "outline-secondary"} onClick={() => setViewMode('table')} title="Table View" className='border-0'>
                             <FaTable />
                         </Button>
                     </ButtonGroup>

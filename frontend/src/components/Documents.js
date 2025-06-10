@@ -179,7 +179,7 @@ function Documents() {
                     {documents.length === 0 && !loading ? (
                         <Card.Body><p className="text-muted">No documents found. Click "Create Document" to add one.</p></Card.Body>
                     ) : (
-                        <Table variant='flush' striped bordered hover responsive size="sm">
+                        <Table variant='flush' striped  hover responsive size="lg">
                             <thead>
                                 <tr>
                                     <th>Name</th>

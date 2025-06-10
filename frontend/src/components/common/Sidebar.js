@@ -22,7 +22,7 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
 
     const navItems = [
         { to: "/", eventKey: "/", icon: <FaTachometerAlt size="1.2em" />, label: "Dashboard", roles: ['admin', 'auditor', 'user'] },
-        { to: "/my-tasks", eventKey: "/my-tasks", icon: <FaUser size="1.2em" />, label: "My Tasks", roles: ['admin', 'auditor', 'user'] },
+        { to: "/my-tasks", eventKey: "/my-tasks", icon: <FaTasks size="1.2em" />, label: "My Tasks", roles: ['admin', 'auditor', 'user'] },
         { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.2em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
         { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.2em" />, label: "Alternate View", roles: ['admin', 'auditor', 'user'] },
         (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management' },
@@ -44,12 +44,12 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
             <Nav variant='pills' activeKey={location.pathname} className="flex-column w-100 flex-grow-1" style={{ overflowY: 'auto', overflowX: 'hidden', maxHeight: `calc(100vh - ${userActionsHeight})` }}>
                 <div className="mt-1">
 
-                    <div className='bg-white rounded-2 mb-3 ms-1 me-1' style={{ width: "50px", height: "50px", lineHeight: "35px"}}>
+                    {/* <div className='' > */}
                         <NavDropdown
                             title={
                                 <OverlayTrigger placement="right" delay={{ show: 250, hide: 100 }} overlay={<Tooltip id="tooltip-user-actions">{currentUser?.name || 'User Menu'}</Tooltip>}>
-                                    <div className="">
-                                        <FaUser className='text-dark' size="1.2em" />
+                                    <div style={{  height: "50px"}} className="d-flex justify-content-center align-items-center  border-0">
+                                        <FaUser className='' size="1.2em" />
                                     </div>
                                 </OverlayTrigger>
                             }
@@ -61,17 +61,17 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
                         >
                             <NavDropdown.Header className="text-center small text-muted">{currentUser?.name || 'User'}</NavDropdown.Header>
                             <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
-                            <NavDropdown.Divider />
+                            <NavDropdown.Divider className='' />
                             <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
                         </NavDropdown>
-                    </div>
+                    {/* </div> */}
                     {navItems
                         .filter(Boolean)
                         .map((item, index) => {
                             if (item.type === 'divider') {
                                 return (
                                     <Nav.Item key={item.key || `divider-${index}`} className='text-center mt-3 mb-1'>
-                                        <hr className="border-light  w-75 mx-auto" />
+                                        <hr className="border border-dark  w-75 mx-auto" />
                                     </Nav.Item>
                                 );
                             }

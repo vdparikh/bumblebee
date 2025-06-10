@@ -31,6 +31,24 @@ const TaskListItem = ({
 }) => {
     if (!task) return null;
 
+    const dueDate = task.due_date ? new Date(task.due_date) : null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize today's date to midnight
+
+    let dueDateStatus = '';
+    if (dueDate && task.status !== 'Closed') {
+        const timeDiff = dueDate.getTime() - today.getTime();
+        const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+        if (daysDiff < 0) {
+            dueDateStatus = 'Overdue';
+        } else if (daysDiff === 0) {
+            dueDateStatus = 'Due Today';
+        } else {
+            dueDateStatus = `Due in ${daysDiff} day${daysDiff > 1 ? 's' : ''}`;
+        }
+    }
+
     return (
         <Card className={`mb-3 shadow-sm ${className}`}>
             <Card.Header as="h5">
@@ -38,7 +56,11 @@ const TaskListItem = ({
                         <div>
                     <span className="me-2" ><StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1.1em" /></span>
                     {task.defaultPriority && (<Badge bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">{task.defaultPriority}</Badge>)}
-                    <Badge bg={getStatusColor(task.status)} className="me-2 flex-shrink-0">{task.status}</Badge>
+                    <Badge bg={getStatusColor(task.status)} className="me-1 flex-shrink-0">{task.status}</Badge>
+
+                    {dueDateStatus && <Badge  bg={dueDateStatus === 'Overdue' ? 'danger' : (dueDateStatus === 'Due Today' ? 'warning' : 'info')} className=" fw-normal">{dueDateStatus}</Badge>}
+
+
                     </div>
                     <div className="d-flex justify-content-between align-items-start">
                         {actionMenu ? actionMenu : (linkTo && <FaExternalLinkAlt style={{ lineHeight: "1em" }} size="1em" className="text-muted mt-1" title="View Details" />)}
@@ -110,9 +132,14 @@ const TaskListItem = ({
                         <div className="">
                             {/* <FaCalendarAlt className="me-2 opacity-75" /> */}
                             <span className="small me-1 fw-medium">Due:</span> <br />
+                            
+                            
                             <Badge pill bg="light" text="dark" className="fw-normal border me-2">
                                 <FaCalendarAlt className="text-primary me-2 opacity-75" />
-                                {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</Badge>
+                                {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}
+                            </Badge>
+
+
 
                         </div>
                     </Col>
@@ -142,7 +169,7 @@ const TaskListItem = ({
             </Card.Body>
 
             {(task.category || task.requirement_control_id_reference) && (
-                <Card.Footer className="bg-light py-1 px-3">
+                <Card.Footer className="bg-light border-0 py-1 px-3">
                     {task.category && (
                         <Badge pill bg="white" text="dark" className="fw-normal me-2 border"><FaTag className="me-1" />{task.category}</Badge>
                     )}

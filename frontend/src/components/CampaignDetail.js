@@ -471,13 +471,21 @@ function CampaignDetail() {
     
     return (
         <Container fluid>
+            <div className='mb-2'><Badge className="small mb-1">{campaign.standard_name || 'N/A'}</Badge></div>
+            
             <PageHeader
                 icon={<FaBullhorn />}
-                title={`Campaign: ${campaign.name}`}
+                title={`Campaign / ${campaign.name}`}
                 actions={
                     <>
                         {canEditCampaign ? (
                             <>
+                            {canEditCampaign && (
+                            <Button className='me-2' variant="outline-info" size="sm" onClick={handleOpenRequirementsModal} disabled={campaign.status !== 'Draft'}>
+                                <FaEdit className="me-1" /> Edit Requirements Scope
+                            </Button>
+                        )}
+
                                 <Dropdown className="d-inline me-2">
                                     <Dropdown.Toggle variant={getStatusColor(campaign.status)} id="dropdown-campaign-status" size="sm">
                                         {campaign.status}
@@ -506,24 +514,24 @@ function CampaignDetail() {
             <Card className="mb-3">
                 <Card.Body>
                     <div className="d-flex justify-content-between align-items-center mb-2">
-                        <Card.Title className="mb-0">Campaign Details</Card.Title>
-                        {canEditCampaign && (
-                            <Button variant="outline-secondary" size="sm" onClick={handleOpenRequirementsModal} disabled={campaign.status !== 'Draft'}>
-                                <FaEdit className="me-1" /> Edit Requirements Scope
-                            </Button>
-                        )}
+                        <Card.Title as="p" className="mb-0">
+                        
+
+                             {campaign.description || ''}
+                       
+
+                                                   
+
+                        </Card.Title>
                     </div>
-                    </Card.Body>
-                    <ListGroup variant='flush'>
-                    <ListGroupItem><strong>Description:</strong> {campaign.description || 'N/A'}</ListGroupItem>
-                    <ListGroupItem><strong>Standard:</strong> {campaign.standard_name || 'N/A'}</ListGroupItem>
-                    <ListGroupItem>
-                        <strong>Dates: </strong>
+
+                                            <strong>Dates: </strong>
                         {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString() : 'N/A'} -
                         {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : 'N/A'}
-                    </ListGroupItem>
-                    
-                </ListGroup>
+
+
+                    </Card.Body>
+
             </Card>
 
             
