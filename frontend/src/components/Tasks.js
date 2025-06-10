@@ -57,6 +57,7 @@ import {
 } from 'react-icons/fa'; // eslint-disable-next-line no-unused-vars
 import Select from 'react-select';
 import PageHeader from './common/PageHeader';
+import { ListGroupItem } from 'react-bootstrap';
 
 function Tasks() {
     const [tasks, setTasks] = useState([]);
@@ -450,19 +451,19 @@ function Tasks() {
     const getCategoryIcon = (category) => {
         switch (category) {
             case 'Asset Management':
-                return <FaTag size="1.5em" className="text-info" title="Asset Management" />;
+                return <FaTag size="1em" className="text-info" title="Asset Management" />;
             case 'Configuration Management':
-                return <FaCogs size="1.5em" className="text-primary" title="Configuration Management" />;
+                return <FaCogs size="1em" className="text-primary" title="Configuration Management" />;
             case 'Data Security':
-                return <FaShieldAlt size="1.5em" className="text-success" title="Data Security" />;
+                return <FaShieldAlt size="1em" className="text-success" title="Data Security" />;
             case 'Vulnerability Management':
-                return <FaFileContract size="1.5em" className="text-warning" title="Vulnerability Management" />;
+                return <FaFileContract size="1em" className="text-warning" title="Vulnerability Management" />;
             case 'Audit':
-                return <FaClipboardList size="1.5em" className="text-secondary" title="Audit" />;
+                return <FaClipboardList size="1em" className="text-secondary" title="Audit" />;
             case 'Policy':
-                return <FaFileSignature size="1.5em" className="text-danger" title="Policy" />;
+                return <FaFileSignature size="1em" className="text-danger" title="Policy" />;
             default:
-                return <FaTasksIcon size="1.5em" className="text-muted" title={category || "Task"} />;
+                return <FaTasksIcon size="1em" className="text-muted" title={category || "Task"} />;
         }
     }
 
@@ -734,11 +735,23 @@ function Tasks() {
                             <Card key={task.id} className="mb-3">
 
                                 <Card.Header>
+                                    <div className='mb-2'>
+                                        {getCategoryIcon(task.category)}
+                                        {task.defaultPriority && (
+                                            <>
+                                                <Badge className='ms-2' bg={getPriorityBadgeColor(task.defaultPriority)}>{task.defaultPriority}</Badge>
+                                            </>
+                                        )}
+
+                                {task.category && <Badge pill bg="light" className="mx-1"><FaTag className="me-1" />{task.category}</Badge>}
+
+
+                                    </div>
                                     <div className="d-flex align-items-start justify-content-between">
                                         <div className="d-flex justify-content-between">
-                                            {getCategoryIcon(task.category)}
-                                            <div className='ms-2'>
-                                                <div><strong className="mb-0">{task.title}</strong></div>
+
+                                            <div className=''>
+                                                <div><strong className="text-primary mb-0">{task.title}</strong></div>
 
                                                 <small className='text-muted'>
                                                     ID: {task.id}
@@ -765,13 +778,7 @@ function Tasks() {
                                                             {standardName && ` (${standardName.split('(')[1]?.replace(')', '') || standardName})`}
                                                         </>
                                                     )}
-                                                    {task.defaultPriority && (
-                                                        <>
-                                                            <span className="mx-1">|</span> Priority:
 
-                                                            <Badge bg={getPriorityBadgeColor(task.defaultPriority)}>{task.defaultPriority}</Badge>
-                                                        </>
-                                                    )}
 
                                                 </small>
                                             </div>
@@ -783,38 +790,46 @@ function Tasks() {
                                 <Card.Body>
 
                                     {task.description && <p className="">{task.description}</p>}
-                                    <small className="text-muted d-block mt-1">
+                                    
+                                </Card.Body>
 
-                                        <div>
-                                            Expected Evidence:
+<ListGroup>
+<ListGroupItem>
+                                            <div>
+                                            <FaTag className="me-1" /><strong>Expected Evidence:</strong><br/>
+
                                             {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 ?
                                                 task.evidenceTypesExpected.map((evidenceType, index) => (
                                                     <React.Fragment key={evidenceType}>
-                                                        <Badge variant="secondary" className='fw-normal bg-light text-dark me-1 ms-1'>{evidenceType}</Badge>
+                                                        <Badge variant="secondary" className='fw-normal bg-light text-dark me-1'>{evidenceType}</Badge>
                                                     </React.Fragment>
                                                 )) : ' N/A'}
 
                                         </div>
-                                    </small>
+</ListGroupItem>
 
-                                </Card.Body>
-
-                                {task.checkType && (
-                                    <Card.Footer className='border-0'>
-                                        <small><FaCogs className="me-1" /><strong>Automated Check:</strong> {task.checkType} on {task.target || 'N/A'}</small>
+ {task.checkType && (
+                                    <ListGroupItem>
+                                        <FaCogs className="me-1" /><strong>Automated Check:</strong> {task.checkType} on {task.target || 'N/A'}
                                         <small className="d-block"><strong>Parameters:</strong> {task.parameters ? JSON.stringify(task.parameters) : 'None'}</small>
-                                    </Card.Footer>
+                                    </ListGroupItem>
                                 )}
-                                {task.linked_documents && task.linked_documents.length > 0 && (
-                                    <Card.Footer className='border-0'>
-                                        <small><FaBookOpen className="me-1" /><strong>Linked Documents:</strong></small>
+
+
+ {task.linked_documents && task.linked_documents.length > 0 && (
+                                    <ListGroupItem>
+                                        <FaBookOpen className="me-1" /><strong>Linked Documents:</strong>
                                         <ul className="list-unstyled list-inline mb-0">
                                             {task.linked_documents.map(doc => (
                                                 <li key={doc.id} className="list-inline-item"><Badge bg="light" text="dark" className="border me-1">{doc.name}</Badge></li>
                                             ))}
                                         </ul>
-                                    </Card.Footer>
+                                    </ListGroupItem>
                                 )}
+
+</ListGroup>
+                               
+                               
 
                             </Card>
                         );
