@@ -37,7 +37,7 @@ const UserDisplay = ({ userId, userName, allUsers = [], defaultText = 'N/A' }) =
         <OverlayTrigger placement="top" overlay={userPopover} delay={{ show: 250, hide: 400 }} rootClose>
             
             <Badge pill bg="light" text="dark" className="fw-normal border" style={{cursor: 'pointer'}}>
-                <FaUserCircle className="me-1 opacity-75" />
+                <FaUserCircle className="text-primary me-1 opacity-75" />
                  {displayName}</Badge>
         </OverlayTrigger>
     );

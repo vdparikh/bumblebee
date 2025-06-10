@@ -18,33 +18,34 @@ const TaskListItem = ({
     isOverdueFn,
     showCampaignInfo = true,
     showAssigneeInfo = true,
-    owners, 
+    owners,
     showOwnerInfo = false,
     ownerTeam,      // New prop
     assigneeTeam,   // New prop
     actionMenu,
     className = ""
-    
+
 }) => {
     if (!task) return null;
 
     return (
         <Card className={`mb-3 shadow-sm ${className}`}>
             <Card.Header as="h5">
+                <div className='mb-2'>
+                    <span className="me-2" ><StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1.1em" /></span>
+                    {task.defaultPriority && (<Badge bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">{task.defaultPriority}</Badge>)}
+                    <Badge bg={getStatusColor(task.status)} className="me-2 flex-shrink-0">{task.status}</Badge>
+                </div>
                 <div className="d-flex justify-content-between align-items-start">
 
                     <div className="d-flex justify-content-between align-items-start">
-                        <StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1.1em" />
-                        <div className="mb-0 ms-2 text-break"> 
-                            {linkTo ? <Link to={linkTo} state={linkState} className="text-decoration-none text-dark stretched-link">{task.title}</Link> : task.title}
+
+                        <div className="mb-0  fs-6 text-break">
+                            {linkTo ? <Link to={linkTo} state={linkState} className="text-decoration-none text-primary stretched-link">{task.title}</Link> : task.title}
                         </div>
                     </div>
                     <div className="d-flex justify-content-between align-items-start">
-
-                        {task.defaultPriority && (<Badge bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">{task.defaultPriority}</Badge>)}
-                        <Badge bg={getStatusColor(task.status)} className="me-2 flex-shrink-0">{task.status}</Badge>
-
-                        {actionMenu ? actionMenu : (linkTo && <FaExternalLinkAlt style={{ lineHeight: "1em"}} size="1em" className="text-muted mt-1" title="View Details" />)}
+                        {actionMenu ? actionMenu : (linkTo && <FaExternalLinkAlt style={{ lineHeight: "1em" }} size="1em" className="text-muted mt-1" title="View Details" />)}
                     </div>
                 </div>
             </Card.Header>
@@ -54,78 +55,81 @@ const TaskListItem = ({
 
 
                 <Row>
-                    <Col md={showAssigneeInfo ? 6 : 6}>
-                     {showOwnerInfo && owners && owners.length > 0 && (
-                    <div className="">
-                        <FaUserShield className="me-2 opacity-75" />
-                        <span className="me-1 fw-medium">Owner(s):</span> 
-                        <span className="ms-1">
-                            {owners.map((owner, index) => (
-                                <span className='me-1' key={owner.id}>
-                                    <UserDisplay userId={owner.id} userName={owner.name} allUsers={allUsers} />
-                                    
-                                </span>
-                            ))}
-                        </span>
-                    </div>
-                )}
+                    <Col>
+                        {showOwnerInfo && owners && owners.length > 0 && (
+                            <div className="">
+                                {/* <FaUserShield className="me-2 opacity-75" /> */}
+                                <span className="small me-1 fw-medium">Owner(s):</span> <br />
+                                <span className="">
+                                    {owners.map((owner, index) => (
+                                        <span className='me-1' key={owner.id}>
+                                            <UserDisplay userId={owner.id} userName={owner.name} allUsers={allUsers} />
 
-                    {(ownerTeam || assigneeTeam) && (
-                    <div>
-                        {ownerTeam && ownerTeam.name && (
-                            <div className="mb-1">
-                                <span className="me-1 fw-medium">Owner Team:</span>
-                                <TeamDisplay teamId={ownerTeam.id} teamName={ownerTeam.name} teamDescription={ownerTeam.description} teamMembers={ownerTeam.members} />
+                                        </span>
+                                    ))}
+                                </span>
                             </div>
                         )}
-                        {/* {assigneeTeam && assigneeTeam.name && (
+
+                        {(ownerTeam || assigneeTeam) && (
+                            <div>
+                                {ownerTeam && ownerTeam.name && (
+                                    <div className="mb-1">
+                                        <span className="small me-1 fw-medium">Owner Team:</span><br />
+                                        <TeamDisplay teamId={ownerTeam.id} teamName={ownerTeam.name} teamDescription={ownerTeam.description} teamMembers={ownerTeam.members} />
+                                    </div>
+                                )}
+                                {/* {assigneeTeam && assigneeTeam.name && (
                             <div>
                                 <span className="me-1 fw-medium">Assignee Team:</span>
                                 <TeamDisplay teamId={assigneeTeam.id} teamName={assigneeTeam.name} teamDescription={assigneeTeam.description} teamMembers={assigneeTeam.members} />
                             </div>
                         )} */}
-                    </div>
-                    )}
-                                    
+                            </div>
+                        )}
+
                     </Col>
-                    <Col md={showAssigneeInfo ? 4 : (showOwnerInfo ? 6 : 12) }>
-                     {showAssigneeInfo && (
-                    <div className="">
-                        <FaUserCheck className="me-2 opacity-75" />
-                        <span className="me-1 fw-medium">Assignee:</span> 
-                        <UserDisplay userId={task.assignee_user_id} userName={task.assignee_user_name} allUsers={allUsers} />
-                    </div>
-                )}
+                    <Col className='border-start border-end'>
+                        {showAssigneeInfo && (
+                            <div className="">
+                                {/* <FaUserCheck className="me-2 opacity-75" /> */}
+                                <span className="small me-1 fw-medium">Assignee:</span><br />
+                                <UserDisplay userId={task.assignee_user_id} userName={task.assignee_user_name} allUsers={allUsers} />
+                            </div>
+                        )}
                     </Col>
 
-                    <Col md={12} className="mt-2">
+                    <Col >
 
-                <div className="">
-                    <FaCalendarAlt className="me-2 opacity-75" />
-                    <span className="me-1 fw-medium">Due:</span> 
-                    {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}
-                </div>
+                        <div className="">
+                            {/* <FaCalendarAlt className="me-2 opacity-75" /> */}
+                            <span className="me-1 fw-medium">Due:</span> <br />
+                            <Badge pill bg="light" text="dark" className="fw-normal border me-2">
+                                <FaCalendarAlt className="text-primary me-2 opacity-75" />
+                                {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</Badge>
+
+                        </div>
                     </Col>
                 </Row>
-               
-               
 
 
-                        </Card.Body>
+
+
+            </Card.Body>
 
             {(task.category || task.requirement_control_id_reference) && (
                 <Card.Footer className="bg-light py-1 px-3">
                     {task.category && (
-                        <Badge pill bg="light" text="dark" className="fw-normal me-2 border"><FaTag className="me-1" />{task.category}</Badge>
+                        <Badge pill bg="white" text="dark" className="fw-normal me-2 border"><FaTag className="me-1" />{task.category}</Badge>
                     )}
                     {task.requirement_control_id_reference && (
-                        <Badge pill bg="light" text="dark" className="fw-normal border me-2">
+                        <Badge pill bg="white" text="dark" className="fw-normal border me-2">
                             <FaFileContract className="me-2 opacity-75" />
                             {task.requirement_control_id_reference}</Badge>
                     )}
 
                     {showCampaignInfo && task.campaign_name && (
-                        <Badge pill bg="light" text="dark" className="fw-normal border">
+                        <Badge pill bg="white" text="dark" className="fw-normal border">
                             <FaBullhorn className="me-2 opacity-75" />
                             <span className="me-1 fw-medium">Campaign:</span>
                             {task.campaign_name}

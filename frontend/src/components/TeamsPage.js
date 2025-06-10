@@ -200,7 +200,7 @@ function TeamsPage() {
 
             <Row>
                 {teams.map(team => (
-                    <Col md={6} lg={4} key={team.id} className="mb-3">
+                    <Col md={6} lg={6} key={team.id} className="mb-3">
                         <Card className="h-100">
                             <Card.Header className="d-flex justify-content-between align-items-center">
                                 <strong>{team.name}</strong>

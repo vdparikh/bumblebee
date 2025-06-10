@@ -1,4 +1,7 @@
+/* IMPORTS */
 @import url('https://fonts.googleapis.com/css2?family=Forum&family=Outfit:wght@100..900&display=swap');
+
+/* GLOBAL & BODY STYLES */
 
 body {
   margin: 0;
@@ -13,15 +16,12 @@ body {
   color: var(--bs-body-color);
 }
 
-form, select, input, .form-control, .form-select {
-  font-size: 1em;
-}
-
-
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* CSS VARIABLES */
 
 :root {
   /* Custom App Variables */
@@ -55,19 +55,15 @@ code {
   --bs-dropdown-link-active-bg: var(--bs-primary);
 }
 
+/* DARK THEME CSS VARIABLES OVERRIDES */
+
 [data-bs-theme="dark"]:root {
   --bs-primary: #ffffff;
   --bs-link-color: var(--bs-primary)!important;
   --bs-body-color: #fff!important;
 }
 
-[data-bs-theme="dark"] .badge.bg-dark, [data-bs-theme="dark"] .badge.bg-secondary {
-color: #000!important;
-}
-
-[data-bs-theme="dark"] .list-group-item.active, [data-bs-theme="dark"] .list-group-item.active .text-muted {
-  color: #000!important;
-}
+/* TYPOGRAPHY */
 
 h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   font-family: var(--custom-header-font);
@@ -85,41 +81,7 @@ h2 {
 h3 { 
   font-size: 1.5em;
 }
-.badge {
-  border-radius: 1rem!important;
-  font-weight: normal!important;
-}
-.badge.bg-light {
-  background-color: var(--custom-card-header-bg)!important; 
-}
 
-.badge.bg-dark, .badge.bg-secondary {
-  background-color: var(--bs-primary)!important; 
-}
-
-.card {
-  border: none; /* Consolidated from later rule */
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Consolidated from later rule */
-  box-shadow: none!important;
-}
-
-.card .card-header {
-  background-color: var(--custom-card-header-bg); 
-  background-color: #fff!important;
-  padding: 10px 15px;
-  font-size: 1.1em;
-  border: 0px;
-}
-
-.card .card-body {
-  /* padding: 0px 15px; */
-}
-.card .card-footer {
-  background-color: transparent; /* Removed !important, default is transparent */
-  padding: 15px 15px!important; /* Removed !important */
-}
-
-/* General Link and Nav Styling */
 a { 
   color: var(--bs-link-color); 
 }
@@ -127,118 +89,79 @@ a:hover {
   color: var(--bs-link-hover-color);
 }
 
+/* FORM ELEMENTS */
 
-[data-bs-theme="dark"] .card .card-header {
-  background-color: var(--bs-dark-bg-subtle)!important;
+form, select, input, .form-control, .form-select {
+  font-size: 1em;
 }
+
+/* BOOTSTRAP COMPONENT OVERRIDES & CUSTOMIZATIONS */
+
+/* Badges */
+.badge {
+  border-radius: 1rem !important;
+  font-weight: 400 !important;
+  padding: 0.35em 0.65em !important;
+  color: #333 !important;
+}
+
+/* Pastel Backgrounds for Badges */
+.badge.bg-primary {
+  background-color: #b3cde3 !important; /* Pastel Blue */
+}
+.badge.bg-secondary {
+  background-color: #dcdcdc !important; /* Pastel Gray */
+}
+.badge.bg-success {
+  background-color: #c1e1c1 !important; /* Pastel Green */
+}
+.badge.bg-danger {
+  background-color: #ffb6c1 !important; /* Pastel Red (LightPink) */
+}
+.badge.bg-warning {
+  background-color: #ffdab9 !important; /* Pastel Orange (PeachPuff) */
+  color: #5a442e !important;
+}
+.badge.bg-info {
+  background-color: #b2dfdb !important; /* Pastel Teal/Aqua */
+}
+.badge.bg-light {
+  background-color: #f5f5f5 !important; /* Very Light Pastel Gray */
+}
+
+/* Cards */
+.card {
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card .card-header {
+  background-color: #fff!important;
+  padding: 10px 15px;
+  font-size: 1.1em;
+  border: 0px;
+}
+
+.card .card-footer {
+  background-color: transparent;
+  padding: 15px 15px!important;
+}
+
+/* Navs & Tabs */
 .navbar-brand, .nav-link { 
   font-family: var(--custom-header-font);
   font-size: 1.1em;
   font-weight: 500;
 }
 
-/* List Group */
-
-.list-group-item {
-  /* background-color: var(--bs-light); 
-  border-color: var(--bs-light); */
-  border-color: var(--bs-light);
-  /* border-left: 4px solid var(--bs-light)!important; */
-}
-
-
-.list-group-item.active {
-  background-color: var(--bs-gray-300); /* Changed from --bs-secondary to match primary theme */
-  border-color: var(--bs-light);
-  /* border-left: 4px solid var(--bs-primary)!important; */
-}
-
-.list-group-item.active::before {
-  content: "";
-  width: 4px;
-  height: 100%;
-  top: 0;
-  left:0;
-  position: absolute;
-  background-color: #35338C; /* Changed from --bs-secondary to match primary theme */
-  /* border-color: var(--bs-light);
-  border-left: 4px solid var(--bs-primary)!important; */
-}
-
-
-.list-group-item.active, .list-group-item.active .text-muted {
-  color: var(--bs-body-color) !important;
-}
-
-/* Sidebar Specific Styles */
-
-.sidebar { 
-  background-color: #35338C;
-  /* color: var(--bs-light);  */
-}
-
-[data-bs-theme="dark"] .sidebar { 
-  /* background-color: var(--bs-primary-dark); */
-  /* color: var(--bs-light);  */
-}
-.sidebar .nav-pills .btn {
-  margin: 2px 5px;
-  color: var(--bs-light); 
-}
-
-.sidebar .nav-pills .btn.active {
-  background-color: rgba(255, 255, 255,.25)
-}
-[data-bs-theme="dark"] .sidebar .nav-pills .btn.active {
-  /* background-color: #000; */
-}
-
-[data-bs-theme="dark"] .list-group-item {
-  border-color: #000!important;
-}
-
-/* .nav-pills .nav-link {
-  color: var(--bs-primary) !important; 
-  border-radius: 0rem; 
-  transition: background-color 0.15s ease-in-out;
-  color: #000!important;
-}
-
-.nav-pills .nav-link.active { 
-  font-weight: 600;
-  background-color: rgba(255, 255, 255, 0.2) !important; 
-  color: var(--bs-primary) !important; 
-  color: #000!important;
-}
-
-.nav-pills .nav-link:hover:not(.active) {
-    background-color: rgba(255, 255, 255, 0.1) !important; 
-    color: var(--bs-primary) !important;
-    color: #000!important;
-}
-
-[data-bs-theme="dark"] .sidebar .nav-pills .nav-link { 
-  color: var(--bs-primary-light);
-} */
-
-
 .nav-tabs .nav-link {
   color: var(--bs-body-color); 
-}
-
-.tab-content { /* General tab content padding */
-  padding: 10px 0px;
 }
 
 .nav-tabs .nav-link.active {
   font-weight: 600;
   color: var(--bs-primary); 
   border-color: var(--bs-gray-300) var(--bs-gray-300) var(--bs-white); 
-}
-
-[data-bs-theme="dark"] .nav-tabs .nav-link.active {
-  color: #fff!important;
-  border-color: var(--bs-white-700) var(--bs-gray-700) var(--bs-body-bg);
 }
 
 .nav-line-tabs .nav-link {
@@ -255,38 +178,122 @@ a:hover {
   font-weight: 600 !important; 
 }
 
-/* Dark Theme Overrides */
-[data-bs-theme="dark"] {
-  body {
-    background-color: #27252B; 
-    color: var(--bs-body-color); 
-  }
+/* List Groups */
 
-  .card { /* .details-pane also styled below */
-    background-color: #141316!important;
-  }
-
-  .bg-light, .bg-white {
-    background-color: rgba(0, 0, 0, 0.075)!important;
-  }
-
-  .text-dark { color: #fff!important; }
-
-  .topnav {
-    background-color: #000!important; /* Specific override for dark topnav */
-  }
+.list-group-item {
+  border-color: var(--bs-light);
 }
 
-/* Specific Component Styling */
-.details-pane, .topnav {
-  background-color: var(--bs-light)!important;
+.list-group-item.active {
+  background-color: var(--bs-gray-300); /* Changed from --bs-secondary to match primary theme */
+  border-color: var(--bs-light);
 }
 
-[data-bs-theme="dark"] .details-pane, .topnav {
-  background-color: var(--bs-dark)!important;
+.list-group-item.active::before {
+  content: "";
+  width: 4px;
+  height: 100%;
+  top: 0;
+  left:0;
+  position: absolute;
+  background-color: #35338C; /* Changed from --bs-secondary to match primary theme */
 }
 
+.list-group-item.active, .list-group-item.active .text-muted {
+  color: var(--bs-body-color) !important;
+}
 
+/* Popovers */
+.popover {
+  z-index: 1060; 
+}
+
+/* Buttons */
+.btn {
+  border-radius: 50rem !important; /* Large value to ensure pill shape */
+  padding: 0.5rem 1rem !important; /* Adjust padding as needed for aesthetics */
+}
+
+.btn-primary {
+  background-color: #1e69e3 !important; /* Pastel Blue */
+  border-color: #1e69e3 !important;
+  color: #ffffff !important; /* Dark text for contrast */
+}
+
+.btn-primary:hover {
+  background-color: #1e69e3 !important; /* Slightly darker pastel blue for hover */
+  border-color: #1e69e3 !important;
+}
+
+.btn-primary:active, .btn-primary:focus {
+  background-color: #1e69e3 !important; /* Even darker for active/focus */
+  border-color: #1e69e3 !important;
+  box-shadow: 0 0 0 0.25rem rgba(160, 196, 255, 0.5) !important; /* Focus shadow matching the pastel blue */
+}
+
+.btn-outline-primary {
+  color: #1e69e3 !important; /* Pastel Blue text */
+  border-color: #1e69e3 !important; /* Pastel Blue border */
+  background-color: transparent !important;
+}
+
+.btn-outline-primary:hover {
+  color: #ffffff !important; /* Dark text on hover */
+  background-color: #1e69e3 !important; /* Pastel Blue background on hover */
+  border-color: #1e69e3 !important;
+}
+
+.btn-outline-primary:active, .btn-outline-primary:focus {
+  background-color: #8cb5f5 !important; /* Slightly darker pastel blue for active/focus background */
+  border-color: #8cb5f5 !important;
+  color: #212529 !important; /* Dark text for active/focus */
+  box-shadow: 0 0 0 0.25rem rgba(160, 196, 255, 0.5) !important; /* Focus shadow matching the pastel blue */
+}
+
+/* LAYOUT & UTILITY CLASSES */
+
+.hero-bg {
+  background-image: radial-gradient(209.88% 93.42% at 100% 100%,#1D5B9A 3.78%,#27237B 57.29%,#33005E 100%);
+}
+
+/* Sidebar Specific Styles */
+
+.sidebar { 
+  background-color: #35338C;
+  /* color: var(--bs-light);  */
+}
+
+.sidebar .nav-pills .btn {
+  margin: 2px 5px;
+  color: var(--bs-light); 
+  height: 50px;
+  border-radius: 0.2rem!important;
+}
+
+.sidebar .nav-pills .btn.active {
+  background-color: rgba(255, 255, 255,.25);
+}
+
+.sidebar .dropdown-toggle::after {
+  display: none !important; 
+}
+
+.sidebar-dropdown-button .dropdown-toggle {
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--bs-light) !important;
+  padding: 0 !important;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Tab Content General Padding */
+.tab-content { /* General tab content padding */
+  padding: 10px 0px;
+}
+/* Page Transitions */
 .page-slide-enter {
   opacity: 0;
   transform: translateX(20px);
@@ -306,14 +313,16 @@ a:hover {
   transition: opacity 300ms ease-in, transform 300ms ease-in;
 }
 
+/* SPECIFIC COMPONENT STYLING (Application Specific) */
+
+.details-pane, .topnav {
+  background-color: var(--bs-light)!important;
+}
+
 .requirements-panel .list-group-item.active {
   background-color: var(--bs-primary-bg-subtle); 
   color: var(--bs-primary-text-emphasis);
   border-left: 3px solid var(--bs-primary);
-}
-
-[data-bs-theme="dark"] .requirements-panel .list-group-item.active {
-  background-color: var(--bs-dark-bg-subtle);
 }
 
 .task-details-grid {
@@ -349,6 +358,7 @@ a:hover {
   color: #495057; 
   line-height: 1.5;
   white-space: pre-wrap; 
+  font-size: 0.9em; /* Duplicate, kept last one */
 }
 
 .comment-textarea {
@@ -370,78 +380,72 @@ a:hover {
   height: 100%; 
 }
 
-.comment-text { font-size: 0.9em;}
-
 .user-display { 
   font-weight: 500; 
 }
 
-.popover {
-  z-index: 1060; 
+/* DARK THEME OVERRIDES */
+
+[data-bs-theme="dark"] {
+  body {
+    background-color: #27252B; 
+    color: var(--bs-body-color); 
+  }
+
+  .card { /* .details-pane also styled below */
+    background-color: #141316 !important;
+  }
+
+  .bg-light, .bg-white {
+    background-color: rgba(0, 0, 0, 0.075)!important;
+  }
+
+  .text-dark { color: #fff!important; }
+
+  .topnav {
+    background-color: #000 !important;
+  }
+
+  .details-pane {
+    background-color: var(--bs-dark) !important;
+  }
+
+  .card .card-header {
+    background-color: var(--bs-dark-bg-subtle) !important;
+  }
+
+  .list-group-item {
+    border-color: #000 !important;
+  }
+
+  .list-group-item.active, .list-group-item.active .text-muted {
+    color: #000 !important; /* This might need adjustment for readability */
+  }
+
+  .nav-tabs .nav-link.active {
+    color: #fff !important;
+    border-color: var(--bs-white-700) var(--bs-gray-700) var(--bs-body-bg);
+  }
+
+  .sidebar { 
+    /* background-color: var(--bs-primary-dark); */ /* Example if you had a dark primary */
+  }
+
+  .badge.bg-dark, .badge.bg-secondary { /* Ensure text is readable on dark badges */
+    color: #000 !important;
+  }
+
+  .requirements-panel .list-group-item.active {
+    background-color: var(--bs-dark-bg-subtle);
+  }
 }
 
-/*
-  The following rule for sidebar dropdowns is problematic due to fixed positioning
-  and hardcoded values. It's better to rely on Bootstrap's default dropdown
-  positioning or ensure the React component structure allows for proper rendering.
-  If dropdowns are clipped, check parent elements for `overflow: hidden` or
-  consider using React Portals for the dropdown menu.
+/* Problematic Sidebar Dropdown - review if still needed with popperConfig strategy: 'fixed' */
 .sidebar .dropdown-menu.show {
     display: block;
     z-index: 1000;
     position: fixed;
     left: 60px; 
-    top: 90px; 
-}*/
-
-.sidebar .dropdown-toggle::after {
-  display: none !important; 
+    top: auto; 
+    margin-top: -50px;
 }
-
-.hero-bg { /* Utility class, can be placed with other utilities or here */
-  background-image: radial-gradient(209.88% 93.42% at 100% 100%,#1D5B9A 3.78%,#27237B 57.29%,#33005E 100%);
-}
-
-
-
-
-.sidebar .dropdown-menu.show {
-    display: block;
-    z-index: 1000;
-    position: fixed;
-    left: 60px;
-    top: 90px;
-}
-
-.sidebar .dropdown-toggle::after {
-  display: none !important; 
-}
-
-
-/* .badge.bg-light {
-  background-color: rgba(var(--bs-primary-rgb), 0.1)!important; 
-  padding: 0px 0px;
-  border-radius: 0.2rem!important;
-  border: 0px!important;
-  height: 20px;
-  line-height: 20px;
-  padding: 0px 10px 0px 25px;
-  text-align: left!important;
-  position: relative;
-  font-size: 0.9em;
-
-}
-
-
-.badge.bg-light svg {
-  background-color: rgba(var(--bs-primary-rgb), 1)!important;
-  color: #fff!important;
-  position: absolute;
-  height: 20px;
-  left: 0;
-  top: 0;
-  width: 20px;
-  padding: 4px 4px;
-  border-bottom-left-radius: 0.2rem;
-  border-top-left-radius: 0.2rem;
-} */

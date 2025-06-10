@@ -10,7 +10,7 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Button from 'react-bootstrap/Button';
 import {
     FaTachometerAlt, FaUser, FaBullhorn, FaColumns, FaUsers,
-    FaTasks, FaFileContract, FaShieldAlt, FaBookOpen,
+    FaTasks, FaFileContract, FaShieldAlt, FaBookOpen, FaLayerGroup,
     FaQuestionCircle, FaRegQuestionCircle,
     FaCog
 } from 'react-icons/fa';
@@ -26,11 +26,11 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
         { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.2em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
         { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.2em" />, label: "Alternate View", roles: ['admin', 'auditor', 'user'] },
         (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management' },
-        { to: "/documents", eventKey: "/documents", icon: <FaBookOpen size="1.2em" />, label: "Documents", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/documents') },
-        { to: "/tasks", eventKey: "/tasks", icon: <FaTasks size="1.2em" />, label: "Manage Tasks", roles: ['admin', 'auditor'] },
-        { to: "/requirements", eventKey: "/requirements", icon: <FaFileContract size="1.2em" />, label: "Manage Requirements", roles: ['admin', 'auditor'] },
-        { to: "/standards", eventKey: "/standards", icon: <FaShieldAlt size="1.2em" />, label: "Manage Standards", roles: ['admin', 'auditor'] },
-        { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Manage Teams", roles: ['admin', 'auditor'] },
+        { to: "/documents", eventKey: "/documents", icon: <FaBookOpen size="1.2em" />, label: "Documents", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/documents') }
+        // { to: "/tasks", eventKey: "/tasks", icon: <FaTasks size="1.2em" />, label: "Manage Tasks", roles: ['admin', 'auditor'] },
+        // { to: "/requirements", eventKey: "/requirements", icon: <FaFileContract size="1.2em" />, label: "Manage Requirements", roles: ['admin', 'auditor'] },
+        // { to: "/standards", eventKey: "/standards", icon: <FaShieldAlt size="1.2em" />, label: "Manage Standards", roles: ['admin', 'auditor'] },
+        // { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Manage Teams", roles: ['admin', 'auditor'] },
     ];
 
     return (
@@ -44,29 +44,27 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
             <Nav variant='pills' activeKey={location.pathname} className="flex-column w-100 flex-grow-1" style={{ overflowY: 'auto', overflowX: 'hidden', maxHeight: `calc(100vh - ${userActionsHeight})` }}>
                 <div className="mt-1">
 
-<div className='bg-white p-0 rounded-pill mb-3' style={{ width: "50px", height: "50px", lineHeight: "32px", margin: "5px 5px"}}>
-                    <NavDropdown
-                        as={NavLink}
-                        title={
-                            <OverlayTrigger placement="right" delay={{ show: 250, hide: 100 }} overlay={<Tooltip id="tooltip-user-actions">{currentUser?.name || 'User Menu'}</Tooltip>}>
-                                <div className="">
-                                    <FaUser className='text-dark' size="1.2em" />
-                                </div>
-                            </OverlayTrigger>
-                        }
-                        id="sidebar-user-actions-dropdown"
-                        drop="down-centered"
-                        align={{ lg: 'start' }}
-                        placement='center'
-                        className=" "
-
-                    >
-                        <NavDropdown.Header className="text-center small text-muted">{currentUser?.name || 'User'}</NavDropdown.Header>
-                        <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
-                        <NavDropdown.Divider />
-                        <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
-                    </NavDropdown>
-</div>
+                    <div className='bg-white rounded-2 mb-3 ms-1 me-1' style={{ width: "50px", height: "50px", lineHeight: "35px"}}>
+                        <NavDropdown
+                            title={
+                                <OverlayTrigger placement="right" delay={{ show: 250, hide: 100 }} overlay={<Tooltip id="tooltip-user-actions">{currentUser?.name || 'User Menu'}</Tooltip>}>
+                                    <div className="">
+                                        <FaUser className='text-dark' size="1.2em" />
+                                    </div>
+                                </OverlayTrigger>
+                            }
+                            id="sidebar-user-actions-dropdown"
+                            drop="end"
+                            align={{ lg: 'start' }}
+                            className="sidebar-user-dropdown" // Added a class for potential specific styling
+                            popperConfig={{ strategy: 'fixed' }}
+                        >
+                            <NavDropdown.Header className="text-center small text-muted">{currentUser?.name || 'User'}</NavDropdown.Header>
+                            <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
+                            <NavDropdown.Divider />
+                            <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
+                        </NavDropdown>
+                    </div>
                     {navItems
                         .filter(Boolean)
                         .map((item, index) => {
@@ -107,14 +105,38 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
                             );
                         })}
 
-                        {currentUser?.role === 'admin' && <Button as={NavLink} 
-                                        className="d-flex justify-content-center align-items-center  p-3  border-0"
-                         size='sm'
-                              variant='transparent'
+                    {(currentUser?.role === 'admin' || currentUser?.role === 'auditor') && (
+                        <NavDropdown
+                            title={
+                                <OverlayTrigger placement="right" delay={{ show: 250, hide: 100 }} overlay={<Tooltip id="tooltip-manage-library">Manage Library</Tooltip>}>
+                                    <div className="d-flex justify-content-center align-items-center p-3 border-0">
+                                        <FaLayerGroup size="1.2em" />
+                                    </div>
+                                </OverlayTrigger>
+                            }
+                            id="sidebar-library-dropdown"
+                            drop="end"
+                            align={{ lg: 'start' }}
+                            className="w-100 sidebar-dropdown-button"
+                            popperConfig={{ strategy: 'fixed' }}
+                        >
+                            <NavDropdown.Header className="small text-muted">Library</NavDropdown.Header>
+                            <NavDropdown.Item as={Link} to="/standards" active={location.pathname === '/standards'}>Manage Standards</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/requirements" active={location.pathname === '/requirements'}>Manage Requirements</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/tasks" active={location.pathname === '/tasks'}>Manage Tasks</NavDropdown.Item>
+                        </NavDropdown>
+                    )}
+
+
+
+                    {currentUser?.role === 'admin' && <Button as={NavLink}
+                        className="d-flex justify-content-center align-items-center  p-3  border-0"
+                        size='sm'
+                        variant='transparent'
                         title="Settings"
-                         to="/admin-settings"
+                        to="/admin-settings"
                         isActive={location.pathname.startsWith('/settings') ? location.pathname.startsWith('/settings') : undefined}> <FaCog size="1.2em" />
-                                    </Button>}
+                    </Button>}
 
                 </div>
             </Nav>
