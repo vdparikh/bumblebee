@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
-import Badge from 'react-bootstrap/Badge';
+import { Badge, Tooltip, OverlayTrigger } from 'react-bootstrap';
 import { FaUserShield, FaUserCheck, FaCalendarAlt, FaBullhorn, FaExternalLinkAlt, FaTag, FaExclamationCircle, FaFileContract, FaUsers } from 'react-icons/fa';
 import StatusIcon from './StatusIcon';
 import TeamDisplay from './TeamDisplay'; // Import TeamDisplay
@@ -11,6 +11,7 @@ import UserDisplay from './UserDisplay';
 import { getStatusColor } from '../../utils/displayUtils';
 
 const TaskListItem = ({
+    // ... other props
     task,
     allUsers,
     linkTo,
@@ -22,6 +23,8 @@ const TaskListItem = ({
     showOwnerInfo = false,
     ownerTeam,      // New prop
     assigneeTeam,   // New prop
+    evidenceCount,  // New prop
+    commentCount,   // New prop
     actionMenu,
     className = ""
 
@@ -31,10 +34,15 @@ const TaskListItem = ({
     return (
         <Card className={`mb-3 shadow-sm ${className}`}>
             <Card.Header as="h5">
-                <div className='mb-2'>
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                        <div>
                     <span className="me-2" ><StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1.1em" /></span>
                     {task.defaultPriority && (<Badge bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">{task.defaultPriority}</Badge>)}
                     <Badge bg={getStatusColor(task.status)} className="me-2 flex-shrink-0">{task.status}</Badge>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-start">
+                        {actionMenu ? actionMenu : (linkTo && <FaExternalLinkAlt style={{ lineHeight: "1em" }} size="1em" className="text-muted mt-1" title="View Details" />)}
+                    </div>
                 </div>
                 <div className="d-flex justify-content-between align-items-start">
 
@@ -44,18 +52,16 @@ const TaskListItem = ({
                             {linkTo ? <Link to={linkTo} state={linkState} className="text-decoration-none text-primary stretched-link">{task.title}</Link> : task.title}
                         </div>
                     </div>
-                    <div className="d-flex justify-content-between align-items-start">
-                        {actionMenu ? actionMenu : (linkTo && <FaExternalLinkAlt style={{ lineHeight: "1em" }} size="1em" className="text-muted mt-1" title="View Details" />)}
-                    </div>
+                    
                 </div>
             </Card.Header>
-            <Card.Body className="">
+            <Card.Body className="pt-0">
 
                 {task.description && <p className="text-muted ">{task.description.substring(0, 120)}{task.description.length > 120 ? '...' : ''}</p>}
 
 
                 <Row>
-                    <Col>
+                    <Col md={3}>
                         {showOwnerInfo && owners && owners.length > 0 && (
                             <div className="">
                                 {/* <FaUserShield className="me-2 opacity-75" /> */}
@@ -89,7 +95,7 @@ const TaskListItem = ({
                         )}
 
                     </Col>
-                    <Col className='border-start border-end'>
+                    <Col md={2} className='border-start'>
                         {showAssigneeInfo && (
                             <div className="">
                                 {/* <FaUserCheck className="me-2 opacity-75" /> */}
@@ -99,15 +105,33 @@ const TaskListItem = ({
                         )}
                     </Col>
 
-                    <Col >
+                    <Col md={2} className='border-start'>
 
                         <div className="">
                             {/* <FaCalendarAlt className="me-2 opacity-75" /> */}
-                            <span className="me-1 fw-medium">Due:</span> <br />
+                            <span className="small me-1 fw-medium">Due:</span> <br />
                             <Badge pill bg="light" text="dark" className="fw-normal border me-2">
                                 <FaCalendarAlt className="text-primary me-2 opacity-75" />
                                 {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</Badge>
 
+                        </div>
+                    </Col>
+                    <Col md={2} className='border-start'>
+                        <div className="">
+                            <span className="small me-1 fw-medium">Evidence:</span> <br />
+                            <Badge pill bg="light" text="dark" className="fw-normal border me-2">
+                                <FaFileContract className="text-info me-2 opacity-75" />
+                                {evidenceCount || 0}
+                            </Badge>
+                        </div>
+                    </Col>
+                    <Col md={3} className='border-start'>
+                        <div className="">
+                            <span className="small me-1 fw-medium">Comments:</span> <br />
+                            <Badge pill bg="light" text="dark" className="fw-normal border me-2">
+                                <FaUsers className="text-success me-2 opacity-75" /> {/* Using FaUsers as a placeholder for comments icon */}
+                                {commentCount || 0}
+                            </Badge>
                         </div>
                     </Col>
                 </Row>

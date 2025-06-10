@@ -99,7 +99,7 @@ form, select, input, .form-control, .form-select {
 
 /* Badges */
 .badge {
-  border-radius: 1rem !important;
+  border-radius: 0.2rem !important;
   font-weight: 400 !important;
   padding: 0.35em 0.65em !important;
   color: #333 !important;
@@ -210,7 +210,7 @@ form, select, input, .form-control, .form-select {
 
 /* Buttons */
 .btn {
-  border-radius: 50rem !important; /* Large value to ensure pill shape */
+  border-radius: 0.3rem !important; /* Large value to ensure pill shape */
   padding: 0.5rem 1rem !important; /* Adjust padding as needed for aesthetics */
 }
 
@@ -248,6 +248,39 @@ form, select, input, .form-control, .form-select {
   border-color: #8cb5f5 !important;
   color: #212529 !important; /* Dark text for active/focus */
   box-shadow: 0 0 0 0.25rem rgba(160, 196, 255, 0.5) !important; /* Focus shadow matching the pastel blue */
+}
+
+/* Alerts */
+.alert {
+  border-width: 0px !important;
+  border-left-width: 4px !important;
+  border-radius: 0.25rem !important;
+}
+
+.alert-primary {
+  background-color: #e6e6fa !important; /* Pastel Lavender */
+  border-left-color: #b3b3d9 !important;
+  color: #3c3c5b !important;
+}
+.alert-success {
+  background-color: #d4edda !important; /* Pastel Green */
+  border-left-color: #a3d1a7 !important;
+  color: #155724 !important;
+}
+.alert-danger {
+  background-color: #f8d7da !important; /* Pastel Red */
+  border-left-color: #f1aeb5 !important;
+  color: #721c24 !important;
+}
+.alert-warning {
+  background-color: #fff3cd !important; /* Pastel Yellow */
+  border-left-color: #ffe081 !important;
+  color: #856404 !important;
+}
+.alert-info { /* Uses --bs-info which is already a pastel orange */
+  background-color: color-mix(in srgb, var(--bs-info) 20%, white) !important;
+  border-left-color: var(--bs-info) !important;
+  color: color-mix(in srgb, var(--bs-info) 80%, black) !important;
 }
 
 /* LAYOUT & UTILITY CLASSES */

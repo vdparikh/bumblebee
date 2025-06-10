@@ -125,7 +125,19 @@ function Dashboard() {
             activeCampaignsCount,
             statusCounts,
             recentOpenTasks: openTasks.slice(0, 5), 
-            recentActiveCampaigns: activeCampaigns.slice(0,5),
+                        recentActiveCampaigns: activeCampaigns.slice(0,5).map(campaign => {
+               
+            const tasksForCampaign = myTasks.filter(task => task.campaign_id === campaign.id);
+                const completedTasks = tasksForCampaign.filter(task => task.status === "Closed").length;
+                const totalTasks = tasksForCampaign.length;
+                const percentageComplete = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+                return { 
+                    ...campaign, 
+                    completedTasks, 
+                    totalTasks, 
+                    percentageComplete 
+                };
+            }),
             categoryProgressStats, 
         };
     }, [myTasks, activeCampaigns]);
@@ -245,6 +257,11 @@ function Dashboard() {
                                         showAssigneeInfo={true}
                                         showOwnerInfo={true} 
                                         owners={task.owners} 
+                                        assigneeTeam={task.assignee_team}
+                                        ownerTeam={task.owner_team}
+                                        evidenceCount={task.evidence_count}
+                                        commentCount={task.comment_count}
+
                                     />
                                 ))}
                             </div>
@@ -253,7 +270,47 @@ function Dashboard() {
                         )}
                 </Col>
                 <Col md={6} className="mb-4">
-                    <Card>
+
+                    <div className="d-flex justify-content-between align-items-center  mb-1 p-2">
+                        <h6 className="mb-0">Active Campaigns</h6>
+                        <Link to="/campaigns" className="small">View All Campaigns</Link>
+                    </div>
+                        {dashboardStats.recentActiveCampaigns.length > 0 ? (
+                        <div style={{ maxHeight: '450px', overflowY: 'auto' }}>
+                            {dashboardStats.recentActiveCampaigns.map(campaign => (
+                                <Card key={campaign.id} className="mb-3 shadow-sm">
+                                    <Card.Header as="h6">
+                                        <div className='mb-2'><Badge className="small mb-1">{campaign.standard_name || 'N/A'}</Badge>
+                                        <Badge bg={getStatusColor(campaign.status)} className="float-end">{campaign.status}</Badge>
+                                        </div>
+
+                                        
+
+                                        <Link to={`/campaigns/${campaign.id}`} className="text-decoration-none">
+                                            {campaign.name}
+                                        </Link>
+                                        
+                                    </Card.Header>
+                                    <Card.Body className="py-2 px-3">
+                                        
+                                        {campaign.description && <p className="small text-muted mb-2">{campaign.description.substring(0,1000)}{campaign.description.length > 100 ? '...' : ''}</p>}
+                                    </Card.Body>
+                                    <Card.Footer className='border-0'>
+                                        <div className="d-flex justify-content-between align-items-center small">
+                                            <span>Tasks: {campaign.completedTasks} / {campaign.totalTasks}</span>
+                                            <span>{campaign.percentageComplete.toFixed(0)}% Complete</span>
+                                        </div>
+                                        <ProgressBar now={campaign.percentageComplete} variant="success" style={{height: '8px'}} className="mt-1"/>
+                                    </Card.Footer>
+                                </Card>
+                            ))}
+                        
+                        </div>
+                        ) : (
+                             <Card className="shadow-sm"><Card.Body><p className="text-muted">No active campaigns.</p></Card.Body></Card>
+                        )}
+
+                    {/* <Card>
                         <Card.Header as="h5"><FaBullhorn className="me-2"/>Active Campaigns</Card.Header>
                         {dashboardStats.recentActiveCampaigns.length > 0 ? (
                         <ListGroup variant="flush">
@@ -270,7 +327,7 @@ function Dashboard() {
                         <Card.Footer className="text-center">
                             <Link to="/campaigns">View All Campaigns</Link>
                         </Card.Footer>
-                    </Card>
+                    </Card> */}
 
                     <Card className='mt-3'>
                         <Card.Header as="h5"><FaComment className="me-2"/>Recent Activity</Card.Header>

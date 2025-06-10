@@ -497,7 +497,9 @@ function MyTasks() {
                                         showOwnerInfo={true} 
                                         owners={task.owners} 
                                         assigneeTeam={task.assignee_team}
-                                        ownerTeam={task.owner_team} 
+                                        ownerTeam={task.owner_team}
+                                        evidenceCount={task.evidence_count}
+                                        commentCount={task.comment_count}
                                     />
 
                                     
