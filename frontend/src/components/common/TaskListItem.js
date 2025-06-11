@@ -51,7 +51,7 @@ const TaskListItem = ({
 
     return (
         <Card className={`mb-3 shadow-sm ${className}`}>
-            <Card.Header as="p">
+            <Card.Header as="h6">
                     <div className="d-flex justify-content-between align-items-start mb-2">
                         <div>
                     <span className="me-2" ><StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1.1em" /></span>
@@ -70,8 +70,8 @@ const TaskListItem = ({
 
                     <div className="d-flex justify-content-between align-items-start">
 
-                        <div className="mb-0 text-break">
-                            {linkTo ? <Link to={linkTo} state={linkState} className="text-decoration-none text-dark  stretched-link">{task.title}</Link> : task.title}
+                        <div className="mb-0 text-break ">
+                            {linkTo ? <Link to={linkTo} state={linkState} className="text-decoration-none text-black stretched-link">{task.title}</Link> : task.title}
                         </div>
                     </div>
                     

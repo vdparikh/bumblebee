@@ -128,19 +128,19 @@ function LibraryManagementPage() {
                 showPageHeader={false}
                 onAddStandardClick={() => handleOpenPanel('add', 'standard')}
                 standardActions={(std) => (
-                    <Button variant="outline-primary" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'standard', std); }} title="Edit Standard">
+                    <Button className='nopadding text-warning' variant="transparent" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'standard', std); }} title="Edit Standard">
                         <FaEdit />
                     </Button>
                 )}
                 onAddRequirementClick={(standardId) => handleOpenPanel('add', 'requirement', null, standardId)}
                 requirementActions={(req) => (
-                    <Button variant="outline-primary" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'requirement', req); }} title="Edit Requirement">
+                    <Button className='nopadding text-warning' variant="transparent" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'requirement', req); }} title="Edit Requirement">
                         <FaEdit />
                     </Button>
                 )}
                 onAddTaskClick={(requirementId) => handleOpenPanel('add', 'task', null, requirementId)}
                 taskActions={(task) => (
-                    <Button variant="outline-primary" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'task', task); }} title="Edit Task">
+                    <Button className='nopadding text-warning' variant="transparent" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'task', task); }} title="Edit Task">
                         <FaEdit />
                     </Button>
                 )}

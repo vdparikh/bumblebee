@@ -297,7 +297,7 @@ function Standards() {
                             showPageHeader={false}
                             standardActions={(std) => (
                                 <Button
-                                    variant="outline-primary"
+                                    className='nopadding text-success' variant="transparent"
                                     size="sm"
                                     onClick={(e) => { e.stopPropagation(); handleEditStandard(std); }}
                                     title="Edit Standard"
