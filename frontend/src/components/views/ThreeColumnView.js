@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, ListGroup, Spinner, Alert, Badge } from 'react-bootstrap';
-import { FaShieldAlt, FaFileContract, FaTasks, FaTag, FaCogs, FaExclamationCircle, FaFileMedicalAlt, FaInfo } from 'react-icons/fa';
+import { Container, Row, Col, Card, ListGroup, Spinner, Alert, Badge, ListGroupItem } from 'react-bootstrap';
+import { FaShieldAlt, FaFileContract, FaTasks, FaTag, FaCogs, FaExclamationCircle, FaFileMedicalAlt, FaInfo, FaLink } from 'react-icons/fa';
 import {
     getComplianceStandards,
-    getRequirements as getAllRequirements, 
-    getTasks as getAllMasterTasks, 
+    getRequirements as getAllRequirements,
+    getTasks as getAllMasterTasks,
 } from '../../services/api';
 import PageHeader from '../common/PageHeader';
 
-function ThreeColumnView() {
+function ThreeColumnView({ standardActions, showPageHeader = true }) { // Add showPageHeader prop, default to true
     const [standards, setStandards] = useState([]);
     const [requirements, setRequirements] = useState([]);
     const [tasks, setTasks] = useState([]);
@@ -17,7 +17,7 @@ function ThreeColumnView() {
     const [loadingRequirements, setLoadingRequirements] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [error, setError] = useState('');
-    
+
     const [selectedStandardId, setSelectedStandardId] = useState(null);
     const [selectedRequirementId, setSelectedRequirementId] = useState(null);
 
@@ -47,7 +47,7 @@ function ThreeColumnView() {
         setLoadingRequirements(true);
         setError('');
         try {
-            const response = await getAllRequirements(); 
+            const response = await getAllRequirements();
             const filteredReqs = Array.isArray(response.data) ? response.data.filter(r => r.standardId === standardId) : [];
             setRequirements(filteredReqs);
         } catch (err) {
@@ -66,7 +66,7 @@ function ThreeColumnView() {
         setLoadingTasks(true);
         setError('');
         try {
-            const response = await getAllMasterTasks(); 
+            const response = await getAllMasterTasks();
             const filteredTasks = Array.isArray(response.data) ? response.data.filter(task => task.requirementId === requirementId) : [];
             setTasks(filteredTasks);
         } catch (err) {
@@ -80,8 +80,8 @@ function ThreeColumnView() {
     const handleStandardSelect = (standardId) => {
         const newSelectedStandardId = selectedStandardId === standardId ? null : standardId;
         setSelectedStandardId(newSelectedStandardId);
-        setSelectedRequirementId(null); 
-        setTasks([]); 
+        setSelectedRequirementId(null);
+        setTasks([]);
         if (newSelectedStandardId) {
             fetchRequirementsByStandard(newSelectedStandardId);
         } else {
@@ -100,14 +100,14 @@ function ThreeColumnView() {
     };
 
     useEffect(() => {
-        
+
         if (selectedRequirementId) {
-            
+
             fetchTasksByRequirement(selectedRequirementId);
         } else if (selectedStandardId && !loadingRequirements && requirements.length > 0) {
-            
-            
-            
+
+
+
             const requirementIds = requirements.map(r => r.id);
             if (requirementIds.length > 0) {
                 setLoadingTasks(true);
@@ -126,13 +126,13 @@ function ThreeColumnView() {
                         setLoadingTasks(false);
                     });
             } else {
-                setTasks([]); 
+                setTasks([]);
             }
         } else if (selectedStandardId && !loadingRequirements && requirements.length === 0) {
-            
+
             setTasks([]);
         } else {
-            
+
             setTasks([]);
         }
     }, [selectedStandardId, selectedRequirementId, requirements, loadingRequirements, getAllMasterTasks, fetchTasksByRequirement]);
@@ -150,12 +150,14 @@ function ThreeColumnView() {
 
     return (
         <Container fluid className="">
-            <PageHeader icon={<FaInfo />} title="Compliance Management - Read Only View" />
+            {showPageHeader && (
+                <PageHeader icon={<FaInfo />} title="Compliance Management - Read Only View" />
+            )}
 
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
 
             <Row>
-                
+
                 <Col md={3}>
                     <Card className="h-100">
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
@@ -171,12 +173,32 @@ function ThreeColumnView() {
                                         action
                                         active={selectedStandardId === std.id}
                                         onClick={() => handleStandardSelect(std.id)}
-                                        className="d-flex justify-content-between align-items-center"
+                                        className=""
                                     >
+                                        <div className='d-flex justify-content-between align-items-center'>
                                         <div>
                                             <strong>{std.name}</strong> ({std.shortName})
                                             <small className="d-block text-muted">{std.description?.substring(0, 70)}...</small>
                                         </div>
+                                        {standardActions && ( // Conditionally render actions
+                                            <div className="ms-2">{standardActions(std)}</div>
+                                        )}
+</div>
+                                        <ListGroup className="mt-2">
+                                            {std.version && <ListGroupItem><small className="text-muted"><strong>Version:</strong> {std.version}</small></ListGroupItem>}
+                                            {std.issuing_body && <ListGroupItem><small className="text-muted"><strong>Issuing Body:</strong> {std.issuing_body}</small></ListGroupItem>}
+
+                                            {std.official_link && (
+                                                <ListGroupItem>
+                                                    <small className="text-muted">
+                                                        <strong>Official Document: </strong>
+                                                        <a href={std.official_link} target="_blank" rel="noopener noreferrer">
+                                                            Link <FaLink size="0.8em" />
+                                                        </a>
+                                                    </small>
+                                                </ListGroupItem>
+                                            )}
+                                        </ListGroup>
                                     </ListGroup.Item>
                                 ))
                             ) : (
@@ -186,7 +208,7 @@ function ThreeColumnView() {
                     </Card>
                 </Col>
 
-                
+
                 <Col md={4}>
                     <Card className="h-100">
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
@@ -202,7 +224,7 @@ function ThreeColumnView() {
                                     <ListGroup.Item
                                         key={req.id}
                                         action
-                                        active={selectedRequirementId === req.id}                                        onClick={() => handleRequirementSelect(req.id)}
+                                        active={selectedRequirementId === req.id} onClick={() => handleRequirementSelect(req.id)}
                                         className="d-flex justify-content-between align-items-center"
                                     >
                                         <div>
@@ -210,7 +232,7 @@ function ThreeColumnView() {
                                             <p className="mb-1 small text-muted" style={{ whiteSpace: 'pre-wrap' }}>
                                                 {req.requirementText}
                                             </p>
-                                            
+
                                         </div>
                                     </ListGroup.Item>
                                 ))
@@ -221,22 +243,22 @@ function ThreeColumnView() {
                     </Card>
                 </Col>
 
-                
+
                 <Col md={5}>
                     <Card className="h-100">
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
                             <span><FaTasks className="me-2" />Tasks ({tasks.length})</span>
                         </Card.Header>
                         <ListGroup variant="flush" style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto' }}>
-                           {loadingTasks ? (
+                            {loadingTasks ? (
                                 <ListGroup.Item className="text-center"><Spinner animation="border" size="sm" /> Loading Tasks...</ListGroup.Item>
-                            ) : !selectedStandardId ? ( 
+                            ) : !selectedStandardId ? (
                                 <ListGroup.Item>Select a standard to see related tasks.</ListGroup.Item>
                             ) : tasks.length > 0 ? (
                                 tasks.map(task => (
                                     <ListGroup.Item
                                         key={task.id}
-                                        
+
                                         className="d-flex justify-content-between align-items-center"
                                     >
                                         <div>
@@ -258,7 +280,7 @@ function ThreeColumnView() {
                                             )}
                                             {task.checkType && (
                                                 <div className="mt-1 small text-muted">
-                                                    <FaCogs className="me-1"/> Automated: {task.checkType} on {task.target || 'N/A'}
+                                                    <FaCogs className="me-1" /> Automated: {task.checkType} on {task.target || 'N/A'}
                                                 </div>
                                             )}
                                         </div>

@@ -500,8 +500,9 @@ func (s *DBStore) CreateComplianceStandard(standard *models.ComplianceStandard) 
 	standard.ID = uuid.NewString()
 
 	query := `
-		INSERT INTO compliance_standards (id, name, short_name, description)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO compliance_standards (id, name, short_name, description, version, issuing_body, official_link)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+
 	`
 	_, err := s.DB.Exec(query, standard.ID, standard.Name, standard.ShortName, standard.Description)
 	if err != nil {
@@ -512,7 +513,7 @@ func (s *DBStore) CreateComplianceStandard(standard *models.ComplianceStandard) 
 
 func (s *DBStore) GetComplianceStandards() ([]models.ComplianceStandard, error) {
 	query := `
-		SELECT id, name, short_name, description
+		SELECT id, name, short_name, description, version, issuing_body, official_link
 		FROM compliance_standards ORDER BY name ASC
 	`
 	rows, err := s.DB.Query(query)
@@ -524,7 +525,7 @@ func (s *DBStore) GetComplianceStandards() ([]models.ComplianceStandard, error) 
 	var standards []models.ComplianceStandard
 	for rows.Next() {
 		var std models.ComplianceStandard
-		if err := rows.Scan(&std.ID, &std.Name, &std.ShortName, &std.Description); err != nil {
+		if err := rows.Scan(&std.ID, &std.Name, &std.ShortName, &std.Description, &std.Version, &std.IssuingBody, &std.OfficialLink); err != nil {
 			return nil, fmt.Errorf("failed to scan compliance standard row: %w", err)
 		}
 		standards = append(standards, std)
@@ -687,9 +688,9 @@ func (s *DBStore) UpdateRequirement(req *models.Requirement) error {
 func (s *DBStore) UpdateStandard(standard *models.ComplianceStandard) error {
 	query := `
 		UPDATE compliance_standards
-		SET name = $2, short_name = $3, description = $4
+		SET name = $2, short_name = $3, description = $4, version = $5, issuing_body = $6, official_link = $7
 		WHERE id = $1`
-	_, err := s.DB.Exec(query, standard.ID, standard.Name, standard.ShortName, standard.Description)
+	_, err := s.DB.Exec(query, standard.ID, standard.Name, standard.ShortName, standard.Description, standard.Version, standard.IssuingBody, standard.OfficialLink)
 	if err != nil {
 		return fmt.Errorf("failed to update compliance standard with id %s: %w", standard.ID, err)
 	}

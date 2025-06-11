@@ -19,8 +19,10 @@ import {
     FaAlignLeft,
     FaBookOpen,
     FaEdit,
-    FaWindowClose
+    FaWindowClose,
+    FaShieldAlt
 } from 'react-icons/fa';
+import { Badge } from 'react-bootstrap';
 
 function Requirements() {
     const [requirements, setRequirements] = useState([]);
@@ -141,7 +143,7 @@ function Requirements() {
 
     return (
         <div>
-            <h2 className="mb-4"><FaFileContract className="me-2"/>Compliance Requirements</h2>
+            <h2 className="mb-4">Compliance Requirements</h2>
 
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
@@ -238,11 +240,19 @@ function Requirements() {
                         {filteredRequirements.map(req => (
                             <Card key={req.id} className="mb-3 shadow-sm">
                                 <Card.Header>
-                                    <div className="d-flex w-100 justify-content-between">
-                                        <FaBookOpen size="1.5em" className="text-secondary "/>
-                                        <div className="d-flex ms-2 w-100 justify-content-between">
-                                            <h5 className="mb-1">{req.controlIdReference}</h5>
+                                    <div className="mb-2">
+                                        <div className="d-flex w-100 justify-content-between">
+                                        <Badge>
+                                            <FaShieldAlt size="1em" className="me-1"/>
+                                            {getStandardNameById(req.standardId)}</Badge>
                                             <small className="text-muted">ID: {req.id}</small>
+                                        </div>
+                                        </div>
+                                    <div className="d-flex w-100 justify-content-between">
+                                        <FaBookOpen size="1.2em" className="text-secondary "/>
+                                        <div className="d-flex ms-2 w-100 justify-content-between">
+                                            <h6 className="mb-1">{req.controlIdReference}</h6>
+                                            
                                             </div>
                                         </div>
                                 </Card.Header>
@@ -259,11 +269,11 @@ function Requirements() {
                                     </Col>
                                 </Row>
                                 </Card.Body>
-                                <Card.Footer className='border-none border-top-0'>
+                                {/* <Card.Footer className='border-none border-top-0'>
                                      <small className="text-muted">
                                             Standard: {getStandardNameById(req.standardId)}
                                         </small>
-                                </Card.Footer>
+                                </Card.Footer> */}
                             </Card>
                         ))}
                     </div>

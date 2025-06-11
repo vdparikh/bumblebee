@@ -396,3 +396,10 @@ ADD COLUMN IF NOT EXISTS default_owner_team_id UUID NULL,
 ADD COLUMN IF NOT EXISTS default_assignee_team_id UUID NULL,
 ADD CONSTRAINT fk_task_default_owner_team FOREIGN KEY(default_owner_team_id) REFERENCES teams(id) ON DELETE SET NULL,
 ADD CONSTRAINT fk_task_default_assignee_team FOREIGN KEY(default_assignee_team_id) REFERENCES teams(id) ON DELETE SET NULL;
+
+
+
+ALTER TABLE compliance_standards
+ADD COLUMN version TEXT,
+ADD COLUMN issuing_body TEXT,
+ADD COLUMN official_link TEXT;
