@@ -163,7 +163,7 @@ function ThreeColumnView({ standardActions, showPageHeader = true }) { // Add sh
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
                             <span><FaShieldAlt className="me-2" />Standards ({standards.length})</span>
                         </Card.Header>
-                        <ListGroup variant="flush" style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto' }}>
+                        <ListGroup variant="flush" style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}>
                             {loadingStandards ? (
                                 <ListGroup.Item className="text-center"><Spinner animation="border" size="sm" /> Loading Standards...</ListGroup.Item>
                             ) : standards.length > 0 ? (

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { getRequirements, createRequirement, updateRequirement, getComplianceStandards } from '../services/api';
+import { getRequirements, createRequirement, updateRequirement, getComplianceStandards, getTasks } from '../services/api';
+import { getUsers } from '../services/api';
+import { Link } from 'react-router-dom';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import FloatingLabel from 'react-bootstrap/FloatingLabel';
@@ -10,6 +12,7 @@ import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import Spinner from 'react-bootstrap/Spinner';
 
 import {
     FaListUl,
@@ -20,9 +23,17 @@ import {
     FaBookOpen,
     FaEdit,
     FaWindowClose,
-    FaShieldAlt
+    FaShieldAlt,
+    FaTasks as FaTasksIcon,
+    FaInfoCircle as FaInfoCircleIcon,
+    FaFileMedicalAlt,
+    FaExclamationCircle,
+    FaTag,
+    FaCogs
 } from 'react-icons/fa';
 import { Badge } from 'react-bootstrap';
+import TaskListItem from './common/TaskListItem';
+import UserDisplay from './common/UserDisplay'; // Assuming you need UserDisplay for tasks
 
 function Requirements() {
     const [requirements, setRequirements] = useState([]);
@@ -35,8 +46,15 @@ function Requirements() {
     const [selectedStandardIdForFilter, setSelectedStandardIdForFilter] = useState('');
     const [filteredRequirements, setFilteredRequirements] = useState([]);
     const [editingRequirementId, setEditingRequirementId] = useState(null);
+    const [selectedRequirementId, setSelectedRequirementId] = useState(null);
+    const [associatedTasks, setAssociatedTasks] = useState([]);
+    const [allTasks, setAllTasks] = useState([]); // To hold all tasks
+    const [allUsers, setAllUsers] = useState([]); // To hold all users for TaskListItem
+
+    
     const [activeTabKey, setActiveTabKey] = useState('existing');
 
+    const [loading, setLoading] = useState(true);
     const fetchRequirements = useCallback(async () => {
         try {
             const response = await getRequirements();
@@ -59,10 +77,35 @@ function Requirements() {
         }
     }, []);
 
+    const fetchAllTasksAndUsers = useCallback(async () => {
+        try {
+            const tasksResponse = await getTasks();
+            setAllTasks(Array.isArray(tasksResponse.data) ? tasksResponse.data : []);
+        } catch (error) {
+            console.error("Error fetching tasks:", error);
+            setError(prev => prev + ' Failed to fetch tasks.');
+        }
+        try {
+            const usersResponse = await getUsers(); // Assuming getUsers is available in your api.js
+            setAllUsers(Array.isArray(usersResponse.data) ? usersResponse.data : []);
+        } catch (error) {
+            console.error("Error fetching users:", error);
+            setError(prev => prev + ' Failed to fetch users.');
+        }
+    }, []);
+
     useEffect(() => {
+        setLoading(true);
         fetchRequirements();
         fetchComplianceStandards();
-    }, [fetchRequirements, fetchComplianceStandards]);
+        fetchAllTasksAndUsers(); // Fetch all tasks and users
+        setLoading(false);
+    }, [fetchRequirements, fetchComplianceStandards, fetchAllTasksAndUsers]);
+
+    useEffect(() => {
+        // Filter tasks whenever allTasks or selectedRequirementId changes
+        setAssociatedTasks(allTasks.filter(task => task.requirementId === selectedRequirementId));
+    }, [allTasks, selectedRequirementId]);
 
     useEffect(() => {
         if (selectedStandardIdForFilter) {
@@ -130,6 +173,11 @@ function Requirements() {
         setError(''); setSuccess('');
     };
 
+    const handleRequirementSelect = (reqId) => {
+        const newSelectedReqId = selectedRequirementId === reqId ? null : reqId;
+        setSelectedRequirementId(newSelectedReqId);
+    };
+
     const uniqueControlIdReferences = useMemo(() => {
         if (!requirements || requirements.length === 0) return [];
         const refs = requirements.map(req => req.controlIdReference).filter(Boolean);
@@ -140,6 +188,25 @@ function Requirements() {
         const standard = complianceStandards.find(s => s.id === standardId);
         return standard ? `${standard.name} (${standard.shortName})` : standardId; 
     };
+
+    const isOverdue = (dueDate, status) => {
+        if (!dueDate || status === "Closed") return false;
+        return new Date(dueDate) < new Date() && new Date(dueDate).setHours(0, 0, 0, 0) !== new Date().setHours(0, 0, 0, 0);
+    };
+
+    if (loading) return <div className="text-center mt-5"><Spinner animation="border" /><p>Loading requirements...</p></div>;
+
+
+    const getPriorityBadgeColor = (priority) => {
+        switch (priority?.toLowerCase()) {
+            case 'critical': return 'danger';
+            case 'high': return 'warning';
+            case 'medium': return 'info';
+            case 'low': return 'secondary';
+            default: return 'light';
+        }
+    };
+
 
     return (
         <div>
@@ -237,7 +304,95 @@ function Requirements() {
 
                     {filteredRequirements.length === 0 && <Alert variant="info">{selectedStandardIdForFilter ? 'No requirements found for the selected standard.' : 'No requirements found.'}</Alert>}
                     <div variant="flush">
-                        {filteredRequirements.map(req => (
+
+
+
+                    <Row>
+                        <Col md={5}>
+                            <Card className="h-100">
+                                <Card.Header as="h5">
+                                    <FaFileContract className="me-2" />Requirements ({filteredRequirements.length})
+                                </Card.Header>
+                                <ListGroup variant="flush" style={{ maxHeight: 'calc(100vh - 250px)', overflowY: 'auto' }}>
+                                    {filteredRequirements.length === 0 ? (
+                                        <ListGroup.Item className="text-muted">
+                                            {selectedStandardIdForFilter ? 'No requirements found for the selected standard.' : 'No requirements found.'}
+                                        </ListGroup.Item>
+                                    ) : (
+                                        filteredRequirements.map(req => (
+                                            <ListGroup.Item
+                                                key={req.id}
+                                                action
+                                                active={selectedRequirementId === req.id}
+                                                onClick={() => handleRequirementSelect(req.id)}
+                                                className="d-flex justify-content-between align-items-center"
+                                            >
+                                                <div>
+                                                    <div className="fw-bold">{req.controlIdReference}</div>
+                                                    <Badge>{getStandardNameById(req.standardId)}</Badge>
+                                                    <p className="mb-1 small text-muted" style={{ whiteSpace: 'pre-wrap' }}>
+                                                        {req.requirementText.substring(0, 70)}...
+                                                    </p>
+                                                </div>
+                                                <Button variant="outline-warning" size="sm" onClick={(e) => { e.stopPropagation(); handleEditRequirement(req); }} title="Edit Requirement"><FaEdit /></Button>
+                                            </ListGroup.Item>
+                                        ))
+                                    )}
+                                </ListGroup>
+                            </Card>
+                        </Col>
+
+                        <Col md={7}>
+                            <Card className="h-100">
+                                <Card.Header as="h5">
+                                    <FaTasksIcon className="me-2" />Associated Tasks ({associatedTasks.length})
+                                </Card.Header>
+                                <ListGroup variant="flush" style={{ maxHeight: 'calc(100vh - 250px)', overflowY: 'auto' }}>
+                                    {!selectedRequirementId ? (
+                                        <ListGroup.Item className="text-muted">Select a requirement to see its associated tasks.</ListGroup.Item>
+                                    ) : associatedTasks.length === 0 ? (
+                                        <ListGroup.Item className="text-muted">No tasks found for the selected requirement.</ListGroup.Item>
+                                    ) : (
+                                        associatedTasks.map(task => (
+                                           <ListGroup.Item
+                                        key={task.id}
+
+                                        className="d-flex justify-content-between align-items-center"
+                                    >
+                                        <div>
+                                            <div className="fw-bold">{task.title}</div>
+                                            {task.description && <p className="mb-1 small text-muted">{task.description}</p>}
+                                            <div className="mt-1">
+                                                {task.category && <Badge pill bg="light" text="dark" className="me-1 border"><FaTag className="me-1" />{task.category}</Badge>}
+                                                {task.defaultPriority && (
+                                                    <Badge pill bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">
+                                                        <FaExclamationCircle className="me-1" />{task.defaultPriority}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 && (
+                                                <div className="mt-1">
+                                                    <FaFileMedicalAlt className="me-1 text-muted" title="Expected Evidence" />
+                                                    {task.evidenceTypesExpected.map(et => <Badge key={et} pill bg="secondary" text="white" className="me-1 fw-normal">{et}</Badge>)}
+                                                </div>
+                                            )}
+                                            {task.checkType && (
+                                                <div className="mt-1 small text-muted">
+                                                    <FaCogs className="me-1" /> Automated: {task.checkType} on {task.target || 'N/A'}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </ListGroup.Item>
+                                        ))
+                                    )}
+                                </ListGroup>
+                            </Card>
+                                        
+</Col>
+
+                                    </Row>
+
+                        {/* {filteredRequirements.map(req => (
                             <Card key={req.id} className="mb-3 shadow-sm">
                                 <Card.Header>
                                     <div className="mb-2">
@@ -257,6 +412,9 @@ function Requirements() {
                                         </div>
                                 </Card.Header>
                                 <Card.Body className=''>
+
+
+
                                 <Row className="align-items-start">
                                     
                                     <Col >
@@ -269,13 +427,8 @@ function Requirements() {
                                     </Col>
                                 </Row>
                                 </Card.Body>
-                                {/* <Card.Footer className='border-none border-top-0'>
-                                     <small className="text-muted">
-                                            Standard: {getStandardNameById(req.standardId)}
-                                        </small>
-                                </Card.Footer> */}
                             </Card>
-                        ))}
+                        ))} */}
                     </div>
                 </Tab>
             </Tabs>
