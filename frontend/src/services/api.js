@@ -232,6 +232,20 @@ export const getUserCampaignTasks = async (userId, userField, campaignStatus) =>
     return response;
 };
 
+   export const getCampaignTasksByStatus = async (campaignStatus, taskStatus) => {
+       const params = new URLSearchParams();
+       if (campaignStatus) {
+           params.append('campaignStatus', campaignStatus);
+       }
+       if (taskStatus) {
+           params.append('taskStatus', taskStatus);
+       }
+       const queryString = params.toString();
+       const url = `/campaign-tasks-by-status${queryString ? `?${queryString}` : ''}`;
+       const response = await apiClient.get(url);
+       return response;
+   };
+   
 export const executeCampaignTaskInstance = async (instanceId) => {
     const response = await apiClient.post(`/campaign-task-instances/${instanceId}/execute`);
     return response;

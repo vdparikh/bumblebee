@@ -13,7 +13,7 @@ const BarChartCard = ({ title, chartRef, chartData, onClickHandler, options, sty
             },
         },
     };
-    defaults.font.family = 'Outfit';
+    defaults.font.family = 'Lato';
     
 
     const mergedOptions = { ...defaultOptions, ...options };

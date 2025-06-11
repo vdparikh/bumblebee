@@ -196,6 +196,29 @@ func (h *CampaignHandler) GetCampaignTaskInstancesHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, taskInstances)
 }
 
+func (h *CampaignHandler) GetCampaignTaskInstancesByStatusHandler(c *gin.Context) {
+	campaignStatus := c.Query("campaignStatus")
+	taskStatus := c.Query("taskStatus")
+
+	// Basic validation: ensure at least one status is provided if your logic requires it,
+	// or allow fetching all if none are provided (adjust as per your needs).
+	// For "Pending Review" page, both are typically expected.
+	if campaignStatus == "" || taskStatus == "" {
+		sendError(c, http.StatusBadRequest, "campaignStatus and taskStatus query parameters are required", nil)
+		return
+	}
+
+	taskInstances, err := h.Store.GetCampaignTaskInstancesByStatus(campaignStatus, taskStatus)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch campaign task instances by status (campaign: %s, task: %s)", campaignStatus, taskStatus), err)
+		return
+	}
+	if taskInstances == nil {
+		taskInstances = []models.CampaignTaskInstance{}
+	}
+	c.JSON(http.StatusOK, taskInstances)
+}
+
 func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 	ctiID := c.Param("id")
 

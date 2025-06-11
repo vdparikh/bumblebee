@@ -957,6 +957,114 @@ func (s *DBStore) UpdateCampaign(campaign *models.Campaign, newSelectedReqs []mo
 	return tx.Commit()
 }
 
+func (s *DBStore) GetCampaignTaskInstancesByStatus(campaignStatus string, taskStatus string) ([]models.CampaignTaskInstance, error) {
+	var instances []models.CampaignTaskInstance
+	args := []interface{}{}
+	conditions := []string{}
+
+	query := `
+		SELECT 
+			cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id, cti.campaign_selected_requirement_id, 
+			cti.title, cti.description, cti.category, cti.assignee_user_id, cti.owner_team_id, cti.assignee_team_id,
+			cti.status, cti.due_date, cti.created_at, cti.updated_at, 
+			cti.check_type, cti.target, cti.parameters,
+			assignee.name as assignee_user_name,
+			req.control_id_reference as requirement_control_id_reference,
+			req.requirement_text as requirement_text,
+			std.name as requirement_standard_name,
+			mt.default_priority,
+			mt.evidence_types_expected,
+			owner_team.id AS "ownerteam.id", owner_team.name AS "ownerteam.name",
+			assignee_team.id AS "assigneeteam.id", assignee_team.name AS "assigneeteam.name"
+		FROM campaign_task_instances cti
+		LEFT JOIN campaigns c ON cti.campaign_id = c.id
+		LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
+		LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
+		LEFT JOIN requirements req ON csr.requirement_id = req.id
+		LEFT JOIN compliance_standards std ON req.standard_id = std.id
+		LEFT JOIN tasks mt ON cti.master_task_id = mt.id
+		LEFT JOIN teams owner_team ON cti.owner_team_id = owner_team.id
+		LEFT JOIN teams assignee_team ON cti.assignee_team_id = assignee_team.id
+	`
+	paramIndex := 1
+	if campaignStatus != "" {
+		conditions = append(conditions, fmt.Sprintf("c.status = $%d", paramIndex))
+		args = append(args, campaignStatus)
+		paramIndex++
+	}
+	if taskStatus != "" {
+		conditions = append(conditions, fmt.Sprintf("cti.status = $%d", paramIndex))
+		args = append(args, taskStatus)
+		paramIndex++
+	}
+
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " AND ")
+	}
+	query += " ORDER BY cti.due_date ASC NULLS LAST, cti.created_at DESC"
+
+	rows, err := s.DB.Queryx(query, args...) // Using Queryx for struct scanning
+	if err != nil {
+		return nil, fmt.Errorf("failed to query campaign task instances by status: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var i models.CampaignTaskInstance
+		i.OwnerTeam = &models.TeamBasicInfo{}
+		i.AssigneeTeam = &models.TeamBasicInfo{}
+		var paramsJSON []byte // For handling JSONB parameters
+
+		// Adjust scan to match the selected columns and their order
+		err := rows.Scan(
+			&i.ID, &i.CampaignID, &i.CampaignName, &i.MasterTaskID, &i.CampaignSelectedRequirementID,
+			&i.Title, &i.Description, &i.Category, &i.AssigneeUserID, &i.OwnerTeamID, &i.AssigneeTeamID,
+			&i.Status, &i.DueDate, &i.CreatedAt, &i.UpdatedAt,
+			&i.CheckType, &i.Target, &paramsJSON, // Scan parameters as JSON bytes first
+			&i.AssigneeUserName, &i.RequirementControlIDReference, &i.RequirementText, &i.RequirementStandardName,
+			&i.DefaultPriority, pq.Array(&i.EvidenceTypesExpected),
+			&i.OwnerTeam.ID, &i.OwnerTeam.Name,
+			&i.AssigneeTeam.ID, &i.AssigneeTeam.Name,
+		)
+		if err != nil {
+			log.Printf("Error scanning campaign task instance row by status: %v", err)
+			return nil, fmt.Errorf("failed to scan campaign task instance row by status: %w", err)
+		}
+
+		if len(paramsJSON) > 0 && string(paramsJSON) != "null" {
+			if err := json.Unmarshal(paramsJSON, &i.Parameters); err != nil {
+				log.Printf("Warning: failed to unmarshal parameters for CTI %s: %v", i.ID, err)
+				i.Parameters = make(map[string]interface{}) // Initialize to empty map on error
+			}
+		} else {
+			i.Parameters = make(map[string]interface{}) // Initialize if null or empty
+		}
+
+		// If team IDs are nil after scan, it means no team was joined. Set the team struct to nil.
+		if i.OwnerTeam != nil && i.OwnerTeam.ID == nil {
+			i.OwnerTeam = nil
+		}
+		if i.AssigneeTeam != nil && i.AssigneeTeam.ID == nil {
+			i.AssigneeTeam = nil
+		}
+
+		// Fetch owners separately as it's a one-to-many relationship
+		owners, err := s.getCampaignTaskInstanceOwners(i.ID)
+		if err != nil {
+			// Log error but continue, or decide if this is a critical failure
+			log.Printf("Warning: failed to fetch owners for CTI %s: %v", i.ID, err)
+		}
+		i.Owners = owners
+
+		instances = append(instances, i)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error during rows iteration for campaign task instances by status: %w", err)
+	}
+
+	return instances, nil
+}
+
 func (s *DBStore) DeleteCampaign(campaignID string) error {
 	query := "DELETE FROM campaigns WHERE id = $1"
 	result, err := s.DB.Exec(query, campaignID)

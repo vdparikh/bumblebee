@@ -28,6 +28,7 @@ import UserProfilePage from './components/auth/UserProfilePage';
 import AdminSettingsPage from './pages/AdminSettingsPage'; 
 
 import LibraryManagementPage from './pages/LibraryManagementPage'; // Import the new page
+import PendingReviewPage from './pages/PendingReviewPage'; // Import PendingReviewPage
 import Sidebar from './components/common/Sidebar'; 
 import Documents from './components/Documents'; 
 import TeamsPage from './components/TeamsPage'; 
@@ -60,6 +61,9 @@ function DynamicHeader() {
       break;
     case "/library": // Add case for the new library page
       headerText = "Compliance Library";
+      break;
+    case "/pending-review": // Add case for Pending Review page
+      headerText = "Pending Review";
       break;
     default:
       if (location.pathname.startsWith("/task/")) {
@@ -138,6 +142,7 @@ function Layout() {
                         <Routes>
                           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                           <Route path="/tasks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Tasks /></ProtectedRoute>} />
+                          <Route path="/pending-review" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><PendingReviewPage /></ProtectedRoute>} />
                           <Route path="/library" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><LibraryManagementPage /></ProtectedRoute>} />
 
                           <Route path="/documents" element={<ProtectedRoute roles={['admin', 'auditor']}><Documents /></ProtectedRoute>} />

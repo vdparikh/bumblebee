@@ -8,7 +8,7 @@ import Image from 'react-bootstrap/Image';
 import Tooltip from 'react-bootstrap/Tooltip';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Button from 'react-bootstrap/Button';
-import {
+import { FaHourglassHalf,
     FaTachometerAlt, FaUser, FaBullhorn, FaColumns, FaUsers,
     FaTasks, FaFileContract, FaShieldAlt, FaBookOpen, FaLayerGroup,
     FaQuestionCircle, FaRegQuestionCircle,
@@ -23,6 +23,7 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
     const navItems = [
         { to: "/", eventKey: "/", icon: <FaTachometerAlt size="1.2em" />, label: "Dashboard", roles: ['admin', 'auditor', 'user'] },
         { to: "/my-tasks", eventKey: "/my-tasks", icon: <FaTasks size="1.2em" />, label: "My Tasks", roles: ['admin', 'auditor', 'user'] },
+        { to: "/pending-review", eventKey: "/pending-review", icon: <FaHourglassHalf size="1.2em" />, label: "Pending Review", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/pending-review') },
         { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.2em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
         { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.2em" />, label: "Alternate View", roles: ['admin', 'auditor', 'user'] },
         (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management'},
