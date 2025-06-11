@@ -743,7 +743,7 @@ function Tasks() {
                                             </>
                                         )}
 
-                                {task.category && <Badge pill bg="light" className="mx-1"><FaTag className="me-1" />{task.category}</Badge>}
+                                        {task.category && <Badge pill bg="light" className="mx-1"><FaTag className="me-1" />{task.category}</Badge>}
 
 
                                     </div>
@@ -790,13 +790,13 @@ function Tasks() {
                                 <Card.Body>
 
                                     {task.description && <p className="">{task.description}</p>}
-                                    
+
                                 </Card.Body>
 
-<ListGroup>
-<ListGroupItem>
-                                            <div>
-                                            <FaTag className="me-1" /><strong>Expected Evidence:</strong><br/>
+                                <ListGroup>
+                                    <ListGroupItem>
+                                        <div>
+                                            <FaTag className="me-1" /><strong>Expected Evidence:</strong><br />
 
                                             {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 ?
                                                 task.evidenceTypesExpected.map((evidenceType, index) => (
@@ -806,30 +806,30 @@ function Tasks() {
                                                 )) : ' N/A'}
 
                                         </div>
-</ListGroupItem>
-
- {task.checkType && (
-                                    <ListGroupItem>
-                                        <FaCogs className="me-1" /><strong>Automated Check:</strong> {task.checkType} on {task.target || 'N/A'}
-                                        <small className="d-block"><strong>Parameters:</strong> {task.parameters ? JSON.stringify(task.parameters) : 'None'}</small>
                                     </ListGroupItem>
-                                )}
+
+                                    {task.checkType && (
+                                        <ListGroupItem>
+                                            <FaCogs className="me-1" /><strong>Automated Check:</strong> {task.checkType} on {task.target || 'N/A'}
+                                            <small className="d-block"><strong>Parameters:</strong> {task.parameters ? JSON.stringify(task.parameters) : 'None'}</small>
+                                        </ListGroupItem>
+                                    )}
 
 
- {task.linked_documents && task.linked_documents.length > 0 && (
-                                    <ListGroupItem>
-                                        <FaBookOpen className="me-1" /><strong>Linked Documents:</strong>
-                                        <ul className="list-unstyled list-inline mb-0">
-                                            {task.linked_documents.map(doc => (
-                                                <li key={doc.id} className="list-inline-item"><Badge bg="light" text="dark" className="border me-1">{doc.name}</Badge></li>
-                                            ))}
-                                        </ul>
-                                    </ListGroupItem>
-                                )}
+                                    {task.linked_documents && task.linked_documents.length > 0 && (
+                                        <ListGroupItem>
+                                            <FaBookOpen className="me-1" /><strong>Linked Documents:</strong>
+                                            <ul className="list-unstyled list-inline mb-0">
+                                                {task.linked_documents.map(doc => (
+                                                    <li key={doc.id} className="list-inline-item"><Badge bg="light" text="dark" className="border me-1">{doc.name}</Badge></li>
+                                                ))}
+                                            </ul>
+                                        </ListGroupItem>
+                                    )}
 
-</ListGroup>
-                               
-                               
+                                </ListGroup>
+
+
 
                             </Card>
                         );

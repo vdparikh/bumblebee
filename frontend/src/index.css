@@ -498,3 +498,7 @@ form, select, input, .form-control, .form-select {
 }
 
 
+
+.nopadding {
+  padding: 0px 0px!important;
+}

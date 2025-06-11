@@ -25,12 +25,10 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
         { to: "/my-tasks", eventKey: "/my-tasks", icon: <FaTasks size="1.2em" />, label: "My Tasks", roles: ['admin', 'auditor', 'user'] },
         { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.2em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
         { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.2em" />, label: "Alternate View", roles: ['admin', 'auditor', 'user'] },
-        (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management' },
-        { to: "/documents", eventKey: "/documents", icon: <FaBookOpen size="1.2em" />, label: "Documents", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/documents') }
-        // { to: "/tasks", eventKey: "/tasks", icon: <FaTasks size="1.2em" />, label: "Manage Tasks", roles: ['admin', 'auditor'] },
-        // { to: "/requirements", eventKey: "/requirements", icon: <FaFileContract size="1.2em" />, label: "Manage Requirements", roles: ['admin', 'auditor'] },
-        // { to: "/standards", eventKey: "/standards", icon: <FaShieldAlt size="1.2em" />, label: "Manage Standards", roles: ['admin', 'auditor'] },
-        // { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Manage Teams", roles: ['admin', 'auditor'] },
+        (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management'},
+        { to: "/documents", eventKey: "/documents", icon: <FaBookOpen size="1.2em" />, label: "Documents", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/documents') },
+        { to: "/library", eventKey: "/library", icon: <FaLayerGroup size="1.2em" />, label: "Manage Library", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/library') },
+        // { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Manage Teams", roles: ['admin', 'auditor'] }, // Can be moved to AdminSettings or kept separate
     ];
 
     return (
@@ -104,30 +102,6 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
                                 </OverlayTrigger>
                             );
                         })}
-
-                    {(currentUser?.role === 'admin' || currentUser?.role === 'auditor') && (
-                        <NavDropdown
-                            title={
-                                <OverlayTrigger placement="right" delay={{ show: 250, hide: 100 }} overlay={<Tooltip id="tooltip-manage-library">Manage Library</Tooltip>}>
-                                    <div className="d-flex justify-content-center align-items-center p-3 border-0">
-                                        <FaLayerGroup size="1.2em" />
-                                    </div>
-                                </OverlayTrigger>
-                            }
-                            id="sidebar-library-dropdown"
-                            drop="end"
-                            align={{ lg: 'start' }}
-                            className="w-100 sidebar-dropdown-button"
-                            popperConfig={{ strategy: 'fixed' }}
-                        >
-                            <NavDropdown.Header className="small text-muted">Library</NavDropdown.Header>
-                            <NavDropdown.Item as={Link} to="/standards" active={location.pathname === '/standards'}>Manage Standards</NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/requirements" active={location.pathname === '/requirements'}>Manage Requirements</NavDropdown.Item>
-                            <NavDropdown.Item as={Link} to="/tasks" active={location.pathname === '/tasks'}>Manage Tasks</NavDropdown.Item>
-                        </NavDropdown>
-                    )}
-
-
 
                     {currentUser?.role === 'admin' && <Button as={NavLink}
                         className="d-flex justify-content-center align-items-center  p-3  border-0"

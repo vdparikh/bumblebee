@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, ListGroup, Spinner, Alert, Badge, ListGroupItem } from 'react-bootstrap';
-import { FaShieldAlt, FaFileContract, FaTasks, FaTag, FaCogs, FaExclamationCircle, FaFileMedicalAlt, FaInfo, FaLink } from 'react-icons/fa';
+import { Container, Row, Col, Card, ListGroup, Spinner, Alert, Badge, ListGroupItem, Button } from 'react-bootstrap';
+import {
+    FaShieldAlt, FaFileContract, FaTasks, FaTag, FaCogs,
+    FaExclamationCircle, FaFileMedicalAlt, FaInfo, FaLink, FaPlusCircle
+} from 'react-icons/fa';
 import {
     getComplianceStandards,
     getRequirements as getAllRequirements,
@@ -8,7 +11,15 @@ import {
 } from '../../services/api';
 import PageHeader from '../common/PageHeader';
 
-function ThreeColumnView({ standardActions, showPageHeader = true }) { // Add showPageHeader prop, default to true
+function ThreeColumnView({
+    standardActions,
+    requirementActions, // New: Actions for requirements (e.g., Edit button)
+    taskActions,        // New: Actions for tasks (e.g., Edit button)
+    onAddStandardClick,    // New: Handler for Add Standard button
+    onAddRequirementClick, // New: Handler for Add Requirement button
+    onAddTaskClick,        // New: Handler for Add Task button
+    showPageHeader = true
+}) {
     const [standards, setStandards] = useState([]);
     const [requirements, setRequirements] = useState([]);
     const [tasks, setTasks] = useState([]);
@@ -162,6 +173,11 @@ function ThreeColumnView({ standardActions, showPageHeader = true }) { // Add sh
                     <Card className="h-100">
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
                             <span><FaShieldAlt className="me-2" />Standards ({standards.length})</span>
+                            {onAddStandardClick && (
+                                <Button  className='nopadding text-success' variant="transparent" size="sm" onClick={onAddStandardClick} title="Add Standard">
+                                    <FaPlusCircle />
+                                </Button>
+                            )}
                         </Card.Header>
                         <ListGroup variant="flush" style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}>
                             {loadingStandards ? (
@@ -176,14 +192,14 @@ function ThreeColumnView({ standardActions, showPageHeader = true }) { // Add sh
                                         className=""
                                     >
                                         <div className='d-flex justify-content-between align-items-center'>
-                                        <div>
-                                            <strong>{std.name}</strong> ({std.shortName})
-                                            <small className="d-block text-muted">{std.description?.substring(0, 70)}...</small>
+                                            <div>
+                                                <strong>{std.name}</strong> ({std.shortName})
+                                                <small className="d-block text-muted">{std.description?.substring(0, 70)}...</small>
+                                            </div>
+                                            {standardActions && ( // Conditionally render actions
+                                                <div className="ms-2">{standardActions(std)}</div>
+                                            )}
                                         </div>
-                                        {standardActions && ( // Conditionally render actions
-                                            <div className="ms-2">{standardActions(std)}</div>
-                                        )}
-</div>
                                         <ListGroup className="mt-2">
                                             {std.version && <ListGroupItem><small className="text-muted"><strong>Version:</strong> {std.version}</small></ListGroupItem>}
                                             {std.issuing_body && <ListGroupItem><small className="text-muted"><strong>Issuing Body:</strong> {std.issuing_body}</small></ListGroupItem>}
@@ -213,6 +229,11 @@ function ThreeColumnView({ standardActions, showPageHeader = true }) { // Add sh
                     <Card className="h-100">
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
                             <span><FaFileContract className="me-2" />Requirements ({requirements.length})</span>
+                            {onAddRequirementClick && selectedStandardId && (
+                                <Button className='nopadding text-success' variant="transparent" size="sm" onClick={() => onAddRequirementClick(selectedStandardId)} title="Add Requirement">
+                                    <FaPlusCircle />
+                                </Button>
+                            )}
                         </Card.Header>
                         <ListGroup variant="flush" style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto' }}>
                             {!selectedStandardId ? (
@@ -225,14 +246,21 @@ function ThreeColumnView({ standardActions, showPageHeader = true }) { // Add sh
                                         key={req.id}
                                         action
                                         active={selectedRequirementId === req.id} onClick={() => handleRequirementSelect(req.id)}
-                                        className="d-flex justify-content-between align-items-center"
+                                        className="" // Remove d-flex for better layout with actions
                                     >
-                                        <div>
-                                            <div className="fw-bold">{req.controlIdReference}</div>
-                                            <p className="mb-1 small text-muted" style={{ whiteSpace: 'pre-wrap' }}>
-                                                {req.requirementText}
-                                            </p>
-
+                                        <div className="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div className="fw-bold">{req.controlIdReference}</div>
+                                                {standards.find(s => s.id === req.standardId) && (
+                                                    <Badge bg="light" text="dark" className="mb-1 border me-1 fw-normal">
+                                                        {standards.find(s => s.id === req.standardId)?.shortName}
+                                                    </Badge>
+                                                )}
+                                                <p className="mb-1 small text-muted" style={{ whiteSpace: 'pre-wrap' }}>
+                                                    {req.requirementText.substring(0, 150)}{req.requirementText.length > 150 ? "..." : ""}
+                                                </p>
+                                            </div>
+                                            {requirementActions && <div className="ms-2">{requirementActions(req)}</div>}
                                         </div>
                                     </ListGroup.Item>
                                 ))
@@ -248,22 +276,36 @@ function ThreeColumnView({ standardActions, showPageHeader = true }) { // Add sh
                     <Card className="h-100">
                         <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
                             <span><FaTasks className="me-2" />Tasks ({tasks.length})</span>
+                            {onAddTaskClick && selectedRequirementId && (
+                                <Button className='nopadding text-success' variant="transparent" size="sm" onClick={() => onAddTaskClick(selectedRequirementId)} title="Add Task">
+                                    <FaPlusCircle />
+                                </Button>
+                            )}
                         </Card.Header>
                         <ListGroup variant="flush" style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto' }}>
                             {loadingTasks ? (
                                 <ListGroup.Item className="text-center"><Spinner animation="border" size="sm" /> Loading Tasks...</ListGroup.Item>
-                            ) : !selectedStandardId ? (
-                                <ListGroup.Item>Select a standard to see related tasks.</ListGroup.Item>
+                            ) : !selectedStandardId ? ( // Case 1: No standard selected
+                                <ListGroup.Item>Select a standard to view requirements and tasks.</ListGroup.Item>
+                            ) : !selectedRequirementId ? ( // Case 2: Standard selected, but no requirement selected
+                                <ListGroup.Item>Select a requirement to view its tasks.</ListGroup.Item>
+
                             ) : tasks.length > 0 ? (
                                 tasks.map(task => (
                                     <ListGroup.Item
                                         key={task.id}
 
-                                        className="d-flex justify-content-between align-items-center"
+                                        className=""
                                     >
                                         <div>
-                                            <div className="fw-bold">{task.title}</div>
+                                                                                            <div className="fw-bold">{task.title}</div>
+
+                                            <div className="d-flex justify-content-between align-items-center">
                                             {task.description && <p className="mb-1 small text-muted">{task.description}</p>}
+
+                                                {taskActions && <div className="ms-2 flex-shrink-0">{taskActions(task)}</div>}
+
+                                            </div>
                                             <div className="mt-1">
                                                 {task.category && <Badge pill bg="light" text="dark" className="me-1 border"><FaTag className="me-1" />{task.category}</Badge>}
                                                 {task.defaultPriority && (
@@ -272,6 +314,7 @@ function ThreeColumnView({ standardActions, showPageHeader = true }) { // Add sh
                                                     </Badge>
                                                 )}
                                             </div>
+
                                             {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 && (
                                                 <div className="mt-1">
                                                     <FaFileMedicalAlt className="me-1 text-muted" title="Expected Evidence" />
