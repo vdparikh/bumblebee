@@ -12,7 +12,8 @@ import { FaHourglassHalf,
     FaTachometerAlt, FaUser, FaBullhorn, FaColumns, FaUsers,
     FaTasks, FaFileContract, FaShieldAlt, FaBookOpen, FaLayerGroup,
     FaQuestionCircle, FaRegQuestionCircle,
-    FaCog
+    FaCog,
+    FaHistory
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext'; // Import useAuth
 import ThemeSwitcher from './ThemeSwitcher';
@@ -31,6 +32,8 @@ function Sidebar({ /*currentUser,*/ logout, showDetailsPanel, setShowDetailsPane
         (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management'},
         { to: "/documents", eventKey: "/documents", icon: <FaBookOpen size="1.2em" />, label: "Documents", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/documents') },
         { to: "/library", eventKey: "/library", icon: <FaLayerGroup size="1.2em" />, label: "Manage Library", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/library') },
+        { to: "/audit-logs", eventKey: "/audit-logs", icon: <FaHistory size="1.2em" />, label: "Audit Logs", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/audit-logs') },
+
         // { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Manage Teams", roles: ['admin', 'auditor'] }, // Can be moved to AdminSettings or kept separate
     ];
 

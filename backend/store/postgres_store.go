@@ -126,7 +126,7 @@ func (s *DBStore) InsertAuditLog(log *models.AuditLog) error {
 			err, log.UserID, log.Action, log.EntityType, log.EntityID)
 	}
 	log.ID = insertedID.String() // Update the model with the returned ID
-	log.CreatedAt = createdAt    // Update the model with the returned creation timestamp (from DB)
+	log.Timestamp = createdAt    // Update the model with the returned creation timestamp (from DB)
 	return nil
 }
 
@@ -1965,7 +1965,6 @@ func (s *DBStore) GetAuditLogs(filters map[string]interface{}, page, limit int) 
 	}
 	// If limit is 0 or negative, no LIMIT/OFFSET clause is added, fetching all matching records.
 
-
 	// Fetch logs
 	rows, err := s.DB.Queryx(selectQuery, args...)
 	if err != nil {
@@ -1989,7 +1988,7 @@ func (s *DBStore) GetAuditLogs(filters map[string]interface{}, page, limit int) 
 			// If logEntry.UserID is nil, then logEntry.User should remain nil or be an empty UserBasicInfo.
 			if logEntry.UserID == nil {
 				logEntry.User = nil // Explicitly set to nil if user_id was null in DB
-			} else if logEntry.User != nil && (logEntry.User.ID == "" || logEntry.User.ID == nil) {
+			} else if logEntry.User != nil && (logEntry.User.ID == "") {
 				// This check is tricky; if user_id was not null but user record not found or all fields are null
 				// For a LEFT JOIN, if u.id is NULL, then user.id would be scanned as such.
 				// sqlx should handle this by not erroring if User.ID is a *string or string.

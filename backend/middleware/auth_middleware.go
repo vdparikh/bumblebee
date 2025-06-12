@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vdparikh/compliance-automation/backend/auth" 
+	"github.com/vdparikh/compliance-automation/backend/auth"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -29,7 +29,8 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		c.Set(string(auth.ContextKeyClaims), claims) 
+		c.Set("userID", claims.UserID)
+		c.Set(string(auth.ContextKeyClaims), claims)
 		c.Next()
 	}
 }

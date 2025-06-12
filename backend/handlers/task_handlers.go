@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"reflect"
@@ -100,7 +99,7 @@ func (h *TaskHandler) CreateTaskHandler(c *gin.Context) {
 
 func (h *TaskHandler) GetTasksHandler(c *gin.Context) {
 	userID := c.Query("userId")
-	userField := c.Query("userField") 
+	userField := c.Query("userField")
 
 	tasks, err := h.Store.GetTasks(userID, userField)
 	if err != nil {
@@ -144,8 +143,8 @@ func (h *TaskHandler) UpdateTaskHandler(c *gin.Context) {
 		return
 	}
 
-	taskUpdates.ID = taskID                        
-	taskUpdates.CreatedAt = existingTask.CreatedAt 
+	taskUpdates.ID = taskID
+	taskUpdates.CreatedAt = existingTask.CreatedAt
 
 	if err := h.Store.UpdateTask(&taskUpdates); err != nil {
 		log.Printf("Error updating task %s: %v", taskID, err)
@@ -156,7 +155,7 @@ func (h *TaskHandler) UpdateTaskHandler(c *gin.Context) {
 	updatedTask, err := h.Store.GetTaskByID(taskID)
 	if err != nil {
 		log.Printf("Error fetching updated task %s: %v", taskID, err)
-		c.JSON(http.StatusOK, taskUpdates) 
+		c.JSON(http.StatusOK, taskUpdates)
 		return
 	}
 
@@ -218,17 +217,16 @@ func (h *TaskHandler) UpdateTaskHandler(c *gin.Context) {
 	}
 
 	// Comparing LinkedDocumentIDs ([]string) - Assuming taskUpdates contains the new set
-    // Note: existingTask.LinkedDocumentIDs might not be populated by GetTaskByID by default.
-    // For a more accurate diff, ensure existingTask.LinkedDocumentIDs is fetched.
-    // The current GetTaskByID populates LinkedDocuments, not LinkedDocumentIDs directly.
-    // We'll use taskUpdates.LinkedDocumentIDs as the "new" and assume existingTask didn't have them explicitly for simplicity here.
-    // A proper diff would require fetching full old linked document IDs.
-    if !reflect.DeepEqual(existingTask.LinkedDocumentIDs, taskUpdates.LinkedDocumentIDs) { // taskUpdates from payload has new IDs
+	// Note: existingTask.LinkedDocumentIDs might not be populated by GetTaskByID by default.
+	// For a more accurate diff, ensure existingTask.LinkedDocumentIDs is fetched.
+	// The current GetTaskByID populates LinkedDocuments, not LinkedDocumentIDs directly.
+	// We'll use taskUpdates.LinkedDocumentIDs as the "new" and assume existingTask didn't have them explicitly for simplicity here.
+	// A proper diff would require fetching full old linked document IDs.
+	if !reflect.DeepEqual(existingTask.LinkedDocumentIDs, taskUpdates.LinkedDocumentIDs) { // taskUpdates from payload has new IDs
 		oldLinkedDocsJSON, _ := json.Marshal(existingTask.LinkedDocumentIDs) // This might be nil/empty
 		newLinkedDocsJSON, _ := json.Marshal(taskUpdates.LinkedDocumentIDs)
-        auditChanges["linked_document_ids"] = map[string]string{"old": string(oldLinkedDocsJSON), "new": string(newLinkedDocsJSON)}
-    }
-
+		auditChanges["linked_document_ids"] = map[string]string{"old": string(oldLinkedDocsJSON), "new": string(newLinkedDocsJSON)}
+	}
 
 	if len(auditChanges) > 0 {
 		if err := utils.RecordAuditLog(h.Store, userIDStrPtr, "update_task", "task", taskID, auditChanges); err != nil {

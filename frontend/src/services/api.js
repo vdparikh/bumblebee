@@ -312,3 +312,14 @@ export const deleteTeam = (teamId) => apiClient.delete(`/teams/${teamId}`);
 export const addMemberToTeam = (teamId, userId, roleInTeam) => apiClient.post(`/teams/${teamId}/members`, { user_id: userId, role_in_team: roleInTeam });
 export const removeMemberFromTeam = (teamId, userId) => apiClient.delete(`/teams/${teamId}/members/${userId}`);
 export const getTeamMembers = (teamId) => apiClient.get(`/teams/${teamId}/members`);
+
+// Audit Logs
+export const getAuditLogs = async (params = {}) => {
+    try {
+        const response = await apiClient.get('/audit-logs', { params });
+        return response;
+    } catch (error) {
+        console.error('Error fetching audit logs:', error.response || error.message);
+        throw error;
+    }
+};

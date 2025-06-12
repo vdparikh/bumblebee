@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/vdparikh/compliance-automation/backend/auth" // Your auth package
-	"github.com/vdparikh/compliance-automation/backend/models" // For models.Evidence if needed for old state
+	// For models.Evidence if needed for old state
 	"github.com/vdparikh/compliance-automation/backend/store"
 	"github.com/vdparikh/compliance-automation/backend/utils" // For audit logging
 )

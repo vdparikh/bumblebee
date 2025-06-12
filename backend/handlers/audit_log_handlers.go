@@ -20,6 +20,20 @@ type AuditLogHandler struct {
 	Store store.Store // Use the interface
 }
 
+// auditLogResponse is a helper struct for customizing the API output,
+// ensuring 'changes' is marshalled as a JSON object/primitive.
+type auditLogResponse struct {
+	ID         string                `json:"id"`
+	CreatedAt  time.Time             `json:"created_at"`
+	Timestamp  time.Time             `json:"timestamp"`
+	UserID     *string               `json:"user_id,omitempty"`
+	Action     string                `json:"action"`
+	EntityType string                `json:"entity_type"`
+	EntityID   string                `json:"entity_id"`
+	Changes    interface{}           `json:"changes,omitempty"` // Use interface{} for flexible JSON
+	User       *models.UserBasicInfo `json:"user,omitempty"`
+}
+
 func NewAuditLogHandler(s store.Store) *AuditLogHandler {
 	return &AuditLogHandler{Store: s}
 }
@@ -37,7 +51,7 @@ func (h *AuditLogHandler) GetAuditLogsHandler(c *gin.Context) {
 		return
 	}
 
-	if claims.Role != models.UserRoleAdmin && claims.Role != models.UserRoleAuditor {
+	if claims.Role != "admin" && claims.Role != "auditor" {
 		sendError(c, http.StatusForbidden, "Insufficient privileges. Admin or Auditor role required.", nil)
 		return
 	}
@@ -84,7 +98,7 @@ func (h *AuditLogHandler) GetAuditLogsHandler(c *gin.Context) {
 	exportFormat := c.Query("export")
 
 	if exportFormat != "" {
-		exportPage := 1    // For export, always start from page 1
+		exportPage := 1  // For export, always start from page 1
 		exportLimit := 0 // Indicate to store method to fetch all records
 
 		logs, _, err := h.Store.GetAuditLogs(filters, exportPage, exportLimit) // total is not needed for full export
@@ -118,9 +132,9 @@ func (h *AuditLogHandler) GetAuditLogsHandler(c *gin.Context) {
 			// Write rows
 			for _, logEntry := range logs {
 				userIDStr, userName, userEmail := "", "", ""
-				if logEntry.User != nil {
-					if logEntry.User.ID != nil { userIDStr = *logEntry.User.ID }
-					if logEntry.User.Name != nil { userName = *logEntry.User.Name }
+				if logEntry.User != nil { // User struct is populated
+					userIDStr = logEntry.User.ID  // User.ID is string
+					userName = logEntry.User.Name // User.Name is string
 					userEmail = logEntry.User.Email
 				} else if logEntry.UserID != nil { // Fallback to UserID on the log if User struct is nil
 					userIDStr = *logEntry.UserID
@@ -140,7 +154,7 @@ func (h *AuditLogHandler) GetAuditLogsHandler(c *gin.Context) {
 					logEntry.EntityType,
 					logEntry.EntityID,
 					changesStr,
-					logEntry.CreatedAt.Format(time.RFC3339),
+					logEntry.CreatedAt.Format(time.RFC3339), // Use CreatedAt for the log record itself
 				}
 				if err := writer.Write(row); err != nil {
 					log.Printf("Error writing CSV row for audit log %s: %v", logEntry.ID, err)
@@ -181,8 +195,33 @@ func (h *AuditLogHandler) GetAuditLogsHandler(c *gin.Context) {
 		logs = []models.AuditLog{}
 	}
 
+	// Transform logs for JSON response to ensure 'changes' is correctly marshalled
+	responseLogs := make([]auditLogResponse, len(logs))
+	for i, logEntry := range logs {
+		var changesData interface{}
+		if logEntry.Changes != nil && len(logEntry.Changes) > 0 && string(logEntry.Changes) != "null" {
+			err := json.Unmarshal(logEntry.Changes, &changesData)
+			if err != nil {
+				log.Printf("Error unmarshalling 'changes' for audit log ID %s: %v. Raw: %s", logEntry.ID, err, string(logEntry.Changes))
+				changesData = fmt.Sprintf("Error parsing changes: %v. Raw data: %s", err, string(logEntry.Changes)) // Fallback
+			}
+		}
+
+		responseLogs[i] = auditLogResponse{
+			ID:         logEntry.ID,
+			CreatedAt:  logEntry.CreatedAt,
+			Timestamp:  logEntry.Timestamp,
+			UserID:     logEntry.UserID,
+			Action:     logEntry.Action,
+			EntityType: logEntry.EntityType,
+			EntityID:   logEntry.EntityID,
+			Changes:    changesData,
+			User:       logEntry.User,
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"data": logs,
+		"logs": responseLogs,
 		"pagination": gin.H{
 			"total_records": total,
 			"current_page":  page,

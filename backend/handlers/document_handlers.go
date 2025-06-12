@@ -2,11 +2,9 @@ package handlers
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
-	"reflect"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -126,16 +124,16 @@ func (h *DocumentHandler) UpdateDocumentHandler(c *gin.Context) {
 		auditChanges["name"] = map[string]string{"old": existingDoc.Name, "new": payload.Name}
 	}
 	if existingDoc.Description != payload.Description { // Assuming Description is not a pointer in model
-		auditChanges["description"] = map[string]string{"old": existingDoc.Description, "new": payload.Description}
+		auditChanges["description"] = map[string]string{"old": *existingDoc.Description, "new": *payload.Description}
 	}
 	if existingDoc.DocumentType != payload.DocumentType {
 		auditChanges["document_type"] = map[string]string{"old": existingDoc.DocumentType, "new": payload.DocumentType}
 	}
 	if existingDoc.SourceURL != payload.SourceURL { // Assuming SourceURL is not a pointer
-		auditChanges["source_url"] = map[string]string{"old": existingDoc.SourceURL, "new": payload.SourceURL}
+		auditChanges["source_url"] = map[string]string{"old": *existingDoc.SourceURL, "new": *payload.SourceURL}
 	}
 	if existingDoc.InternalReference != payload.InternalReference { // Assuming InternalReference is not a pointer
-		auditChanges["internal_reference"] = map[string]string{"old": existingDoc.InternalReference, "new": payload.InternalReference}
+		auditChanges["internal_reference"] = map[string]string{"old": *existingDoc.InternalReference, "new": *payload.InternalReference}
 	}
 
 	if len(auditChanges) > 0 {
@@ -156,7 +154,6 @@ func (h *DocumentHandler) DeleteDocumentHandler(c *gin.Context) {
 		log.Printf("Warning: Could not fetch document %s before deletion for audit log: %v", docID, errGet)
 		// If not found, DeleteDocument will likely also fail, which is handled below.
 	}
-
 
 	err := h.Store.DeleteDocument(docID)
 	if err != nil {

@@ -1,9 +1,6 @@
 package models
 
 import (
-	"database/sql/driver"
-	"encoding/json"
-	"errors"
 	"time"
 )
 
@@ -100,21 +97,4 @@ type CampaignTaskInstanceResult struct {
 	Status                 string         `json:"status" db:"status"`
 	Output                 string         `json:"output" db:"output"`
 	ExecutedByUser         *UserBasicInfo `json:"executedByUser,omitempty"`
-}
-
-type JSONB json.RawMessage
-
-func (j *JSONB) Scan(value interface{}) error {
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("type assertion to []byte failed")
-	}
-	return json.Unmarshal(bytes, j)
-}
-
-func (j JSONB) Value() (driver.Value, error) {
-	if len(j) == 0 {
-		return nil, nil
-	}
-	return json.RawMessage(j).MarshalJSON()
 }
