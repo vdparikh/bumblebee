@@ -1,14 +1,16 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/vdparikh/compliance-automation/backend/auth"   
-	"github.com/vdparikh/compliance-automation/backend/models" 
-	"github.com/vdparikh/compliance-automation/backend/store"  
+	"github.com/vdparikh/compliance-automation/backend/auth"
+	"github.com/vdparikh/compliance-automation/backend/models"
+	"github.com/vdparikh/compliance-automation/backend/store"
+	"github.com/vdparikh/compliance-automation/backend/utils"
 )
 
 type AuthAPI struct {
@@ -56,6 +58,19 @@ func (a *AuthAPI) Login(c *gin.Context) {
 			"role":  user.Role,
 		},
 	}
+
+	// Audit log for login
+	loginUserID := user.ID // ID of the user who logged in
+	auditChangesLogin := map[string]interface{}{
+		"user_id": loginUserID,
+		"email":   user.Email,
+		"status":  "login_successful",
+	}
+	if err := utils.RecordAuditLog(a.UserStore, &loginUserID, "user_login", "user", loginUserID, auditChangesLogin); err != nil {
+		log.Printf("Error recording audit log for user login %s: %v", loginUserID, err)
+		// Non-critical
+	}
+
 	c.JSON(http.StatusOK, response)
 }
 
@@ -142,6 +157,20 @@ func (a *AuthAPI) Register(c *gin.Context) {
 		return
 	}
 
+	// Audit log for user registration
+	regUserID := newUser.ID // ID of the newly registered user
+	auditChangesRegister := map[string]interface{}{
+		"user_id": regUserID,
+		"name":    newUser.Name,
+		"email":   newUser.Email,
+		"role":    newUser.Role, // Should be "user" as set above
+	}
+	// For self-registration, the actor is the user themselves.
+	if err := utils.RecordAuditLog(a.UserStore, &regUserID, "user_register", "user", regUserID, auditChangesRegister); err != nil {
+		log.Printf("Error recording audit log for user registration %s: %v", regUserID, err)
+		// Non-critical
+	}
+
 	c.JSON(http.StatusCreated, gin.H{"token": tokenString, "user": newUser, "message": "User registered successfully"})
 }
 
@@ -198,6 +227,17 @@ func (a *AuthAPI) ChangePasswordHandler(c *gin.Context) {
 	if err := a.UserStore.UpdateUserPassword(claims.UserID, newHashedPassword); err != nil { 
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
 		return
+	}
+
+	// Audit log for password change
+	changedPasswordUserID := claims.UserID
+	auditChangesPassword := map[string]interface{}{
+		"user_id": changedPasswordUserID,
+		"action":  "password_changed_successfully",
+	}
+	if err := utils.RecordAuditLog(a.UserStore, &changedPasswordUserID, "user_change_password", "user", changedPasswordUserID, auditChangesPassword); err != nil {
+		log.Printf("Error recording audit log for password change user %s: %v", changedPasswordUserID, err)
+		// Non-critical
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
