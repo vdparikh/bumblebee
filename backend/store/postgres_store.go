@@ -63,6 +63,10 @@ type Store interface {
 
 	GetUserActivityFeed(userID string, limit, offset int) ([]models.Comment, error)
 	CopyEvidenceToTaskInstance(targetInstanceID string, sourceEvidenceIDs []string, uploaderUserID string) error
+
+	// Audit Log
+	InsertAuditLog(log *models.AuditLog) error
+	GetAuditLogs(filters map[string]interface{}, page, limit int) ([]models.AuditLog, int, error)
 }
 
 var ErrNotFound = errors.New("record not found")
@@ -87,6 +91,44 @@ func NewDBStore(dataSourceName string) (*DBStore, error) {
 }
 
 var _ Store = (*DBStore)(nil) // Interface satisfaction check
+
+// InsertAuditLog inserts a new audit log entry into the database.
+func (s *DBStore) InsertAuditLog(log *models.AuditLog) error {
+	// The 'id', 'timestamp', and 'created_at' fields in audit_logs table have DB defaults.
+	// We are providing 'timestamp' from the application to ensure it matches event time.
+	// 'changes' can be null if log.Changes is nil or empty.
+
+	query := `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, changes, timestamp)
+              VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`
+
+	var insertedID uuid.UUID
+	var createdAt time.Time
+
+	// Handle nil UserID correctly for SQL insertion
+	var userID sql.NullString
+	if log.UserID != nil {
+		userID.String = *log.UserID
+		userID.Valid = true
+	}
+
+	// Handle nil Changes (JSONB) correctly
+	var changesJSON []byte
+	if log.Changes != nil && len(log.Changes) > 0 {
+		changesJSON = []byte(log.Changes)
+	} else {
+		changesJSON = nil // Explicitly pass nil for database NULL
+	}
+
+	err := s.DB.QueryRow(query, userID, log.Action, log.EntityType, log.EntityID, changesJSON, log.Timestamp).Scan(&insertedID, &createdAt)
+	if err != nil {
+		// It's good to wrap the error with more context if it's not already descriptive.
+		return fmt.Errorf("error inserting audit log into database: %w. Details - UserID: %v, Action: %s, EntityType: %s, EntityID: %s",
+			err, log.UserID, log.Action, log.EntityType, log.EntityID)
+	}
+	log.ID = insertedID.String() // Update the model with the returned ID
+	log.CreatedAt = createdAt    // Update the model with the returned creation timestamp (from DB)
+	return nil
+}
 
 func (s *DBStore) CreateTask(task *models.Task) (string, error) {
 	task.ID = uuid.NewString()
@@ -505,7 +547,7 @@ func (s *DBStore) CreateComplianceStandard(standard *models.ComplianceStandard) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 
 	`
-	_, err := s.DB.Exec(query, standard.ID, standard.Name, standard.ShortName, standard.Description)
+	_, err := s.DB.Exec(query, standard.ID, standard.Name, standard.ShortName, standard.Description, standard.Version, standard.IssuingBody, standard.OfficialLink)
 	if err != nil {
 		return fmt.Errorf("failed to insert compliance standard: %w", err)
 	}
@@ -1856,3 +1898,121 @@ func (s *DBStore) GetCampaignTaskInstanceResults(instanceID string) ([]models.Ca
 	}
 	return results, rows.Err()
 }
+
+// GetAuditLogs retrieves audit logs based on filters and pagination.
+// It also joins with the users table to populate UserBasicInfo.
+func (s *DBStore) GetAuditLogs(filters map[string]interface{}, page, limit int) ([]models.AuditLog, int, error) {
+	var logs []models.AuditLog
+	var total int
+
+	baseQuery := `
+        FROM audit_logs al
+        LEFT JOIN users u ON al.user_id = u.id
+    `
+	countQuery := "SELECT COUNT(al.id) " + baseQuery
+	selectQuery := `
+        SELECT
+            al.id, al.timestamp, al.user_id, al.action, al.entity_type, al.entity_id, al.changes, al.created_at,
+            u.id AS "user.id", u.name AS "user.name", u.email AS "user.email"
+    ` + baseQuery
+
+	var whereClauses []string
+	var args []interface{}
+	argCount := 1
+
+	for key, value := range filters {
+		switch key {
+		case "al.user_id", "al.entity_type", "al.entity_id":
+			whereClauses = append(whereClauses, fmt.Sprintf("%s = $%d", key, argCount))
+			args = append(args, value)
+			argCount++
+		case "start_date":
+			whereClauses = append(whereClauses, fmt.Sprintf("al.timestamp >= $%d", argCount))
+			args = append(args, value)
+			argCount++
+		case "end_date":
+			whereClauses = append(whereClauses, fmt.Sprintf("al.timestamp <= $%d", argCount))
+			args = append(args, value)
+			argCount++
+		}
+	}
+
+	if len(whereClauses) > 0 {
+		whereCondition := " WHERE " + strings.Join(whereClauses, " AND ")
+		countQuery += whereCondition
+		selectQuery += whereCondition
+	}
+
+	// Get total count
+	err := s.DB.QueryRow(countQuery, args...).Scan(&total)
+	if err != nil {
+		log.Printf("Error counting audit logs: %v. Query: %s, Args: %v", err, countQuery, args)
+		return nil, 0, fmt.Errorf("error counting audit logs: %w", err)
+	}
+
+	if total == 0 {
+		return []models.AuditLog{}, 0, nil
+	}
+
+	// Add ordering and pagination to select query
+	selectQuery += " ORDER BY al.timestamp DESC"
+
+	// Handle pagination or fetching all records
+	if limit > 0 { // Apply pagination only if limit is positive
+		offset := (page - 1) * limit
+		selectQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argCount, argCount+1)
+		args = append(args, limit, offset)
+	}
+	// If limit is 0 or negative, no LIMIT/OFFSET clause is added, fetching all matching records.
+
+
+	// Fetch logs
+	rows, err := s.DB.Queryx(selectQuery, args...)
+	if err != nil {
+		log.Printf("Error querying audit logs: %v. Query: %s, Args: %v", err, selectQuery, args)
+		return nil, 0, fmt.Errorf("error querying audit logs: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var logEntry models.AuditLog
+		// Initialize User field because it's a pointer to a struct.
+		// sqlx.StructScan handles nested structs with "parent.child" aliases.
+		logEntry.User = &models.UserBasicInfo{}
+
+		err := rows.StructScan(&logEntry)
+		if err != nil {
+			// If user_id was NULL, user.id, user.name, user.email will be scanned as NULLs.
+			// Check if the User struct was meant to be populated (i.e., user_id was not null)
+			// and if the error is due to trying to scan NULL into non-pointer fields of UserBasicInfo if it had any.
+			// However, UserBasicInfo has string fields which can handle default empty values from DB if user_id is NULL.
+			// If logEntry.UserID is nil, then logEntry.User should remain nil or be an empty UserBasicInfo.
+			if logEntry.UserID == nil {
+				logEntry.User = nil // Explicitly set to nil if user_id was null in DB
+			} else if logEntry.User != nil && (logEntry.User.ID == "" || logEntry.User.ID == nil) {
+				// This check is tricky; if user_id was not null but user record not found or all fields are null
+				// For a LEFT JOIN, if u.id is NULL, then user.id would be scanned as such.
+				// sqlx should handle this by not erroring if User.ID is a *string or string.
+				// If User.ID is string and db returns NULL for it, it becomes empty string.
+				// We only set User to nil if the UserID itself on the audit_log is nil.
+			}
+			// If it's a genuine scan error not related to null user, then it's a problem.
+			log.Printf("Error scanning audit log entry: %v", err)
+			// Decide whether to return error or skip this entry
+			// For now, let's skip problematic entries but log them.
+			continue
+		}
+		logs = append(logs, logEntry)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Printf("Error iterating audit log rows: %v", err)
+		return nil, 0, fmt.Errorf("error iterating audit log rows: %w", err)
+	}
+
+	return logs, total, nil
+}
+
+// Placeholder for other methods...
+// Ensure all existing methods from the original file are preserved below this line.
+// ... (rest of the file content from the read_files output)

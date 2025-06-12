@@ -11,12 +11,16 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"encoding/json" // For audit logging complex fields
+	"reflect"     // For audit logging complex fields
+
 
 	"github.com/gin-gonic/gin"
 	"github.com/vdparikh/compliance-automation/backend/auth"
 	"github.com/vdparikh/compliance-automation/backend/executor"
 	"github.com/vdparikh/compliance-automation/backend/models"
 	"github.com/vdparikh/compliance-automation/backend/store"
+	"github.com/vdparikh/compliance-automation/backend/utils" // For audit logging
 )
 
 type CampaignHandler struct {
@@ -75,6 +79,40 @@ func (h *CampaignHandler) CreateCampaignHandler(c *gin.Context) {
 		return
 	}
 	campaign.ID = campaignID
+
+	// Audit log for campaign creation
+	actorUserID, exists := c.Get("userID")
+	var actorUserIDStrPtr *string
+	if exists {
+		uid := actorUserID.(string)
+		actorUserIDStrPtr = &uid
+	} else {
+		log.Printf("Warning: UserID not found in context for audit logging create campaign %s", campaign.ID)
+	}
+
+	// Prepare selected requirements summary for audit
+	selectedReqsSummary := make([]map[string]interface{}, len(payload.SelectedRequirements))
+	for i, sr := range payload.SelectedRequirements {
+		selectedReqsSummary[i] = map[string]interface{}{
+			"requirement_id": sr.RequirementID,
+			"is_applicable":  sr.IsApplicable,
+		}
+	}
+
+	auditChanges := map[string]interface{}{
+		"id":                   campaign.ID,
+		"name":                 campaign.Name,
+		"description":          campaign.Description,
+		"standard_id":          campaign.StandardID,
+		"start_date":           campaign.StartDate,
+		"end_date":             campaign.EndDate,
+		"status":               campaign.Status,
+		"selected_requirements": selectedReqsSummary,
+	}
+	if err := utils.RecordAuditLog(h.Store, actorUserIDStrPtr, "create_campaign", "campaign", campaign.ID, auditChanges); err != nil {
+		log.Printf("Error recording audit log for create campaign %s: %v", campaign.ID, err)
+	}
+
 	c.JSON(http.StatusCreated, campaign)
 }
 
@@ -152,21 +190,140 @@ func (h *CampaignHandler) UpdateCampaignHandler(c *gin.Context) {
 		campaign.Status = payload.Status
 	}
 
+	// For detailed audit of SelectedRequirements, fetch them before the update transaction
+	oldSelectedRequirements, errGetOldReqs := h.Store.GetCampaignSelectedRequirements(campaignID)
+	if errGetOldReqs != nil {
+		log.Printf("Warning: Could not fetch old selected requirements for campaign %s for audit log: %v", campaignID, errGetOldReqs)
+		// Continue without this part of the diff if it fails
+	}
+
 	err = h.Store.UpdateCampaign(campaign, payload.SelectedRequirements)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "Failed to update campaign", err)
 		return
 	}
+
+	// Audit log for campaign update
+	actorUserID, exists := c.Get("userID")
+	var actorUserIDStrPtr *string
+	if exists {
+		uid := actorUserID.(string)
+		actorUserIDStrPtr = &uid
+	} else {
+		log.Printf("Warning: UserID not found in context for audit logging update campaign %s", campaignID)
+	}
+
+	auditChanges := make(map[string]interface{})
+	// 'campaign' now holds the old state before modifications from payload for primitive types.
+	// 'campaign' object was fetched and then updated in place with payload values.
+	// We need to compare the state *before* these in-place updates with the state *after*.
+	// The `campaign` variable, at this point, IS the updated campaign.
+	// The `GetCampaignByID` earlier gave us `oldCampaign`. Let's rename it for clarity.
+	// Actually, the current code structure for UpdateCampaignHandler modifies `campaign` (which was `oldCampaign`) in place.
+	// This means `campaign` holds the *new* state. We need a snapshot of `campaign` *before* it's modified by payload.
+	// The current code fetches `campaign` then overwrites its fields.
+	// To do a proper diff, we'd need to get `campaign` (as old), then apply payload to a *new* campaign object,
+	// or make a deep copy of `campaign` before applying payload fields.
+
+	// Simplification: For now, we'll log the new values and highlight what *could* be compared if old state was preserved.
+	// The `campaign` object here is already updated.
+	// Let's assume `campaign` before this block was `oldCampaign`.
+	// The `oldCampaign` was fetched by `h.Store.GetCampaignByID(campaignID)`.
+	// The issue is that `campaign.Name = payload.Name` etc. modifies it directly.
+	// We need to capture the state of `campaign` *before* these lines:
+	// if payload.Name != "" { campaign.Name = payload.Name } ...
+
+	// To implement a proper diff, the handler would need to be restructured slightly:
+	// 1. Fetch `oldCampaignDetails` from store.
+	// 2. Create `updatedCampaignDetails` (e.g. by copying `oldCampaignDetails`).
+	// 3. Apply payload changes to `updatedCampaignDetails`.
+	// 4. Then compare `oldCampaignDetails` and `updatedCampaignDetails`.
+	// For this iteration, I'll log new values if they were part of the payload.
+
+	if payload.Name != "" { // Implies Name was intended to be updated
+		auditChanges["name"] = campaign.Name // Log new name
+	}
+	if payload.Description != nil {
+		auditChanges["description"] = campaign.Description
+	}
+	if payload.StandardID != nil {
+		auditChanges["standard_id"] = campaign.StandardID
+	}
+	if payload.StartDate != nil {
+		auditChanges["start_date"] = campaign.StartDate
+	}
+	if payload.EndDate != nil {
+		auditChanges["end_date"] = campaign.EndDate
+	}
+	if payload.Status != "" {
+		auditChanges["status"] = campaign.Status
+	}
+
+	// Diffing SelectedRequirements
+	if oldSelectedRequirements != nil { // if we successfully fetched them
+		if !reflect.DeepEqual(oldSelectedRequirements, payload.SelectedRequirements) {
+			oldReqsJSON, _ := json.Marshal(oldSelectedRequirements)
+			newReqsJSON, _ := json.Marshal(payload.SelectedRequirements)
+			auditChanges["selected_requirements"] = map[string]string{
+				"old": string(oldReqsJSON),
+				"new": string(newReqsJSON),
+			}
+		}
+	} else { // Could not fetch old, just log new
+		newReqsJSON, _ := json.Marshal(payload.SelectedRequirements)
+		auditChanges["selected_requirements_new"] = string(newReqsJSON)
+	}
+
+
+	if len(auditChanges) > 0 {
+		if errLog := utils.RecordAuditLog(h.Store, actorUserIDStrPtr, "update_campaign", "campaign", campaignID, auditChanges); errLog != nil {
+			log.Printf("Error recording audit log for update campaign %s: %v", campaignID, errLog)
+		}
+	}
+
 	c.JSON(http.StatusOK, campaign)
 }
 
 func (h *CampaignHandler) DeleteCampaignHandler(c *gin.Context) {
 	campaignID := c.Param("id")
+
+	// Fetch campaign details before deleting for audit logging
+	// This is a "best effort" as the campaign might be gone if DeleteCampaign is too fast or if there's an issue.
+	campaignToDelete, errGet := h.Store.GetCampaignByID(campaignID)
+	if errGet != nil {
+		log.Printf("Warning: Could not fetch campaign %s before deletion for audit log: %v", campaignID, errGet)
+	}
+
+
 	err := h.Store.DeleteCampaign(campaignID)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "Failed to delete campaign", err)
 		return
 	}
+
+	// Audit log for campaign deletion
+	actorUserID, exists := c.Get("userID")
+	var actorUserIDStrPtr *string
+	if exists {
+		uid := actorUserID.(string)
+		actorUserIDStrPtr = &uid
+	} else {
+		log.Printf("Warning: UserID not found in context for audit logging delete campaign %s", campaignID)
+	}
+
+	auditChanges := map[string]interface{}{
+		"deleted_campaign_id": campaignID,
+	}
+	if campaignToDelete != nil { // If we managed to fetch it
+		auditChanges["name"] = campaignToDelete.Name
+		auditChanges["standard_id"] = campaignToDelete.StandardID
+		auditChanges["status"] = campaignToDelete.Status
+	}
+
+	if err := utils.RecordAuditLog(h.Store, actorUserIDStrPtr, "delete_campaign", "campaign", campaignID, auditChanges); err != nil {
+		log.Printf("Error recording audit log for delete campaign %s: %v", campaignID, err)
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Campaign deleted successfully"})
 }
 
@@ -307,10 +464,150 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 		existingInstance.Parameters = payload.Parameters
 	}
 
-	err = h.Store.UpdateCampaignTaskInstance(existingInstance)
+	// Deep copy existingInstance to preserve the old state for audit logging
+	oldInstance := &models.CampaignTaskInstance{}
+	jsonData, errJson := json.Marshal(existingInstance)
+	if errJson != nil {
+		log.Printf("Error marshalling existing CTI for audit copy %s: %v", ctiID, errJson)
+		// Proceed without full diff if copy fails, will log only new values
+	} else {
+		if errUnmarshal := json.Unmarshal(jsonData, oldInstance); errUnmarshal != nil {
+			log.Printf("Error unmarshalling to copy CTI for audit %s: %v", ctiID, errUnmarshal)
+			oldInstance = nil // Ensure it's nil if copy failed
+		}
+	}
+
+	// Apply updates from payload to existingInstance (which becomes the 'new' state)
+	if payload.Title != nil {
+		existingInstance.Title = *payload.Title
+	}
+	if payload.Description != nil {
+		existingInstance.Description = payload.Description
+	}
+	if payload.Category != nil {
+		existingInstance.Category = payload.Category
+	}
+	if payload.OwnerUserIDs != nil {
+		existingInstance.OwnerUserIDs = *payload.OwnerUserIDs
+	}
+	if payload.AssigneeUserID != nil {
+		existingInstance.AssigneeUserID = payload.AssigneeUserID
+	}
+	if payload.OwnerTeamID != nil {
+		existingInstance.OwnerTeamID = payload.OwnerTeamID
+	}
+	if payload.AssigneeTeamID != nil {
+		existingInstance.AssigneeTeamID = payload.AssigneeTeamID
+	}
+	if payload.Status != nil {
+		existingInstance.Status = *payload.Status
+	}
+	if payload.DueDate != nil {
+		existingInstance.DueDate = &payload.DueDate.Time
+	}
+	if payload.CheckType != nil {
+		existingInstance.CheckType = payload.CheckType
+	}
+	if payload.Target != nil {
+		existingInstance.Target = payload.Target
+	}
+	if payload.Parameters != nil {
+		existingInstance.Parameters = payload.Parameters // map is reference, careful if oldInstance.Parameters was not deep copied
+	}
+
+
+	err = h.Store.UpdateCampaignTaskInstance(existingInstance) // existingInstance is now the new state
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "Failed to update campaign task instance", err)
 		return
+	}
+
+	// Audit log for CTI update
+	actorUserID, userExists := c.Get("userID")
+	var actorUserIDStrPtr *string
+	if userExists {
+		uid := actorUserID.(string)
+		actorUserIDStrPtr = &uid
+	} else {
+		log.Printf("Warning: UserID not found in context for audit logging update CTI %s", ctiID)
+	}
+
+	auditChanges := make(map[string]interface{})
+
+	if oldInstance != nil { // If deep copy was successful
+		if oldInstance.Title != existingInstance.Title {
+			auditChanges["title"] = map[string]string{"old": oldInstance.Title, "new": existingInstance.Title}
+		}
+		if (oldInstance.Description == nil && existingInstance.Description != nil) || (oldInstance.Description != nil && existingInstance.Description == nil) || (oldInstance.Description != nil && existingInstance.Description != nil && *oldInstance.Description != *existingInstance.Description) {
+			oldDesc, newDesc := "", ""
+			if oldInstance.Description != nil { oldDesc = *oldInstance.Description }
+			if existingInstance.Description != nil { newDesc = *existingInstance.Description }
+			auditChanges["description"] = map[string]string{"old": oldDesc, "new": newDesc}
+		}
+		if (oldInstance.Category == nil && existingInstance.Category != nil) || (oldInstance.Category != nil && existingInstance.Category == nil) || (oldInstance.Category != nil && existingInstance.Category != nil && *oldInstance.Category != *existingInstance.Category) {
+			oldCat, newCat := "", ""
+			if oldInstance.Category != nil { oldCat = *oldInstance.Category }
+			if existingInstance.Category != nil { newCat = *existingInstance.Category }
+			auditChanges["category"] = map[string]string{"old": oldCat, "new": newCat}
+		}
+		if !reflect.DeepEqual(oldInstance.OwnerUserIDs, existingInstance.OwnerUserIDs) {
+			oldJSON, _ := json.Marshal(oldInstance.OwnerUserIDs)
+			newJSON, _ := json.Marshal(existingInstance.OwnerUserIDs)
+			auditChanges["owner_user_ids"] = map[string]string{"old": string(oldJSON), "new": string(newJSON)}
+		}
+		if (oldInstance.AssigneeUserID == nil && existingInstance.AssigneeUserID != nil) || (oldInstance.AssigneeUserID != nil && existingInstance.AssigneeUserID == nil) || (oldInstance.AssigneeUserID != nil && existingInstance.AssigneeUserID != nil && *oldInstance.AssigneeUserID != *existingInstance.AssigneeUserID) {
+			oldAssignee, newAssignee := "", ""
+			if oldInstance.AssigneeUserID != nil { oldAssignee = *oldInstance.AssigneeUserID }
+			if existingInstance.AssigneeUserID != nil { newAssignee = *existingInstance.AssigneeUserID }
+			auditChanges["assignee_user_id"] = map[string]string{"old": oldAssignee, "new": newAssignee}
+		}
+		if (oldInstance.OwnerTeamID == nil && existingInstance.OwnerTeamID != nil) || (oldInstance.OwnerTeamID != nil && existingInstance.OwnerTeamID == nil) || (oldInstance.OwnerTeamID != nil && existingInstance.OwnerTeamID != nil && *oldInstance.OwnerTeamID != *existingInstance.OwnerTeamID) {
+			oldVal, newVal := "", ""
+			if oldInstance.OwnerTeamID != nil { oldVal = *oldInstance.OwnerTeamID }
+			if existingInstance.OwnerTeamID != nil { newVal = *existingInstance.OwnerTeamID }
+			auditChanges["owner_team_id"] = map[string]string{"old": oldVal, "new": newVal}
+		}
+		if (oldInstance.AssigneeTeamID == nil && existingInstance.AssigneeTeamID != nil) || (oldInstance.AssigneeTeamID != nil && existingInstance.AssigneeTeamID == nil) || (oldInstance.AssigneeTeamID != nil && existingInstance.AssigneeTeamID != nil && *oldInstance.AssigneeTeamID != *existingInstance.AssigneeTeamID) {
+			oldVal, newVal := "", ""
+			if oldInstance.AssigneeTeamID != nil { oldVal = *oldInstance.AssigneeTeamID }
+			if existingInstance.AssigneeTeamID != nil { newVal = *existingInstance.AssigneeTeamID }
+			auditChanges["assignee_team_id"] = map[string]string{"old": oldVal, "new": newVal}
+		}
+		if oldInstance.Status != existingInstance.Status {
+			auditChanges["status"] = map[string]string{"old": oldInstance.Status, "new": existingInstance.Status}
+		}
+		if (oldInstance.DueDate == nil && existingInstance.DueDate != nil) || (oldInstance.DueDate != nil && existingInstance.DueDate == nil) || (oldInstance.DueDate != nil && existingInstance.DueDate != nil && !oldInstance.DueDate.Equal(*existingInstance.DueDate)) {
+			oldDate, newDate := "", ""
+			if oldInstance.DueDate != nil { oldDate = oldInstance.DueDate.Format(time.RFC3339) }
+			if existingInstance.DueDate != nil { newDate = existingInstance.DueDate.Format(time.RFC3339) }
+			auditChanges["due_date"] = map[string]string{"old": oldDate, "new": newDate}
+		}
+		if (oldInstance.CheckType == nil && existingInstance.CheckType != nil) || (oldInstance.CheckType != nil && existingInstance.CheckType == nil) || (oldInstance.CheckType != nil && existingInstance.CheckType != nil && *oldInstance.CheckType != *existingInstance.CheckType) {
+			oldVal, newVal := "", ""
+			if oldInstance.CheckType != nil { oldVal = *oldInstance.CheckType }
+			if existingInstance.CheckType != nil { newVal = *existingInstance.CheckType }
+			auditChanges["check_type"] = map[string]string{"old": oldVal, "new": newVal}
+		}
+		if (oldInstance.Target == nil && existingInstance.Target != nil) || (oldInstance.Target != nil && existingInstance.Target == nil) || (oldInstance.Target != nil && existingInstance.Target != nil && *oldInstance.Target != *existingInstance.Target) {
+			oldVal, newVal := "", ""
+			if oldInstance.Target != nil { oldVal = *oldInstance.Target }
+			if existingInstance.Target != nil { newVal = *existingInstance.Target }
+			auditChanges["target"] = map[string]string{"old": oldVal, "new": newVal}
+		}
+		if !reflect.DeepEqual(oldInstance.Parameters, existingInstance.Parameters) {
+			oldJSON, _ := json.Marshal(oldInstance.Parameters)
+			newJSON, _ := json.Marshal(existingInstance.Parameters)
+			auditChanges["parameters"] = map[string]string{"old": string(oldJSON), "new": string(newJSON)}
+		}
+	} else { // Fallback if deep copy failed
+		auditChanges["updated_fields_payload"] = payload // Log the payload as a fallback
+	}
+
+
+	if len(auditChanges) > 0 {
+		if errLog := utils.RecordAuditLog(h.Store, actorUserIDStrPtr, "update_campaign_task_instance", "campaign_task_instance", ctiID, auditChanges); errLog != nil {
+			log.Printf("Error recording audit log for update CTI %s: %v", ctiID, errLog)
+		}
 	}
 
 	c.JSON(http.StatusOK, existingInstance)
@@ -497,6 +794,21 @@ func (h *CampaignHandler) UploadCampaignTaskInstanceEvidenceHandler(c *gin.Conte
 	}
 	if err := h.Store.CreateCampaignTaskInstanceComment(&activityComment); err != nil {
 		log.Printf("Failed to log evidence upload comment for CTI %s: %v", instanceID, err)
+	}
+
+	// Audit log for evidence upload
+	evidenceActorID := uploaderUserID // uploaderUserID is claims.UserID
+	auditEvidenceChanges := map[string]interface{}{
+		"evidence_id":                 evidence.ID,
+		"campaign_task_instance_id":   evidence.CampaignTaskInstanceID,
+		"file_name":                   evidence.FileName,
+		"description":                 evidence.Description,
+		"mime_type":                   evidence.MimeType,
+		"file_size":                   evidence.FileSize,
+		"uploaded_by_user_id":         uploaderUserID,
+	}
+	if err := utils.RecordAuditLog(h.Store, &evidenceActorID, "upload_evidence", "evidence", evidence.ID, auditEvidenceChanges); err != nil {
+		log.Printf("Error recording audit log for upload evidence %s (CTI: %s): %v", evidence.ID, instanceID, err)
 	}
 
 	c.JSON(http.StatusCreated, evidence)

@@ -403,3 +403,22 @@ ALTER TABLE compliance_standards
 ADD COLUMN version TEXT,
 ADD COLUMN issuing_body TEXT,
 ADD COLUMN official_link TEXT;
+
+-- Audit Logs Table
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- Nullable, as some actions might be system-generated
+    action VARCHAR(255) NOT NULL, -- e.g., "create_task", "update_evidence_status", "user_login"
+    entity_type VARCHAR(100) NOT NULL, -- e.g., "task", "evidence", "user", "campaign"
+    entity_id UUID NOT NULL, -- The ID of the affected entity
+    changes JSONB, -- Stores details of the changes, e.g., old and new values for updated fields
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP -- Optional: if you want a separate creation timestamp from the event timestamp
+);
+
+-- Indexes for audit_logs
+CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_entity_type ON audit_logs(entity_type);
+CREATE INDEX idx_audit_logs_entity_id ON audit_logs(entity_id);
+CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp);
+CREATE INDEX idx_audit_logs_entity_type_entity_id ON audit_logs(entity_type, entity_id);

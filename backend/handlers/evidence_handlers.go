@@ -3,11 +3,14 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vdparikh/compliance-automation/backend/auth" // Your auth package
+	"github.com/vdparikh/compliance-automation/backend/models" // For models.Evidence if needed for old state
 	"github.com/vdparikh/compliance-automation/backend/store"
+	"github.com/vdparikh/compliance-automation/backend/utils" // For audit logging
 )
 
 // HandleReviewEvidence handles the request to review an evidence item.
@@ -60,6 +63,24 @@ func HandleReviewEvidence(s *store.DBStore) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update evidence review: " + err.Error()})
 			return
 		}
+
+		// Audit log for evidence review
+		// Since fetching the "old" state of review_status and review_comments might be complex
+		// without a dedicated GetEvidenceByID method that returns the full old models.Evidence struct,
+		// we will log the action and the new values applied.
+		auditChanges := map[string]interface{}{
+			"evidence_id":         evidenceID,
+			"new_review_status":   req.ReviewStatus,
+			"new_review_comments": req.ReviewComments,
+			"reviewed_by_user_id": userClaims.UserID,
+		}
+
+		userIDStr := userClaims.UserID // This is already a string from JWT claims usually
+		if err := utils.RecordAuditLog(s, &userIDStr, "review_evidence", "evidence", evidenceID, auditChanges); err != nil {
+			log.Printf("Error recording audit log for review evidence %s: %v", evidenceID, err)
+			// Non-critical, so we don't fail the request
+		}
+
 		c.JSON(http.StatusOK, updatedEvidence)
 	}
 }

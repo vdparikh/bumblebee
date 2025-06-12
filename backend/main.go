@@ -82,6 +82,7 @@ func main() {
 	systemIntegrationHandler := handlers.NewSystemIntegrationHandler(dbStore)
 	documentHandler := handlers.NewDocumentHandler(dbStore)
 	teamHandler := handlers.NewTeamHandler(dbStore)
+	auditLogHandler := handlers.NewAuditLogHandler(dbStore) // Instantiate AuditLogHandler
 
 	apiV1 := router.Group("/api")
 
@@ -167,6 +168,8 @@ func main() {
 		api.DELETE("/teams/:id/members/:userId", teamHandler.RemoveUserFromTeamHandler) // Remove a user from a team
 		api.GET("/teams/:id/members", teamHandler.GetTeamMembersHandler)                // Get members of a team
 
+		// Audit Log Route
+		api.GET("/audit-logs", auditLogHandler.GetAuditLogsHandler)
 	}
 
 	uploadsDir := "./uploads"
