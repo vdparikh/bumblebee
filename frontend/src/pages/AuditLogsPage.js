@@ -100,7 +100,7 @@ function AuditLogsPage() {
         setFilters(newFilters);
         // Fetch immediately for selects/dates, debounce for text inputs if needed
         if (name !== 'entity_id' && name !== 'action') { // Assuming entity_id and action are text inputs
-             fetchLogs(1, newFilters);
+            fetchLogs(1, newFilters);
         } else {
             debouncedFetchLogs(1, newFilters);
         }
@@ -195,7 +195,7 @@ function AuditLogsPage() {
                                     <Form.Control type="text" name="entity_id" placeholder="Enter UUID" value={filters.entity_id} onChange={handleFilterChange} />
                                 </Form.Group>
                             </Col>
-                             <Col md={3}>
+                            <Col md={3}>
                                 <Form.Group controlId="filterAction">
                                     <Form.Label>Action <FaSearch className="ms-1" /></Form.Label>
                                     <Form.Control type="text" name="action" placeholder="e.g., create_campaign" value={filters.action} onChange={handleFilterChange} />
@@ -229,58 +229,59 @@ function AuditLogsPage() {
                     <div className="audit-timeline mt-4">
                         {Object.entries(groupedLogs).map(([date, dateLogs]) => (
                             <div key={date} className="timeline-date-group mb-4">
-                                <h5 className="timeline-date-header p-2  rounded mb-3 sticky-top" style={{top: '0', zIndex: 1}}>
+                                <h5 className="timeline-date-header p-2  rounded mb-3 sticky-top" style={{ top: '0', zIndex: 1 }}>
                                     {new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                 </h5>
                                 {dateLogs.map(log => (
-                                    <Card key={log.id} className="timeline-event mb-3 shadow-sm">
-                                        <Card.Body className="p-3">
-                                            <Row>
-                                                <Col xs="auto" className="text-center pe-0" style={{width: '80px'}}>
-                                                    <div className="timeline-icon mb-1" style={{fontSize: '1.5rem'}}>
+                                    <Card key={log.id} className="timeline-event mb-2">
+                                        <Card.Body className="p-0">
+
+
+                                            {/*  */}
+                                            <div className='d-flex justify-content-between align-items-start'>
+                                                <div style={{ width: "80px" }} className='text-center pt-1 pb-1 ps-1'>
+                                                    <div className="timeline-icon mb-1" style={{ fontSize: '1rem' }}>
                                                         {getActionIcon(log.action)}
                                                     </div>
                                                     <small className="text-muted d-block">
                                                         {new Date(log.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })}
                                                     </small>
-                                                </Col>
-                                                <Col style={{borderLeft: '3px solid #e9ecef', paddingLeft: '1.5rem'}}>
-                                                    <div className="timeline-event-header mb-1">
-                                                        {log.user ? (
-                                                            <UserDisplay userId={log.user.id} userName={log.user.name} email={log.user.email} allUsers={users} />
-                                                        ) : (
-                                                            <Badge bg="secondary">System</Badge>
-                                                        )}
-                                                        <span className="mx-1 text-muted small">performed action</span>
-                                                        <Badge bg="primary" pill className="me-1">{formatActionDisplay(log.action)}</Badge>
-                                                        <span className="mx-1 text-muted small">on</span>
-                                                        <span className="fw-bold me-1">{log.entity_type.replace(/_/g, ' ')}</span>
-                                                        <OverlayTrigger
-                                                            placement="top"
-                                                            overlay={<Tooltip id={`tooltip-entity-${log.id}`}>{log.entity_id}</Tooltip>}
-                                                        >
-                                                            <Badge bg="light" text="dark" className="font-monospace border">
-                                                                {log.entity_id.substring(0, 8)}...
-                                                            </Badge>
-                                                        </OverlayTrigger>
-                                                    </div>
+                                                </div>
 
-                                                    {log.changes && Object.keys(log.changes).length > 0 && (
-                                                        <Accordion flush className="mt-2">
-                                                            <Accordion.Item eventKey={log.id}>
-                                                                <Accordion.Header as="div" className="p-0 small">
-                                                                    <span variant="link" size="sm" className="p-0 text-decoration-none text-muted">
-                                                                        View Changes
-                                                                    </span>
-                                                                </Accordion.Header>
-                                                                <Accordion.Body className="p-2 border-top">
+                                                <Accordion className="vh-100" style={{ minHeight: "60px", width: "100%", borderLeft: "3px solid #e9ecef" }} flush className="">
+                                                    <Accordion.Item eventKey={log.id}>
+                                                        <Accordion.Header as="div" className="p-0 ">
+                                                            <div className="timeline-event-header ">
+                                                                {log.user ? (
+                                                                    <UserDisplay userId={log.user.id} userName={log.user.name} email={log.user.email} allUsers={users} />
+                                                                ) : (
+                                                                    <Badge bg="secondary">System</Badge>
+                                                                )}
+                                                                <span className="mx-1 text-muted ">performed action</span>
+                                                                <Badge bg="primary" pill className="me-1">{formatActionDisplay(log.action)}</Badge>
+                                                                <span className="mx-1 text-muted ">on</span>
+                                                                <span className="fw-bold me-1">{log.entity_type.replace(/_/g, ' ')}</span>
+                                                                <OverlayTrigger
+                                                                    placement="top"
+                                                                    overlay={<Tooltip id={`tooltip-entity-${log.id}`}>{log.entity_id}</Tooltip>}
+                                                                >
+                                                                    <Badge bg="light" text="dark" className="font-monospace border">
+                                                                        {log.entity_id.substring(0, 8)}...
+                                                                    </Badge>
+                                                                </OverlayTrigger>
+                                                            </div>
+                                                        </Accordion.Header>
+                                                        <Accordion.Body className="p-2 border-top">
+                                                            {log.changes && Object.keys(log.changes).length > 0 && (
+                                                                <>
                                                                     {renderChanges(JSON.stringify(log.changes))}
-                                                                </Accordion.Body>
-                                                            </Accordion.Item>
-                                                        </Accordion>
-                                                    )}
-                                                </Col>
-                                            </Row>
+                                                                </>
+                                                            )}
+                                                        </Accordion.Body>
+                                                    </Accordion.Item>
+                                                </Accordion>
+                                            </div>
+
                                         </Card.Body>
                                     </Card>
                                 ))}

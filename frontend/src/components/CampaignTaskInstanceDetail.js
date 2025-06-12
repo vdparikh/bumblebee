@@ -6,15 +6,15 @@ import {
     getCommentsByCampaignTaskInstanceId,
     addCommentToCampaignTaskInstance,
     getEvidenceByCampaignTaskInstanceId,
-    addGenericEvidenceToCampaignTaskInstance, 
+    addGenericEvidenceToCampaignTaskInstance,
     uploadEvidenceToCampaignTaskInstance,
     updateCampaignTaskInstance,
-    executeCampaignTaskInstance, copyEvidenceToCampaignTaskInstance, 
-    getCampaignTaskInstanceResults, 
-        getTaskInstancesByMasterTaskId,
+    executeCampaignTaskInstance, copyEvidenceToCampaignTaskInstance,
+    getCampaignTaskInstanceResults,
+    getTaskInstancesByMasterTaskId,
 
     reviewEvidence, // Assumed to be added in services/api.js
-} from '../services/api'; 
+} from '../services/api';
 import Card from 'react-bootstrap/Card';
 import Alert from 'react-bootstrap/Alert';
 import Badge from 'react-bootstrap/Badge';
@@ -28,7 +28,7 @@ import Col from 'react-bootstrap/Col';
 import ListGroup from 'react-bootstrap/ListGroup';
 import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
-import Dropdown from 'react-bootstrap/Dropdown'; 
+import Dropdown from 'react-bootstrap/Dropdown';
 import Modal from 'react-bootstrap/Modal';
 
 import {
@@ -48,43 +48,43 @@ import {
     FaFileAlt,
     FaCommentDots,
     FaBullhorn,
-    FaPlayCircle, 
-    FaPoll, 
-    FaExclamationCircle, 
+    FaPlayCircle,
+    FaPoll,
+    FaExclamationCircle,
     FaFileMedicalAlt,
     FaTerminal,
-    FaPlus, 
-    FaBookOpen, 
+    FaPlus,
+    FaBookOpen,
     FaThumbsUp, // For Approve
     FaUsers, // For Teams
     FaThumbsDown,
     FaHistory, // For Reject
 } from 'react-icons/fa';
 import { ListGroupItem } from 'react-bootstrap';
-import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils'; 
+import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils';
 import { useAuth } from '../contexts/AuthContext';
 import UserDisplay from './common/UserDisplay';
 import TeamDisplay from './common/TeamDisplay'; // Import TeamDisplay
-import CopyEvidenceModal from './modals/CopyEvidenceModal'; 
+import CopyEvidenceModal from './modals/CopyEvidenceModal';
 
-import CommentSection from './common/CommentSection'; 
+import CommentSection from './common/CommentSection';
 
 function CampaignTaskInstanceDetail() {
     const { currentUser } = useAuth();
     const { instanceId } = useParams();
-    const location = useLocation(); 
+    const location = useLocation();
     const [taskInstance, setTaskInstance] = useState(null);
     const [users, setUsers] = useState([]);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [evidenceList, setEvidenceList] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
-    const [evidenceType, setEvidenceType] = useState('file'); 
+    const [evidenceType, setEvidenceType] = useState('file');
     const [evidenceLink, setEvidenceLink] = useState('');
     const [evidenceText, setEvidenceText] = useState('');
-    const [evidenceDescription, setEvidenceDescription] = useState(''); 
+    const [evidenceDescription, setEvidenceDescription] = useState('');
     const [showCopyEvidenceModal, setShowCopyEvidenceModal] = useState(false);
-    	const [historicalTasks, setHistoricalTasks] = useState([]); // New state for historical tasks
+    const [historicalTasks, setHistoricalTasks] = useState([]); // New state for historical tasks
 
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [evidenceToReview, setEvidenceToReview] = useState(null);
@@ -92,21 +92,21 @@ function CampaignTaskInstanceDetail() {
     const [reviewError, setReviewError] = useState('');
 
 
-    const [executionResults, setExecutionResults] = useState([]); 
+    const [executionResults, setExecutionResults] = useState([]);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [commentError, setCommentError] = useState('');
-    const [addEvidenceError, setAddEvidenceError] = useState(''); 
+    const [addEvidenceError, setAddEvidenceError] = useState('');
     const [evidenceError, setEvidenceError] = useState('');
     const [statusError, setStatusError] = useState('');
-    const [executionError, setExecutionError] = useState(''); 
-    const [executionSuccess, setExecutionSuccess] = useState(''); 
-    const [lastExecutionAttempt, setLastExecutionAttempt] = useState(null); 
-    const [loadingResults, setLoadingResults] = useState(false); 
+    const [executionError, setExecutionError] = useState('');
+    const [executionSuccess, setExecutionSuccess] = useState('');
+    const [lastExecutionAttempt, setLastExecutionAttempt] = useState(null);
+    const [loadingResults, setLoadingResults] = useState(false);
 
 
-    
+
     const canUpdateTaskStatus = useMemo(() => {
         if (!currentUser || !taskInstance) return false;
         return currentUser.role === 'admin' ||
@@ -154,15 +154,15 @@ function CampaignTaskInstanceDetail() {
         }
         try {
             await copyEvidenceToCampaignTaskInstance(instanceId, selectedEvidenceIds);
-            
+
             const evidenceResponse = await getEvidenceByCampaignTaskInstanceId(instanceId);
             setEvidenceList(Array.isArray(evidenceResponse.data) ? evidenceResponse.data : []);
             setShowCopyEvidenceModal(false);
-            
+
         } catch (err) {
             console.error("Error copying evidence:", err);
             setError(`Failed to copy evidence. ${err.response?.data?.error || 'Please try again.'}`);
-            
+
         }
     };
 
@@ -174,7 +174,7 @@ function CampaignTaskInstanceDetail() {
         setAddEvidenceError('');
 
         const evidencePayload = {
-            description: "<pre>" + result.output + "</pre>", 
+            description: "<pre>" + result.output + "</pre>",
             file_name: `Execution Result - ${result.status} - ${new Date(result.timestamp).toISOString()}`,
             mime_type: "text/plain", // Store as plain text
             // review_status: "Pending", // Ideally set by backend on creation
@@ -220,28 +220,28 @@ function CampaignTaskInstanceDetail() {
         }
     };
 
-        	const fetchHistoricalTasks = useCallback(async (masterTaskId) => {
-    		if (!masterTaskId) return;
-    		try {
-    			const response = await getTaskInstancesByMasterTaskId(masterTaskId);
-    			if (response.data) {
-    				// Filter out the current instance from the historical list
-    				setHistoricalTasks(Array.isArray(response.data) ? response.data.filter(t => t.id !== instanceId) : []);
-    			}
-    		} catch (err) {
-    			console.error("Error fetching historical tasks:", err);
-    			// Optionally set an error state for historical tasks
-    			setHistoricalTasks([]);
-    		}
-    	}, [instanceId]);
+    const fetchHistoricalTasks = useCallback(async (masterTaskId) => {
+        if (!masterTaskId) return;
+        try {
+            const response = await getTaskInstancesByMasterTaskId(masterTaskId);
+            if (response.data) {
+                // Filter out the current instance from the historical list
+                setHistoricalTasks(Array.isArray(response.data) ? response.data.filter(t => t.id !== instanceId) : []);
+            }
+        } catch (err) {
+            console.error("Error fetching historical tasks:", err);
+            // Optionally set an error state for historical tasks
+            setHistoricalTasks([]);
+        }
+    }, [instanceId]);
 
-            	// Fetch historical tasks when taskInstance (and thus master_task_id) is available
-    	useEffect(() => {
-    		if (taskInstance?.master_task_id) {
-    			fetchHistoricalTasks(taskInstance.master_task_id);
-    		}
-    	}, [taskInstance, fetchHistoricalTasks]);
-    
+    // Fetch historical tasks when taskInstance (and thus master_task_id) is available
+    useEffect(() => {
+        if (taskInstance?.master_task_id) {
+            fetchHistoricalTasks(taskInstance.master_task_id);
+        }
+    }, [taskInstance, fetchHistoricalTasks]);
+
 
     const fetchData = useCallback(async () => {
         if (!instanceId) {
@@ -256,13 +256,13 @@ function CampaignTaskInstanceDetail() {
             const usersPromise = getUsers();
             const commentsPromise = getCommentsByCampaignTaskInstanceId(instanceId);
             const evidencePromise = getEvidenceByCampaignTaskInstanceId(instanceId);
-            
+
             const [taskResponse, usersResponse, commentsResponse, evidenceResponse] = await Promise.allSettled([
                 taskInstancePromise, usersPromise, commentsPromise, evidencePromise
             ]);
             if (taskResponse.status === 'fulfilled' && taskResponse.value.data) {
-                setTaskInstance(taskResponse.value.data); 
-                
+                setTaskInstance(taskResponse.value.data);
+
             } else {
                 setError('Task Instance not found.');
             }
@@ -319,7 +319,7 @@ function CampaignTaskInstanceDetail() {
         setEvidenceLink('');
         setEvidenceText('');
         setEvidenceDescription('');
-        
+
         if (document.getElementById('evidenceFile')) {
             document.getElementById('evidenceFile').value = null;
         }
@@ -329,7 +329,7 @@ function CampaignTaskInstanceDetail() {
         setAddEvidenceError('');
         let evidencePayload = {
             description: evidenceDescription,
-            
+
         };
         let response;
 
@@ -341,26 +341,26 @@ function CampaignTaskInstanceDetail() {
                 }
                 const formData = new FormData();
                 formData.append('file', selectedFile);
-                formData.append('description', evidenceDescription); 
+                formData.append('description', evidenceDescription);
                 response = await uploadEvidenceToCampaignTaskInstance(instanceId, formData);
             } else if (evidenceType === 'link') {
                 if (!evidenceLink.trim()) {
                     setAddEvidenceError("Please enter a valid URL for the link.");
                     return;
                 }
-                evidencePayload.file_path = evidenceLink; 
-                evidencePayload.file_name = "Link Evidence"; 
-                evidencePayload.mime_type = "text/url"; 
+                evidencePayload.file_path = evidenceLink;
+                evidencePayload.file_name = "Link Evidence";
+                evidencePayload.mime_type = "text/url";
                 response = await addGenericEvidenceToCampaignTaskInstance(instanceId, evidencePayload);
             } else if (evidenceType === 'text') {
                 if (!evidenceText.trim()) {
                     setAddEvidenceError("Please enter the evidence text/description.");
                     return;
                 }
-                
-                
-                
-                evidencePayload.description = evidenceText; 
+
+
+
+                evidencePayload.description = evidenceText;
                 evidencePayload.mime_type = "text/plain";
                 // evidencePayload.review_status = "Pending"; // Ideally set by backend
                 response = await addGenericEvidenceToCampaignTaskInstance(instanceId, evidencePayload);
@@ -379,25 +379,25 @@ function CampaignTaskInstanceDetail() {
         try {
             const updatedTaskData = { status: newStatus };
             const response = await updateCampaignTaskInstance(instanceId, updatedTaskData);
-            setTaskInstance(response.data); 
+            setTaskInstance(response.data);
         } catch (err) {
             console.error("Error updating status:", err);
             setStatusError("Failed to update status. " + (err.response?.data?.error || ''));
-            
+
         }
     };
 
     const handleExecuteInstance = async () => {
         setExecutionError('');
         setExecutionSuccess('');
-        setLoadingResults(true); 
-        setLastExecutionAttempt(null); 
+        setLoadingResults(true);
+        setLastExecutionAttempt(null);
         try {
             const response = await executeCampaignTaskInstance(instanceId);
             setExecutionSuccess(response.data.message || "Execution triggered successfully. Results will be available shortly.");
             setLastExecutionAttempt({ output: response.data.output, status: response.data.status });
-            
-            await fetchInstanceResults(); 
+
+            await fetchInstanceResults();
         } catch (err) {
             console.error("Error executing task instance:", err);
             setExecutionError(`Failed to execute task. ${err.response?.data?.error || ''}`);
@@ -425,7 +425,7 @@ function CampaignTaskInstanceDetail() {
     if (error) return <Alert variant="danger" className="mt-3">{error}</Alert>;
     if (!taskInstance) return <Alert variant="warning" className="mt-3">Task Instance data not available.</Alert>;
 
-    
+
     let backLinkTarget = location.state?.from;
     let backButtonText = "Back";
 
@@ -435,9 +435,9 @@ function CampaignTaskInstanceDetail() {
         } else if (backLinkTarget.startsWith('/campaigns/')) {
             backButtonText = "Back to Campaign";
         }
-        
+
     } else {
-        
+
         backLinkTarget = taskInstance.campaign_id ? `/campaigns/${taskInstance.campaign_id}` : "/my-tasks";
         backButtonText = taskInstance.campaign_id ? "Back to Campaign" : "Back to My Tasks";
     }
@@ -455,13 +455,13 @@ function CampaignTaskInstanceDetail() {
 
     return (
         <div>
-            
+
 
             <Row>
                 <Col md={12}>
                     <div className="d-flex justify-content-between align-items-center mb-2">
                         <h2 className="mb-0">
-                                            <div className='mb-1 small fs-6 fw-normal text-muted'>Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> / Req: {taskInstance.requirement_standard_name}</div>
+                            <div className='mb-1 small fs-6 fw-normal text-muted'>Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> / Req: {taskInstance.requirement_standard_name}</div>
 
                             {taskInstance.title}
                         </h2>
@@ -489,74 +489,20 @@ function CampaignTaskInstanceDetail() {
                 <Col md={8} className='border-end'>
                     <Tabs defaultActiveKey="details" id="task-instance-detail-tabs" className="nav-line-tabs mb-3">
                         <Tab eventKey="details" title={<><FaInfoCircle className="me-1" />Details</>}>
-                            <Card>
-                                 <Card.Header as="h5"><FaInfoCircle className="me-2 text-muted" />Task Details</Card.Header>
-                                <Card.Body>
-                                {taskInstance.description || 'N/A'}
-                            </Card.Body>
+                            <Card className="mb-3">
+                                {/* <Card.Header as="h5"><FaInfoCircle className="me-2 text-muted" />Task Details</Card.Header> */}
                                 <ListGroup variant='flush'>
-
                                     <ListGroupItem>
-                                        <FaTag className="me-2 text-muted" /><strong>Category:</strong>
 
-                                        {taskInstance.category && (
-                                            <Badge pill bg="light" text="dark" className="fw-normal ms-2 border"><FaTag className="me-1" />{taskInstance.category}</Badge>
-                                        )}
-                                        {taskInstance.requirement_control_id_reference && (
-                                            <Badge pill bg="light" text="dark" className="fw-normal border">Req: {taskInstance.requirement_control_id_reference}</Badge>
-                                        )}
+<strong>Task Details:</strong>
+                                    <p>{taskInstance.description || 'N/A'}</p>
 
                                     </ListGroupItem>
+
                                     <ListGroupItem>
-                                        <FaUserShield className="me-2 text-muted" /><strong className='me-2'>Owner(s):</strong>
-                                        {taskInstance.owners && taskInstance.owners.length > 0 ?
-                                            taskInstance.owners.map((owner, index) => (
-                                                <React.Fragment key={owner.id}>
-                                                    
-                                                    <UserDisplay userId={owner.id} userName={owner.name} allUsers={users} />
-                                                    {index < taskInstance.owners.length - 1 && ' '}
-                                                </React.Fragment>
-                                            )) : ' N/A'}
-                                    </ListGroupItem>
-                                    <ListGroupItem><FaUserCheck className="me-2 text-muted" /><strong className="me-1">Assignee:</strong>
+                                        <strong>Requirement:</strong>
 
-                                        <UserDisplay userId={taskInstance.assignee_user_id} userName={taskInstance.assignee_user_id} allUsers={users} />
-                                        
 
-                                    </ListGroupItem>
-                                    {taskInstance.owner_team && taskInstance.owner_team.name && (
-                                        <ListGroupItem>
-                                            <FaUsers className="me-2 text-muted" /><strong>Owner Team:</strong>
-                                            <TeamDisplay teamId={taskInstance.owner_team.id} teamName={taskInstance.owner_team.name} teamDescription={taskInstance.owner_team.description} teamMembers={taskInstance.owner_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} /> 
-                                            {/* Note: allTeams prop might need adjustment based on how you fetch all teams globally or pass them down */}
-                                        </ListGroupItem>
-                                    )}
-                                    {/* {taskInstance.assignee_team && taskInstance.assignee_team.name && (
-                                        <ListGroupItem>
-                                            <FaUsers className="me-2 text-muted" /><strong>Assignee Team:</strong>
-                                            <TeamDisplay teamId={taskInstance.assignee_team.id} teamName={taskInstance.assignee_team.name} teamDescription={taskInstance.assignee_team.description} teamMembers={taskInstance.assignee_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} />
-                                        </ListGroupItem>
-                                    )} */}
-                                    <ListGroupItem>
-                                        <FaExclamationCircle className="me-2 text-muted" /><strong>Priority:</strong>
-                                        {taskInstance.defaultPriority ? <Badge bg={getPriorityBadgeColor(taskInstance.defaultPriority)} className="ms-2">{taskInstance.defaultPriority}</Badge> : ' N/A'}
-                                    </ListGroupItem>
-                                    <ListGroupItem>
-                                        <FaFileMedicalAlt className="me-2 text-muted" /><strong>Expected Evidence:</strong>
-                                        {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
-                                            taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
-                                                <React.Fragment key={evidenceType}>
-
-                                                    <Badge variant="secondary" className='bg-secondary me-1 ms-1'>{evidenceType}</Badge>
-
-                                                </React.Fragment>
-                                            )) : ' N/A'}
-                                    </ListGroupItem>
-                                    <ListGroupItem><FaCalendarAlt className="me-2 text-muted" /><strong>Due Date:</strong> {taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</ListGroupItem>
-                                    <ListGroupItem>
-                                        <FaClipboardList className="me-2 text-muted" /><strong>Requirement:</strong>
-
-                                        
 
                                         <h6 className='mt-3'>{taskInstance.requirement_control_id_reference} - {taskInstance.requirement_standard_name || 'Standard N/A'}</h6>
                                         <p className='mt-2 text-muted' style={{ whiteSpace: 'pre-wrap' }}>{taskInstance.requirement_text || 'No detailed text available.'}</p>
@@ -564,32 +510,44 @@ function CampaignTaskInstanceDetail() {
 
                                     {taskInstance.linked_documents && taskInstance.linked_documents.length > 0 && (
                                         <ListGroupItem>
-                                            <FaBookOpen className="me-2 text-muted" /><strong>Linked Documents:</strong>
-                                            <ul className="list-unstyled list-inline mb-0 mt-1">
+                                            <strong>Linked Documents:</strong>
+                                            <ListGroup flush>
                                                 {taskInstance.linked_documents.map(doc => (
-                                                    <li key={doc.id} className="list-inline-item">
-                                                        <Badge bg="light" text="dark" className="border me-1 p-2">
+                                                    <ListGroupItem key={doc.id} className="">
+                                                        <div  className="">
+                                                            <FaBookOpen className="me-2 text-muted" />
                                                             {doc.source_url ? (
                                                                 <a href={doc.source_url} target="_blank" rel="noopener noreferrer" title={doc.description || doc.name}>
-                                                                    {doc.name} <FaLink size="0.8em"/>
+                                                                    {doc.name} <FaLink size="0.8em" />
                                                                 </a>
                                                             ) : (
                                                                 <span title={doc.description || doc.name}>{doc.name}</span>
                                                             )}
-                                                            {doc.internal_reference && <small className="text-muted ms-1">({doc.internal_reference})</small>}
-                                                        </Badge>
-                                                    </li>
+                                                            {doc.internal_reference && <span className="text-muted ms-1">({doc.internal_reference})</span>} <br />
+                                                            <small>{doc.description}</small>
+                                                        </div>
+                                                    </ListGroupItem>
                                                 ))}
-                                            </ul>
+                                            </ListGroup>
                                         </ListGroupItem>
                                     )}
 
                                 </ListGroup>
                                 <Card.Footer>
-                                   <div className='text-muted'><strong>Instance ID:</strong> {taskInstance.id}</div>
+                                    <div className='text-muted'><strong>Instance ID:</strong> {taskInstance.id}</div>
                                 </Card.Footer>
                             </Card>
 
+                            <CommentSection
+                                comments={comments}
+                                allUsers={users}
+                                currentUser={currentUser}
+                                newComment={newComment}
+                                setNewComment={setNewComment}
+                                onCommentSubmit={handleCommentSubmit}
+                                commentError={commentError}
+                                setCommentError={setCommentError}
+                            />
 
                         </Tab>
                         <Tab eventKey="evidence" title={<><FaFileUpload className="me-1" />Evidence</>}>
@@ -646,7 +604,7 @@ function CampaignTaskInstanceDetail() {
                                                     <Form.Control as="textarea" rows={2} placeholder="Optional: Describe this piece of evidence..." value={evidenceDescription} onChange={(e) => setEvidenceDescription(e.target.value)} />
                                                 </Form.Group>
 
-                                                
+
 
                                                 <Row>
                                                     <Col>
@@ -668,7 +626,7 @@ function CampaignTaskInstanceDetail() {
                                     <h6 className='mt-3 p-3'>Existing Evidences</h6>
                                     {evidenceList.map(evidence => {
                                         let icon = <FaFileAlt className="me-2 text-muted" />;
-                                        let mainDisplay = evidence.file_name || evidence.id; 
+                                        let mainDisplay = evidence.file_name || evidence.id;
                                         let showSeparateDescription = true;
 
                                         const evidenceReviewStatus = evidence.review_status || "Pending";
@@ -678,7 +636,7 @@ function CampaignTaskInstanceDetail() {
                                             icon = <FaLink className="me-2 text-primary" />;
                                             const linkText = evidence.description || evidence.fileName || evidence.filePath;
                                             mainDisplay = <a href={evidence.filePath} target="_blank" rel="noopener noreferrer">{linkText}</a>;
-                                            showSeparateDescription = !evidence.description; 
+                                            showSeparateDescription = !evidence.description;
                                         } else if (evidence.mimeType === 'text/plain') {
                                             icon = <FaAlignLeft className="me-2 text-info" />;
                                             mainDisplay = (
@@ -687,19 +645,19 @@ function CampaignTaskInstanceDetail() {
                                                 </pre>
                                             );
                                             showSeparateDescription = false;
-                                        } else if (evidence.filePath) { 
-                                            
+                                        } else if (evidence.filePath) {
+
                                             mainDisplay = <a href={`http://localhost:8080/${evidence.filePath}`} target="_blank" rel="noopener noreferrer">{evidence.fileName || evidence.id}</a>;
                                         }
 
                                         return (
                                             <Card className="mb-2" key={evidence.id}>
                                                 <Card.Header className="d-flex justify-content-between align-items-center">
-                                                    <div>{icon} {mainDisplay}</div> 
+                                                    <div>{icon} {mainDisplay}</div>
                                                     <Badge bg={getStatusColor(evidenceReviewStatus)}>{evidenceReviewStatus}</Badge>
                                                 </Card.Header>
                                                 <Card.Body>
-                                                    {showSeparateDescription && evidence.description && 
+                                                    {showSeparateDescription && evidence.description &&
                                                         <div className="mb-0 mt-1" dangerouslySetInnerHTML={{ __html: evidence.description }} />
                                                     }
                                                     {evidence.review_status && evidence.review_status !== "Pending" && (
@@ -717,16 +675,16 @@ function CampaignTaskInstanceDetail() {
                                                         <small className="text-muted">Uploaded: {evidence.uploadedAt ? new Date(evidence.uploadedAt).toLocaleString() : 'N/A'}</small>
                                                         {canReviewEvidence && evidenceReviewStatus === "Pending" && (
                                                             <div>
-                                                                <Button 
-                                                                    variant="outline-success" 
-                                                                    size="sm" 
+                                                                <Button
+                                                                    variant="outline-success"
+                                                                    size="sm"
                                                                     className="me-2"
                                                                     onClick={() => handleEvidenceReview(evidence.id, "Approved")}
                                                                 >
                                                                     <FaThumbsUp /> Approve
                                                                 </Button>
-                                                                <Button 
-                                                                    variant="outline-danger" 
+                                                                <Button
+                                                                    variant="outline-danger"
                                                                     size="sm"
                                                                     onClick={() => handleOpenRejectModal(evidence)}
                                                                 >
@@ -744,37 +702,37 @@ function CampaignTaskInstanceDetail() {
 
                         </Tab>
 
-                                                    <Tab eventKey="history" title={<><FaHistory className="me-1" />Related Instances ({historicalTasks.length})</>}>
-    							<Card>
-    								<Card.Header as="h5">Other Instances of this Task</Card.Header>
-    								<Card.Body>
-    									{historicalTasks.length > 0 ? (
-    										<ListGroup variant="flush">
-    											{historicalTasks.map(histTask => (
-    												<ListGroup.Item key={histTask.id} action as={Link} to={`/campaign-task/${histTask.id}`}>
-    													<div className="d-flex justify-content-between">
-    														<div>
-    															<strong>{histTask.title}</strong>
-    															<small className="d-block text-muted">
-    																Campaign: {histTask.campaign_name || 'N/A'}
-    															</small>
-    														</div>
-    														<div>
-    															<Badge bg={getStatusColor(histTask.status)}>{histTask.status}</Badge>
-    															{histTask.due_date && (
-    																<small className="ms-2 text-muted">
-    																	Due: {new Date(histTask.due_date).toLocaleDateString()}
-    																</small>
-    															)}
-    														</div>
-    													</div>
-    												</ListGroup.Item>
-    											))}
-    										</ListGroup>
-    									) : <p className="text-muted">No other instances of this master task found.</p>}
-    								</Card.Body>
-    							</Card>
-    						</Tab>
+                        <Tab eventKey="history" title={<><FaHistory className="me-1" />Related Instances ({historicalTasks.length})</>}>
+                            <Card>
+                                <Card.Header as="h5">Other Instances of this Task</Card.Header>
+                                <Card.Body>
+                                    {historicalTasks.length > 0 ? (
+                                        <ListGroup variant="flush">
+                                            {historicalTasks.map(histTask => (
+                                                <ListGroup.Item key={histTask.id} action as={Link} to={`/campaign-task/${histTask.id}`}>
+                                                    <div className="d-flex justify-content-between">
+                                                        <div>
+                                                            <strong>{histTask.title}</strong>
+                                                            <small className="d-block text-muted">
+                                                                Campaign: {histTask.campaign_name || 'N/A'}
+                                                            </small>
+                                                        </div>
+                                                        <div>
+                                                            <Badge bg={getStatusColor(histTask.status)}>{histTask.status}</Badge>
+                                                            {histTask.due_date && (
+                                                                <small className="ms-2 text-muted">
+                                                                    Due: {new Date(histTask.due_date).toLocaleDateString()}
+                                                                </small>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </ListGroup.Item>
+                                            ))}
+                                        </ListGroup>
+                                    ) : <p className="text-muted">No other instances of this master task found.</p>}
+                                </Card.Body>
+                            </Card>
+                        </Tab>
 
                         <Tab eventKey="execution" title={<><FaPlayCircle className="me-1" />Execution</>}>
                             <div>
@@ -794,7 +752,7 @@ function CampaignTaskInstanceDetail() {
                                         {executionSuccess && <Alert variant="success" onClose={() => setExecutionSuccess('')} dismissible>{executionSuccess}</Alert>}
 
                                         {canManageEvidenceAndExecution && taskInstance.check_type ? (
-                                            
+
                                             <>
                                                 <p>This task instance is configured for automated execution.</p>
                                                 <Button className='rounded-pill small w-100' onClick={handleExecuteInstance} disabled={loadingResults}>
@@ -802,64 +760,64 @@ function CampaignTaskInstanceDetail() {
                                                 </Button>
                                             </>
                                         ) : !canManageEvidenceAndExecution ? (
-                                            
+
                                             <Alert variant="info">Task execution is restricted.</Alert>
                                         ) : !taskInstance.check_type ? (
-                                            
-                                            
-                                            
+
+
+
                                             <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
                                         ) : (
-                                            
+
                                             <Alert variant="info">This task is not configured for automated execution. Please perform manually and update status/evidence.</Alert>
                                         )}
 
 
-                                        
+
                                     </Card.Footer></Card>
 
-                                    <Card className='mt-2'>
-                                 <Card.Header as="h5"><FaTerminal className="me-2 text-muted" />Results</Card.Header>
-                                <Card.Body>
-                                <Button onClick={fetchInstanceResults} disabled={loadingResults} className="mb-3">
-                                    {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1" /> Loading...</> : "Refresh Results"}
-                                </Button>
+                                <Card className='mt-3'>
+                                    <Card.Header as="h5"><FaTerminal className="me-2 text-muted" />Results</Card.Header>
+                                    <Card.Body>
+                                        <Button onClick={fetchInstanceResults} disabled={loadingResults} className="mb-3">
+                                            {loadingResults ? <><Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1" /> Loading...</> : "Refresh Results"}
+                                        </Button>
 
-                                </Card.Body>
-                                {executionResults.length > 0 ? (
-                                    <ListGroup variant="flush">
-                                        {executionResults.map((res, index) => (
-                                            <ListGroup.Item key={res.id} >
-                                                <div>
-                                                    <div className="d-flex justify-content-between align-items-start">
-                                                    
-                                                    <div><small><strong>Timestamp:</strong> {new Date(res.timestamp).toLocaleString()}</small><br />
-                                                    <small><strong>Status:</strong> <Badge bg={getStatusColor(res.status)}>{res.status}</Badge></small>
-                                                    {res.executedByUser && res.executedByUser.name && (
-                                                        <small className='ms-1 ps-1 border-start'>
-                                                            <strong>Executed By:</strong> <UserDisplay userId={res.executedByUserId} userName={res.executedByUser.name} allUsers={users} />
-                                                        </small>
-                                                    )}
-                                                    </div>
+                                    </Card.Body>
+                                    {executionResults.length > 0 ? (
+                                        <ListGroup variant="flush">
+                                            {executionResults.map((res, index) => (
+                                                <ListGroup.Item key={res.id} >
                                                     <div>
-                                                                                                        {canManageEvidenceAndExecution && (
-                                                    <Button variant="outline-secondary" size="sm" onClick={() => handleAddResultAsEvidence(res)} title="Add as Evidence">
-                                                        <FaPlus className="me-1" /> Evidence
-                                                    </Button>
-                                                )}
+                                                        <div className="d-flex justify-content-between align-items-start">
 
-                                                        </div></div>
-                                                    <small className="d-block mt-1"><strong>Output:</strong></small>
-                                                    <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>{res.output}</pre>
-                                                    
-                                                </div>
-                                                {/* <small><strong>Output:</strong></small>
+                                                            <div><small><strong>Timestamp:</strong> {new Date(res.timestamp).toLocaleString()}</small><br />
+                                                                <small><strong>Status:</strong> <Badge bg={getStatusColor(res.status)}>{res.status}</Badge></small>
+                                                                {res.executedByUser && res.executedByUser.name && (
+                                                                    <small className='ms-1 ps-1 border-start'>
+                                                                        <strong>Executed By:</strong> <UserDisplay userId={res.executedByUserId} userName={res.executedByUser.name} allUsers={users} />
+                                                                    </small>
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                {canManageEvidenceAndExecution && (
+                                                                    <Button variant="outline-secondary" size="sm" onClick={() => handleAddResultAsEvidence(res)} title="Add as Evidence">
+                                                                        <FaPlus className="me-1" /> Evidence
+                                                                    </Button>
+                                                                )}
+
+                                                            </div></div>
+                                                        <small className="d-block mt-1"><strong>Output:</strong></small>
+                                                        <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>{res.output}</pre>
+
+                                                    </div>
+                                                    {/* <small><strong>Output:</strong></small>
                                                 <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>{res.output}</pre> */}
-                                            </ListGroup.Item>
-                                        ))}
-                                    </ListGroup>
-                                ) : <Card.Footer><p className="text-muted">No execution results available for this task instance. Execute the task or refresh if recently executed.</p></Card.Footer>}
-</Card>
+                                                </ListGroup.Item>
+                                            ))}
+                                        </ListGroup>
+                                    ) : <Card.Footer><p className="text-muted">No execution results available for this task instance. Execute the task or refresh if recently executed.</p></Card.Footer>}
+                                </Card>
 
                             </div>
                         </Tab>
@@ -869,16 +827,77 @@ function CampaignTaskInstanceDetail() {
                     </Tabs>
                 </Col>
                 <Col md={4}>
-                    <CommentSection
-                        comments={comments}
-                        allUsers={users}
-                        currentUser={currentUser}
-                        newComment={newComment}
-                        setNewComment={setNewComment}
-                        onCommentSubmit={handleCommentSubmit}
-                        commentError={commentError}
-                        setCommentError={setCommentError}
-                    />
+
+
+<ListGroup >
+
+                                        <ListGroupItem>
+                                        <FaExclamationCircle className="me-2 text-muted" /><strong>Priority:</strong>
+                                        {taskInstance.defaultPriority ? <Badge bg={getPriorityBadgeColor(taskInstance.defaultPriority)} className="ms-2">{taskInstance.defaultPriority}</Badge> : ' N/A'}
+                                    </ListGroupItem>
+
+
+
+                                    <ListGroupItem>
+                                        <FaTag className="me-2 text-muted" /><strong>Category:</strong><br/>
+
+                                        {taskInstance.category && (
+                                            <Badge pill bg="light" text="dark" className="fw-normal ms-2 border"><FaTag className="me-1" />{taskInstance.category}</Badge>
+                                        )}
+                                        {taskInstance.requirement_control_id_reference && (
+                                            <Badge pill bg="light" text="dark" className="fw-normal border">Req: {taskInstance.requirement_control_id_reference}</Badge>
+                                        )}
+
+                                    </ListGroupItem>
+                                    <ListGroupItem>
+                                        <FaUserShield className="me-2 text-muted" /><strong className='me-2'>Owner(s):</strong><br/>
+                                        {taskInstance.owners && taskInstance.owners.length > 0 ?
+                                            taskInstance.owners.map((owner, index) => (
+                                                <React.Fragment key={owner.id}>
+                                                    
+                                                    <UserDisplay userId={owner.id} userName={owner.name} allUsers={users} />
+                                                    {index < taskInstance.owners.length - 1 && ' '}
+                                                </React.Fragment>
+                                            )) : ' N/A'}
+                                    </ListGroupItem>
+                                    <ListGroupItem><FaUserCheck className="me-2 text-muted" /><strong className="me-1">Assignee:</strong><br/>
+
+                                        <UserDisplay userId={taskInstance.assignee_user_id} userName={taskInstance.assignee_user_id} allUsers={users} />
+                                        
+
+                                    </ListGroupItem>
+                                    {taskInstance.owner_team && taskInstance.owner_team.name && (
+                                        <ListGroupItem>
+                                            <FaUsers className="me-2 text-muted" /><strong>Owner Team:</strong>
+                                            <TeamDisplay teamId={taskInstance.owner_team.id} teamName={taskInstance.owner_team.name} teamDescription={taskInstance.owner_team.description} teamMembers={taskInstance.owner_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} /> 
+                                            {/* Note: allTeams prop might need adjustment based on how you fetch all teams globally or pass them down */}
+                                        </ListGroupItem>
+                                    )}
+                                    {/* {taskInstance.assignee_team && taskInstance.assignee_team.name && (
+                                        <ListGroupItem>
+                                            <FaUsers className="me-2 text-muted" /><strong>Assignee Team:</strong>
+                                            <TeamDisplay teamId={taskInstance.assignee_team.id} teamName={taskInstance.assignee_team.name} teamDescription={taskInstance.assignee_team.description} teamMembers={taskInstance.assignee_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} />
+                                        </ListGroupItem>
+                                    )} */}
+                                    <ListGroupItem>
+                                        <FaFileMedicalAlt className="me-2 text-muted" /><strong>Expected Evidence:</strong><br/>
+                                        {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
+                                            taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
+                                                <React.Fragment key={evidenceType}>
+
+                                                    <Badge variant="secondary" className='bg-secondary me-1 ms-1'>{evidenceType}</Badge>
+
+                                                </React.Fragment>
+                                            )) : ' N/A'}
+                                    </ListGroupItem>
+                                    <ListGroupItem><FaCalendarAlt className="me-2 text-muted" /><strong>Due Date:</strong><br/>{taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</ListGroupItem>
+                                   
+
+                                   
+
+                                </ListGroup>
+
+
                 </Col>
             </Row>
 
@@ -886,7 +905,7 @@ function CampaignTaskInstanceDetail() {
                 <CopyEvidenceModal
                     show={showCopyEvidenceModal}
                     onHide={() => setShowCopyEvidenceModal(false)}
-                    targetCampaignId={taskInstance.campaign_id} 
+                    targetCampaignId={taskInstance.campaign_id}
                     onCopySubmit={handleCopyEvidenceSubmit}
                 />
             )}
@@ -899,10 +918,10 @@ function CampaignTaskInstanceDetail() {
                     {reviewError && <Alert variant="danger">{reviewError}</Alert>}
                     <Form.Group controlId="reviewComment">
                         <Form.Label>Rejection Reason (Required)</Form.Label>
-                        <Form.Control 
-                            as="textarea" 
-                            rows={3} 
-                            value={reviewComment} 
+                        <Form.Control
+                            as="textarea"
+                            rows={3}
+                            value={reviewComment}
                             onChange={(e) => setReviewComment(e.target.value)}
                             placeholder="Provide a reason for rejecting this evidence."
                         />
