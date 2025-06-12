@@ -127,6 +127,7 @@ func main() {
 		api.GET("/campaign-task-instances/:id", campaignHandler.GetCampaignTaskInstanceByIDHandler)
 		api.GET("/user-campaign-tasks", campaignHandler.GetUserCampaignTaskInstancesHandler)
 		api.GET("/campaign-tasks-by-status", campaignHandler.GetCampaignTaskInstancesByStatusHandler) // New Route
+		api.GET("/master-tasks/:masterTaskId/instances", campaignHandler.GetTaskInstancesByMasterTaskIDHandler)
 
 		api.POST("/campaign-task-instances/:id/comments", campaignHandler.AddCampaignTaskInstanceCommentHandler)
 		api.GET("/campaign-task-instances/:id/comments", campaignHandler.GetCampaignTaskInstanceCommentsHandler)

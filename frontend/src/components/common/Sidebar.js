@@ -14,10 +14,12 @@ import { FaHourglassHalf,
     FaQuestionCircle, FaRegQuestionCircle,
     FaCog
 } from 'react-icons/fa';
+import { useAuth } from '../../contexts/AuthContext'; // Import useAuth
 import ThemeSwitcher from './ThemeSwitcher';
 
-function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel }) {
-    const location = useLocation();
+function Sidebar({ /*currentUser,*/ logout, showDetailsPanel, setShowDetailsPanel }) { // currentUser prop can be removed if always using useAuth
+    const { currentUser, startRoleSimulation, stopRoleSimulation } = useAuth(); // Get functions and currentUser from context
+    const location = useLocation();    
     const userActionsHeight = '150px'; // Approximate height for user actions section
 
     const navItems = [
@@ -25,12 +27,15 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
         { to: "/my-tasks", eventKey: "/my-tasks", icon: <FaTasks size="1.2em" />, label: "My Tasks", roles: ['admin', 'auditor', 'user'] },
         { to: "/pending-review", eventKey: "/pending-review", icon: <FaHourglassHalf size="1.2em" />, label: "Pending Review", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/pending-review') },
         { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.2em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
-        { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.2em" />, label: "Alternate View", roles: ['admin', 'auditor', 'user'] },
+        { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.2em" />, label: "Alternate View", roles: ['user'] },
         (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management'},
         { to: "/documents", eventKey: "/documents", icon: <FaBookOpen size="1.2em" />, label: "Documents", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/documents') },
         { to: "/library", eventKey: "/library", icon: <FaLayerGroup size="1.2em" />, label: "Manage Library", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/library') },
         // { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Manage Teams", roles: ['admin', 'auditor'] }, // Can be moved to AdminSettings or kept separate
     ];
+
+    // This check now uses currentUser from useAuth, which includes actualRole
+    const canSimulate = currentUser && (currentUser.actualRole === 'admin' || currentUser.actualRole === 'auditor');
 
     return (
         <Col className="p-0 sidebar d-flex flex-column" style={{ maxWidth: "60px" }}>
@@ -59,7 +64,24 @@ function Sidebar({ currentUser, logout, showDetailsPanel, setShowDetailsPanel })
                             popperConfig={{ strategy: 'fixed' }}
                         >
                             <NavDropdown.Header className="text-center small text-muted">{currentUser?.name || 'User'}</NavDropdown.Header>
-                            <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
+                            <NavDropdown.Item as={Link} to="/profile">Profile ({currentUser?.role})</NavDropdown.Item>
+                            {/* Role Simulation Options */}
+                            {canSimulate && (
+                                <>
+                                    <NavDropdown.Divider />
+                                    <NavDropdown.Header className="small text-muted">Role Simulation</NavDropdown.Header>
+                                    {currentUser.isSimulating && currentUser.role === 'user' ? (
+                                        <NavDropdown.Item onClick={() => { stopRoleSimulation(); window.location.reload(); }}>
+                                            Stop Simulating (Back to {currentUser.actualRole})
+                                        </NavDropdown.Item>
+                                    ) : (
+                                        <NavDropdown.Item onClick={() => { startRoleSimulation('user'); window.location.reload();}} disabled={currentUser.role === 'user' && !currentUser.isSimulating}>
+                                            Simulate User Role
+                                        </NavDropdown.Item>
+                                    )}
+                                    {/* Add more roles to simulate if needed, e.g., Simulate Auditor */}
+                                </>
+                            )}
                             <NavDropdown.Divider className='' />
                             <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
                         </NavDropdown>

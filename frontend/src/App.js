@@ -1,6 +1,6 @@
 import './App.css';
 import React, { useState, useEffect } from 'react';
-
+import { Badge } from 'react-bootstrap'; // Import Badge
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, NavLink, Navigate } from 'react-router-dom';
 import Container from 'react-bootstrap/Container';
 import Navbar from 'react-bootstrap/Navbar';
@@ -35,6 +35,7 @@ import TeamsPage from './components/TeamsPage';
 
 function DynamicHeader() {
   const location = useLocation();
+  const { currentUser } = useAuth(); // Access currentUser for simulation status
   let headerText = "Dashboard"; 
 
   switch (location.pathname) {
@@ -87,7 +88,14 @@ function DynamicHeader() {
     document.title = `Bumblebee - ${headerText}`;
   }, [headerText]);
 
-  return <Navbar.Brand><span className='text-dark fw-bold'>{headerText}</span></Navbar.Brand>;
+  return (
+    <Navbar.Brand>
+      <span className='text-dark fw-bold'>{headerText}</span>
+      {currentUser && currentUser.isSimulating && (
+        <Badge pill bg="warning" text="dark" className="ms-2 align-middle" title={`Simulating ${currentUser.role} role. Actual role: ${currentUser.actualRole}`}>Simulating Role</Badge>
+      )}
+    </Navbar.Brand>
+  );
 }
 
 function Layout() { 

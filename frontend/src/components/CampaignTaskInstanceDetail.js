@@ -11,6 +11,8 @@ import {
     updateCampaignTaskInstance,
     executeCampaignTaskInstance, copyEvidenceToCampaignTaskInstance, 
     getCampaignTaskInstanceResults, 
+        getTaskInstancesByMasterTaskId,
+
     reviewEvidence, // Assumed to be added in services/api.js
 } from '../services/api'; 
 import Card from 'react-bootstrap/Card';
@@ -55,7 +57,8 @@ import {
     FaBookOpen, 
     FaThumbsUp, // For Approve
     FaUsers, // For Teams
-    FaThumbsDown, // For Reject
+    FaThumbsDown,
+    FaHistory, // For Reject
 } from 'react-icons/fa';
 import { ListGroupItem } from 'react-bootstrap';
 import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils'; 
@@ -81,6 +84,7 @@ function CampaignTaskInstanceDetail() {
     const [evidenceText, setEvidenceText] = useState('');
     const [evidenceDescription, setEvidenceDescription] = useState(''); 
     const [showCopyEvidenceModal, setShowCopyEvidenceModal] = useState(false);
+    	const [historicalTasks, setHistoricalTasks] = useState([]); // New state for historical tasks
 
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [evidenceToReview, setEvidenceToReview] = useState(null);
@@ -215,6 +219,29 @@ function CampaignTaskInstanceDetail() {
             setReviewError(`Failed to review evidence. ${err.response?.data?.error || 'Please try again.'}`);
         }
     };
+
+        	const fetchHistoricalTasks = useCallback(async (masterTaskId) => {
+    		if (!masterTaskId) return;
+    		try {
+    			const response = await getTaskInstancesByMasterTaskId(masterTaskId);
+    			if (response.data) {
+    				// Filter out the current instance from the historical list
+    				setHistoricalTasks(Array.isArray(response.data) ? response.data.filter(t => t.id !== instanceId) : []);
+    			}
+    		} catch (err) {
+    			console.error("Error fetching historical tasks:", err);
+    			// Optionally set an error state for historical tasks
+    			setHistoricalTasks([]);
+    		}
+    	}, [instanceId]);
+
+            	// Fetch historical tasks when taskInstance (and thus master_task_id) is available
+    	useEffect(() => {
+    		if (taskInstance?.master_task_id) {
+    			fetchHistoricalTasks(taskInstance.master_task_id);
+    		}
+    	}, [taskInstance, fetchHistoricalTasks]);
+    
 
     const fetchData = useCallback(async () => {
         if (!instanceId) {
@@ -716,6 +743,39 @@ function CampaignTaskInstanceDetail() {
                             ) : <p className="mt-3 alert alert-info text-muted">No evidence uploaded yet.</p>}
 
                         </Tab>
+
+                                                    <Tab eventKey="history" title={<><FaHistory className="me-1" />Related Instances ({historicalTasks.length})</>}>
+    							<Card>
+    								<Card.Header as="h5">Other Instances of this Task</Card.Header>
+    								<Card.Body>
+    									{historicalTasks.length > 0 ? (
+    										<ListGroup variant="flush">
+    											{historicalTasks.map(histTask => (
+    												<ListGroup.Item key={histTask.id} action as={Link} to={`/campaign-task/${histTask.id}`}>
+    													<div className="d-flex justify-content-between">
+    														<div>
+    															<strong>{histTask.title}</strong>
+    															<small className="d-block text-muted">
+    																Campaign: {histTask.campaign_name || 'N/A'}
+    															</small>
+    														</div>
+    														<div>
+    															<Badge bg={getStatusColor(histTask.status)}>{histTask.status}</Badge>
+    															{histTask.due_date && (
+    																<small className="ms-2 text-muted">
+    																	Due: {new Date(histTask.due_date).toLocaleDateString()}
+    																</small>
+    															)}
+    														</div>
+    													</div>
+    												</ListGroup.Item>
+    											))}
+    										</ListGroup>
+    									) : <p className="text-muted">No other instances of this master task found.</p>}
+    								</Card.Body>
+    							</Card>
+    						</Tab>
+
                         <Tab eventKey="execution" title={<><FaPlayCircle className="me-1" />Execution</>}>
                             <div>
                                 <Card className=''>
@@ -757,10 +817,8 @@ function CampaignTaskInstanceDetail() {
 
                                         
                                     </Card.Footer></Card>
-                            </div>
-                        </Tab>
-                        <Tab eventKey="results" title={<><FaPoll className="me-1" />Results</>}>
-                            <Card>
+
+                                    <Card className='mt-2'>
                                  <Card.Header as="h5"><FaTerminal className="me-2 text-muted" />Results</Card.Header>
                                 <Card.Body>
                                 <Button onClick={fetchInstanceResults} disabled={loadingResults} className="mb-3">
@@ -802,7 +860,12 @@ function CampaignTaskInstanceDetail() {
                                     </ListGroup>
                                 ) : <Card.Footer><p className="text-muted">No execution results available for this task instance. Execute the task or refresh if recently executed.</p></Card.Footer>}
 </Card>
+
+                            </div>
                         </Tab>
+                        {/* <Tab eventKey="results" title={<><FaPoll className="me-1" />Results</>}>
+                            
+                        </Tab> */}
                     </Tabs>
                 </Col>
                 <Col md={4}>

@@ -162,7 +162,7 @@ function ThreeColumnView({
     return (
         <Container fluid className="">
             {showPageHeader && (
-                <PageHeader icon={<FaInfo />} title="Compliance Management - Read Only View" />
+                <PageHeader icon={<FaInfo />} title="Compliance Management - Library" />
             )}
 
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}

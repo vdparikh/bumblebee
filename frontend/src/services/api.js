@@ -215,6 +215,7 @@ export const getCampaignTaskInstanceById = async (instanceId) => {
     return response;
 };
 
+
 export const updateCampaignTaskInstance = async (campaignTaskInstanceId, taskInstanceData) => {
     const response = await apiClient.put(`/campaign-task-instances/${campaignTaskInstanceId}`, taskInstanceData);
     return response;
@@ -244,6 +245,16 @@ export const getUserCampaignTasks = async (userId, userField, campaignStatus) =>
        const url = `/campaign-tasks-by-status${queryString ? `?${queryString}` : ''}`;
        const response = await apiClient.get(url);
        return response;
+   };
+   
+   export const getTaskInstancesByMasterTaskId = async (masterTaskId) => {
+       try {
+           const response = await apiClient.get(`/master-tasks/${masterTaskId}/instances`);
+           return response;
+       } catch (error) {
+           console.error(`Error fetching instances for master task ${masterTaskId}:`, error.response || error.message);
+           throw error;
+       }
    };
    
 export const executeCampaignTaskInstance = async (instanceId) => {

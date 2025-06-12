@@ -49,6 +49,7 @@ type Store interface {
 	GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTaskInstance, error)
 	UpdateCampaignTaskInstance(cti *models.CampaignTaskInstance) error
 	GetCampaignTaskInstancesForUser(userID string, userField string, campaignStatus string) ([]models.CampaignTaskInstance, error)
+	GetTaskInstancesByMasterTaskID(masterTaskID string) ([]models.CampaignTaskInstance, error)
 
 	// Team Management
 	CreateTeam(team *models.Team) (string, error)
@@ -1509,6 +1510,55 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 		instances = append(instances, i)
 	}
 	return instances, rows.Err()
+}
+
+func (s *DBStore) GetTaskInstancesByMasterTaskID(masterTaskID string) ([]models.CampaignTaskInstance, error) {
+	query := `
+		SELECT
+			cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id,
+			cti.title, cti.status, cti.due_date, cti.created_at, cti.updated_at,
+			assignee.name as assignee_user_name,
+			req.control_id_reference as requirement_control_id_reference
+		FROM campaign_task_instances cti
+		LEFT JOIN campaigns c ON cti.campaign_id = c.id
+		LEFT JOIN users assignee ON cti.assignee_user_id = assignee.id
+		LEFT JOIN campaign_selected_requirements csr ON cti.campaign_selected_requirement_id = csr.id
+		LEFT JOIN requirements req ON csr.requirement_id = req.id
+		WHERE cti.master_task_id = $1
+		ORDER BY c.created_at DESC, cti.created_at DESC
+	`
+	rows, err := s.DB.Queryx(query, masterTaskID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query task instances for master task ID %s: %w", masterTaskID, err)
+	}
+	defer rows.Close()
+
+	var instances []models.CampaignTaskInstance
+	for rows.Next() {
+		var i models.CampaignTaskInstance
+		// Scan only the necessary fields for the historical list
+		err := rows.Scan(
+			&i.ID, &i.CampaignID, &i.CampaignName, &i.MasterTaskID,
+			&i.Title, &i.Status, &i.DueDate, &i.CreatedAt, &i.UpdatedAt,
+			&i.AssigneeUserName,
+			&i.RequirementControlIDReference,
+		)
+		if err != nil {
+			log.Printf("Error scanning task instance row for master task ID %s: %v", masterTaskID, err)
+			return nil, fmt.Errorf("failed to scan task instance row for master task ID %s: %w", masterTaskID, err)
+		}
+		// Fetch owners separately if needed for display, or simplify the historical view
+		// owners, err := s.getCampaignTaskInstanceOwners(i.ID)
+		// if err != nil {
+		// 	log.Printf("Warning: failed to fetch owners for historical CTI %s: %v", i.ID, err)
+		// }
+		// i.Owners = owners
+		instances = append(instances, i)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error during rows iteration for task instances by master task ID %s: %w", masterTaskID, err)
+	}
+	return instances, nil
 }
 
 func (s *DBStore) getCampaignTaskInstanceOwners(ctiID string) ([]models.UserBasicInfo, error) {

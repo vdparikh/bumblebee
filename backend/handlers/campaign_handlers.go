@@ -219,6 +219,22 @@ func (h *CampaignHandler) GetCampaignTaskInstancesByStatusHandler(c *gin.Context
 	c.JSON(http.StatusOK, taskInstances)
 }
 
+func (h *CampaignHandler) GetTaskInstancesByMasterTaskIDHandler(c *gin.Context) {
+	masterTaskID := c.Param("masterTaskId")
+
+	if masterTaskID == "" {
+		sendError(c, http.StatusBadRequest, "masterTaskId parameter is required", nil)
+		return
+	}
+
+	taskInstances, err := h.Store.GetTaskInstancesByMasterTaskID(masterTaskID)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch task instances for master task ID %s", masterTaskID), err)
+		return
+	}
+	c.JSON(http.StatusOK, taskInstances)
+}
+
 func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 	ctiID := c.Param("id")
 
