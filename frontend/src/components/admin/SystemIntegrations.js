@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Spinner, Alert, Modal, Form, Card, Accordion, Badge } from 'react-bootstrap';
-import { FaPlusCircle, FaEdit, FaTrash, FaPlug, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { Table, Button, Spinner, Alert, Modal, Form, Card, Accordion, Badge, Col, Row, FloatingLabel } from 'react-bootstrap';
+import { FaPlusCircle, FaEdit, FaTrash, FaPlug, FaCheckCircle, FaTimesCircle, FaKey, FaServer, FaDatabase, FaUserSecret, FaLink } from 'react-icons/fa';
 import { getConnectedSystems, createConnectedSystem, updateConnectedSystem, deleteConnectedSystem } from '../../services/api';
 
 const systemTypeOptions = [
@@ -16,6 +16,49 @@ const systemTypeOptions = [
     { value: 'other', label: 'Other' },
 ];
 
+// Define configuration schemas for different system types
+const configurationSchemas = {
+    aws: [
+        { name: 'accessKeyId', label: 'Access Key ID', type: 'text', placeholder: 'AKIAIOSFODNN7EXAMPLE', required: true, sensitive: false },
+        { name: 'secretAccessKey', label: 'Secret Access Key', type: 'password', placeholder: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', required: true, sensitive: true },
+        { name: 'defaultRegion', label: 'Default Region', type: 'text', placeholder: 'us-west-2', required: true, sensitive: false },
+    ],
+    azure: [
+        { name: 'subscriptionId', label: 'Subscription ID', type: 'text', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', required: true, sensitive: false },
+        { name: 'tenantId', label: 'Tenant ID', type: 'text', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', required: true, sensitive: false },
+        { name: 'clientId', label: 'Client ID (App ID)', type: 'text', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', required: true, sensitive: false },
+        { name: 'clientSecret', label: 'Client Secret', type: 'password', placeholder: 'YourAppClientSecret', required: true, sensitive: true },
+    ],
+    github: [
+        { name: 'personalAccessToken', label: 'Personal Access Token', type: 'password', placeholder: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, sensitive: true },
+        { name: 'organization', label: 'Organization (Optional)', type: 'text', placeholder: 'your-org-name', sensitive: false },
+    ],
+    generic_api: [
+        { name: 'baseUrl', label: 'Base URL', type: 'url', placeholder: 'https://api.example.com/v1', required: true, sensitive: false },
+        { name: 'apiKey', label: 'API Key (Optional)', type: 'password', placeholder: 'your_api_key', sensitive: true },
+        { name: 'authHeader', label: 'Auth Header Name (Optional)', type: 'text', placeholder: 'Authorization', helpText: "e.g., 'Authorization' or 'X-API-Key'", sensitive: false },
+        { name: 'authValuePrefix', label: 'Auth Value Prefix (Optional)', type: 'text', placeholder: 'Bearer ', helpText: "e.g., 'Bearer ' or 'Token '", sensitive: false },
+    ],
+    database: [
+        { name: 'dbType', label: 'Database Type', type: 'select', options: ['postgresql', 'mysql', 'sqlserver', 'oracle'], placeholder: 'postgresql', required: true, sensitive: false },
+        { name: 'host', label: 'Host', type: 'text', placeholder: 'localhost or db.example.com', required: true, sensitive: false },
+        { name: 'port', label: 'Port', type: 'number', placeholder: '5432', required: true, sensitive: false },
+        { name: 'databaseName', label: 'Database Name', type: 'text', placeholder: 'mydatabase', required: true, sensitive: false },
+        { name: 'username', label: 'Username', type: 'text', placeholder: 'db_user', required: true, sensitive: false },
+        { name: 'password', label: 'Password', type: 'password', placeholder: 'db_password', required: true, sensitive: true },
+    ],
+    // Add more schemas as needed
+};
+
+const getIconForConfigField = (fieldName) => {
+    if (fieldName.toLowerCase().includes('key') || fieldName.toLowerCase().includes('token') || fieldName.toLowerCase().includes('secret')) return <FaKey className="me-2 text-muted" />;
+    if (fieldName.toLowerCase().includes('url') || fieldName.toLowerCase().includes('host') || fieldName.toLowerCase().includes('path')) return <FaLink className="me-2 text-muted" />;
+    if (fieldName.toLowerCase().includes('user') || fieldName.toLowerCase().includes('client')) return <FaUserSecret className="me-2 text-muted" />;
+    if (fieldName.toLowerCase().includes('database') || fieldName.toLowerCase().includes('server')) return <FaDatabase className="me-2 text-muted" />;
+    return <FaPlug className="me-2 text-muted" />;
+};
+
+
 function SystemIntegrations() {
     const [systems, setSystems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -29,7 +72,8 @@ function SystemIntegrations() {
     const [name, setName] = useState('');
     const [systemType, setSystemType] = useState('');
     const [description, setDescription] = useState('');
-    const [configuration, setConfiguration] = useState('{}'); 
+    const [configurationString, setConfigurationString] = useState('{}'); // For 'other' or manual JSON editing
+    const [dynamicConfigFields, setDynamicConfigFields] = useState({}); // For structured fields
     const [isEnabled, setIsEnabled] = useState(true);
 
     const fetchSystems = useCallback(async () => {
@@ -53,8 +97,10 @@ function SystemIntegrations() {
         setName('');
         setSystemType('');
         setDescription('');
-        setConfiguration('{}');
+        setConfigurationString('{}');
+        setDynamicConfigFields({});
         setIsEnabled(true);
+
         setCurrentSystem(null);
         setIsEditing(false);
     };
@@ -70,8 +116,17 @@ function SystemIntegrations() {
         setName(system.name);
         setSystemType(system.systemType);
         setDescription(system.description || '');
-        setConfiguration(typeof system.configuration === 'string' ? system.configuration : JSON.stringify(system.configuration, null, 2));
         setIsEnabled(system.isEnabled);
+
+        if (configurationSchemas[system.systemType] && typeof system.configuration === 'object') {
+            setDynamicConfigFields(system.configuration);
+            setConfigurationString('{}'); // Clear manual JSON if schema matches
+        } else {
+            setDynamicConfigFields({});
+            setConfigurationString(typeof system.configuration === 'string' ? system.configuration : JSON.stringify(system.configuration || {}, null, 2));
+        }
+
+
         setShowModal(true);
     };
 
@@ -87,19 +142,32 @@ function SystemIntegrations() {
         setError('');
         setSuccess('');
 
-        let parsedConfig;
-        try {
-            parsedConfig = JSON.parse(configuration);
-        } catch (jsonErr) {
-            setError('Configuration must be valid JSON.');
-            return;
+        let finalConfiguration;
+        if (systemType && configurationSchemas[systemType]) {
+            // Collect data from dynamic fields
+            finalConfiguration = { ...dynamicConfigFields };
+            // Validate required fields for schema
+            for (const field of configurationSchemas[systemType]) {
+                if (field.required && (finalConfiguration[field.name] === undefined || finalConfiguration[field.name] === '')) {
+                    setError(`${field.label} is required.`);
+                    return;
+                }
+            }
+        } else {
+            // Use manual JSON input
+            try {
+                finalConfiguration = JSON.parse(configurationString);
+            } catch (jsonErr) {
+                setError('Configuration must be valid JSON for "Other" type or if schema is not defined.');
+                return;
+            }
         }
 
         const systemData = {
             name,
             systemType,
             description: description || null,
-            configuration: parsedConfig, // Send parsed JSON object
+            configuration: finalConfiguration,
             isEnabled,
         };
 
@@ -131,6 +199,13 @@ function SystemIntegrations() {
             }
         }
     };
+
+    const handleDynamicConfigChange = (fieldName, value) => {
+        setDynamicConfigFields(prev => ({ ...prev, [fieldName]: value }));
+    };
+
+    const currentSchema = systemType ? configurationSchemas[systemType] : null;
+
 
     if (loading) return <Spinner animation="border" />;
 
@@ -207,9 +282,42 @@ function SystemIntegrations() {
                             <Form.Control as="textarea" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="systemConfiguration">
-                            <Form.Label>Configuration (JSON)*</Form.Label>
-                            <Form.Control as="textarea" rows={5} value={configuration} onChange={(e) => setConfiguration(e.target.value)} placeholder='e.g., {"apiKey": "your_key", "region": "us-west-2"}' required />
-                            <Form.Text muted>Store sensitive credentials securely (e.g., using environment variables or a secrets manager in production).</Form.Text>
+                            <Form.Label>Configuration*</Form.Label>
+                            {currentSchema ? (
+                                <Card className="p-3 bg-light">
+                                    {currentSchema.map(field => (
+                                        <FloatingLabel
+                                            key={field.name}
+                                            controlId={`config-${field.name}`}
+                                            label={<>{getIconForConfigField(field.label)} {field.label}{field.required ? '*' : ''}</>}
+                                            className="mb-3"
+                                        >
+                                            {field.type === 'select' ? (
+                                                <Form.Select
+                                                    value={dynamicConfigFields[field.name] || ''}
+                                                    onChange={(e) => handleDynamicConfigChange(field.name, e.target.value)}
+                                                    required={field.required}
+                                                >
+                                                    <option value="">Select {field.label}...</option>
+                                                    {(field.options || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                </Form.Select>
+                                            ) : (
+                                                <Form.Control
+                                                    type={field.type || 'text'}
+                                                    value={dynamicConfigFields[field.name] || ''}
+                                                    onChange={(e) => handleDynamicConfigChange(field.name, e.target.value)}
+                                                    placeholder={field.placeholder}
+                                                    required={field.required}
+                                                />
+                                            )}
+                                            {field.helpText && <Form.Text muted>{field.helpText}</Form.Text>}
+                                        </FloatingLabel>
+                                    ))}
+                                </Card>
+                            ) : (
+                                <Form.Control as="textarea" rows={5} value={configurationString} onChange={(e) => setConfigurationString(e.target.value)} placeholder='Enter JSON configuration, e.g., {"apiKey": "your_key"}' required />
+                            )}
+                            <Form.Text muted>For sensitive fields like API keys or passwords, consider using environment variables or a secrets manager in production environments.</Form.Text>
                         </Form.Group>
                         <Form.Check type="switch" id="systemEnabled" label="Enabled" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} />
                     </Modal.Body>
