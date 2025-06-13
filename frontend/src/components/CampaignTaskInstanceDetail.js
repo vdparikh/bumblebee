@@ -422,6 +422,28 @@ function CampaignTaskInstanceDetail() {
             setLoadingResults(false);
         }
     };
+
+    const formatJsonContent = (content) => {
+        try {
+            // If content is already an object, stringify it
+            const jsonContent = typeof content === 'string' ? JSON.parse(content) : content;
+            return (
+                <pre className="bg-light p-2 rounded mt-1 mb-0" style={{ 
+                    whiteSpace: 'pre-wrap', 
+                    wordBreak: 'break-all', 
+                    fontSize: '0.9em',
+                    maxHeight: '400px',
+                    overflow: 'auto'
+                }}>
+                    <code>{JSON.stringify(jsonContent, null, 2)}</code>
+                </pre>
+            );
+        } catch (error) {
+            // If parsing fails, return the original content
+            return content;
+        }
+    };
+
     if (loading) return <div className="text-center mt-5"><Spinner animation="border" /><p>Loading task instance details...</p></div>;
     if (error) return <Alert variant="danger" className="mt-3">{error}</Alert>;
     if (!taskInstance) return <Alert variant="warning" className="mt-3">Task Instance data not available.</Alert>;
@@ -636,13 +658,12 @@ function CampaignTaskInstanceDetail() {
                                         } else if (evidence.mimeType === 'text/plain') {
                                             icon = <FaAlignLeft className="me-2 text-info" />;
                                             mainDisplay = (
-                                                <pre className="bg-light p-2 rounded mt-1 mb-0" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.9em' }}>
-                                                    {evidence.description || 'No text content'}
-                                                </pre>
+                                                <div className="" style={{ fontSize: '0.9em' }}>
+                                                   {evidence.description || 'No text content'}
+                                                </div>
                                             );
                                             showSeparateDescription = false;
                                         } else if (evidence.filePath) {
-
                                             mainDisplay = <a href={`http://localhost:8080/${evidence.filePath}`} target="_blank" rel="noopener noreferrer">{evidence.fileName || evidence.id}</a>;
                                         }
 
@@ -653,9 +674,16 @@ function CampaignTaskInstanceDetail() {
                                                     <Badge bg={getStatusColor(evidenceReviewStatus)}>{evidenceReviewStatus}</Badge>
                                                 </Card.Header>
                                                 <Card.Body>
-                                                    {showSeparateDescription && evidence.description &&
-                                                        <div className="mb-0 mt-1" dangerouslySetInnerHTML={{ __html: evidence.description }} />
-                                                    }
+                                                    {showSeparateDescription && evidence.description && (
+                                                        <div className="mb-0 mt-1">
+                                                            {typeof evidence.description === 'object' || 
+                                                             (typeof evidence.description === 'string' && 
+                                                              (evidence.description.trim().startsWith('{') || evidence.description.trim().startsWith('['))) 
+                                                                ? formatJsonContent(evidence.description)
+                                                                : <div dangerouslySetInnerHTML={{ __html: evidence.description }} />
+                                                            }
+                                                        </div>
+                                                    )}
                                                     {evidence.review_status && evidence.review_status !== "Pending" && (
                                                         <div className="mt-2 pt-2 border-top">
                                                             <small className="text-muted">

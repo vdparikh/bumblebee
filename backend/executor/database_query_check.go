@@ -71,24 +71,27 @@ func (e *DatabaseQueryCheckExecutor) ValidateParameters(taskParams map[string]in
 }
 
 // Execute performs the database query and checks the result.
-func (e *DatabaseQueryCheckExecutor) Execute(task *Task) (*TaskResult, error) {
+func (e *DatabaseQueryCheckExecutor) Execute(ctx CheckContext) (ExecutionResult, error) {
 	resultStatus := StatusFailed
 	var resultOutput string
 
-	if task.ConnectedSystem == nil {
-		return nil, fmt.Errorf("connected system is nil")
+	if ctx.ConnectedSystem == nil {
+		return ExecutionResult{Status: StatusError, Output: "Connected system is nil"}, fmt.Errorf("connected system is nil")
 	}
 
 	// Unmarshal system config
 	var systemConfig dbQuerySystemConfig
-	if err := json.Unmarshal(task.ConnectedSystem.Config, &systemConfig); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal system config: %v", err)
+	if err := json.Unmarshal([]byte(ctx.ConnectedSystem.Configuration), &systemConfig); err != nil {
+		return ExecutionResult{Status: StatusError, Output: fmt.Sprintf("Failed to unmarshal system config: %v", err)}, fmt.Errorf("failed to unmarshal system config: %v", err)
 	}
 
-	// Unmarshal task parameters
-	var taskP dbQueryTaskParams
-	if err := json.Unmarshal(task.Parameters, &taskP); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal task parameters: %v", err)
+	// Get task parameters
+	taskP := dbQueryTaskParams{
+		Query: ctx.TaskInstance.Parameters["query"].(string),
+	}
+
+	if taskP.Query == "" {
+		return ExecutionResult{Status: StatusError, Output: "Query parameter is required"}, fmt.Errorf("query parameter is required")
 	}
 
 	// Construct DSN based on database type
@@ -103,13 +106,13 @@ func (e *DatabaseQueryCheckExecutor) Execute(task *Task) (*TaskResult, error) {
 			systemConfig.Username, systemConfig.Password,
 			systemConfig.Host, systemConfig.Port, systemConfig.Database)
 	default:
-		return nil, fmt.Errorf("unsupported database type: %s", systemConfig.DBType)
+		return ExecutionResult{Status: StatusError, Output: fmt.Sprintf("Unsupported database type: %s", systemConfig.DBType)}, fmt.Errorf("unsupported database type: %s", systemConfig.DBType)
 	}
 
 	// Connect to database
 	db, err := sql.Open(systemConfig.DBType, dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %v", err)
+		return ExecutionResult{Status: StatusError, Output: fmt.Sprintf("Failed to connect to database: %v", err)}, fmt.Errorf("failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
@@ -119,7 +122,7 @@ func (e *DatabaseQueryCheckExecutor) Execute(task *Task) (*TaskResult, error) {
 	// Execute query
 	rows, err := db.Query(taskP.Query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute query: %v", err)
+		return ExecutionResult{Status: StatusError, Output: fmt.Sprintf("Failed to execute query: %v", err)}, fmt.Errorf("failed to execute query: %v", err)
 	}
 	defer rows.Close()
 
@@ -127,7 +130,7 @@ func (e *DatabaseQueryCheckExecutor) Execute(task *Task) (*TaskResult, error) {
 	var results []map[string]interface{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get columns: %v", err)
+		return ExecutionResult{Status: StatusError, Output: fmt.Sprintf("Failed to get columns: %v", err)}, fmt.Errorf("failed to get columns: %v", err)
 	}
 
 	values := make([]interface{}, len(columns))
@@ -138,7 +141,7 @@ func (e *DatabaseQueryCheckExecutor) Execute(task *Task) (*TaskResult, error) {
 
 	for rows.Next() {
 		if err := rows.Scan(valuePtrs...); err != nil {
-			return nil, fmt.Errorf("failed to scan row: %v", err)
+			return ExecutionResult{Status: StatusError, Output: fmt.Sprintf("Failed to scan row: %v", err)}, fmt.Errorf("failed to scan row: %v", err)
 		}
 
 		row := make(map[string]interface{})
@@ -155,22 +158,20 @@ func (e *DatabaseQueryCheckExecutor) Execute(task *Task) (*TaskResult, error) {
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating rows: %v", err)
+		return ExecutionResult{Status: StatusError, Output: fmt.Sprintf("Error iterating rows: %v", err)}, fmt.Errorf("error iterating rows: %v", err)
 	}
 
 	// Convert results to JSON
 	jsonResults, err := json.Marshal(results)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal results: %v", err)
+		return ExecutionResult{Status: StatusError, Output: fmt.Sprintf("Failed to marshal results: %v", err)}, fmt.Errorf("failed to marshal results: %v", err)
 	}
 
 	resultStatus = StatusSuccess
 	resultOutput = string(jsonResults)
 
-	return &TaskResult{
-		TaskID:        task.ID,
-		Status:        resultStatus,
-		Output:        resultOutput,
-		ExecutionTime: time.Since(task.StartTime),
+	return ExecutionResult{
+		Status: resultStatus,
+		Output: resultOutput,
 	}, nil
 }

@@ -33,6 +33,7 @@ import Sidebar from './components/common/Sidebar';
 import Documents from './components/Documents'; 
 import TeamsPage from './components/TeamsPage'; 
 import AuditLogsPage from './pages/AuditLogsPage'; // You will create this file
+import HelpPage from './pages/HelpPage';
 
 function DynamicHeader() {
   const location = useLocation();
@@ -153,7 +154,7 @@ function Layout() {
                           <Route path="/tasks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Tasks /></ProtectedRoute>} />
                           <Route path="/pending-review" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><PendingReviewPage /></ProtectedRoute>} />
                           <Route path="/library" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><LibraryManagementPage /></ProtectedRoute>} />
-
+                          <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
                           <Route path="/documents" element={<ProtectedRoute roles={['admin', 'auditor']}><Documents /></ProtectedRoute>} />
 
 
@@ -220,7 +221,25 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/*" element={currentUser ? <Layout /> : <Navigate to="/login" />} /> 
+      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route index element={<Dashboard />} />
+        <Route path="my-tasks" element={<MyTasks />} />
+        <Route path="campaigns" element={<Campaigns />} />
+        <Route path="help" element={<HelpPage />} />
+        <Route path="library" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><LibraryManagementPage /></ProtectedRoute>} />
+        <Route path="documents" element={<ProtectedRoute roles={['admin', 'auditor']}><Documents /></ProtectedRoute>} />
+        <Route path="profile" element={<UserProfilePage />} />
+        <Route path="admin-settings" element={<ProtectedRoute requiredRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
+        <Route path="audit-logs" element={<ProtectedRoute roles={['admin', 'auditor']}><AuditLogsPage /></ProtectedRoute>} />
+        <Route path="alt-view" element={<ThreeColumnView />} />
+        <Route path="campaigns/:campaignId" element={<CampaignDetail />} />
+        <Route path="tasks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Tasks /></ProtectedRoute>} />
+        <Route path="pending-review" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><PendingReviewPage /></ProtectedRoute>} />
+        <Route path="requirements" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Requirements /></ProtectedRoute>} />
+        <Route path="standards" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Standards /></ProtectedRoute>} />
+        <Route path="teams" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TeamsPage /></ProtectedRoute>} />
+        <Route path="campaign-task/:instanceId" element={<ProtectedRoute><CampaignTaskInstanceDetail /></ProtectedRoute>} />
+      </Route>
     </Routes>
   );
 }

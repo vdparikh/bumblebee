@@ -29,7 +29,89 @@ const checkTypeConfigurations = {
         targetLabel: 'Execution Host (e.g., Local Server)',
         targetHelpText: 'Select the Connected System representing the host where the script will run (e.g., the local backend server).'
     },
-    // Add other check types from Tasks.js here...
+    'database_query_check': {
+        label: 'Database Query Check',
+        parameters: [
+            { name: 'query', label: 'SQL Query', type: 'textarea', required: true, placeholder: 'SELECT * FROM users WHERE status = \'active\'', helpText: 'The SQL query to execute. Should return results that can be validated.' },
+            { name: 'expected_rows', label: 'Expected Number of Rows', type: 'number', placeholder: '1', helpText: 'Optional. Expected number of rows in the result set.' }
+        ],
+        targetType: 'connected_system',
+        targetLabel: 'Target Database',
+        targetHelpText: 'Select the Connected System representing the database to query.'
+    },
+    'aws_security_group_check': {
+        label: 'AWS Security Group Check',
+        parameters: [
+            { name: 'security_group_id', label: 'Security Group ID', type: 'text', required: true, placeholder: 'sg-1234567890abcdef0', helpText: 'The ID of the security group to check.' },
+            { name: 'expected_rules', label: 'Expected Rules (JSON)', type: 'textarea', placeholder: '[{"protocol": "tcp", "from_port": 22, "to_port": 22, "cidr": "10.0.0.0/16"}]', helpText: 'JSON array of expected security group rules.' }
+        ],
+        targetType: 'connected_system',
+        targetLabel: 'AWS Account',
+        targetHelpText: 'Select the Connected System representing the AWS account.'
+    },
+    'azure_policy_check': {
+        label: 'Azure Policy Check',
+        parameters: [
+            { name: 'policy_definition_id', label: 'Policy Definition ID', type: 'text', required: true, placeholder: '/subscriptions/{subId}/providers/Microsoft.Authorization/policyDefinitions/{policyDefName}', helpText: 'The ID of the policy definition to check.' },
+            { name: 'scope', label: 'Scope', type: 'text', required: true, placeholder: '/subscriptions/{subId}/resourceGroups/{rgName}', helpText: 'The scope at which to check the policy.' }
+        ],
+        targetType: 'connected_system',
+        targetLabel: 'Azure Subscription',
+        targetHelpText: 'Select the Connected System representing the Azure subscription.'
+    },
+    'github_repo_check': {
+        label: 'GitHub Repository Check',
+        parameters: [
+            { name: 'repository', label: 'Repository Name', type: 'text', required: true, placeholder: 'owner/repo', helpText: 'The repository to check in format owner/repo.' },
+            { name: 'branch', label: 'Branch Name', type: 'text', required: true, placeholder: 'main', helpText: 'The branch to check.' },
+            { name: 'check_type', label: 'Check Type', type: 'select', options: ['branch_protection', 'security_alerts', 'dependencies'], required: true, helpText: 'The type of check to perform.' }
+        ],
+        targetType: 'connected_system',
+        targetLabel: 'GitHub Account',
+        targetHelpText: 'Select the Connected System representing the GitHub account.'
+    },
+    'nessus_scan_check': {
+        label: 'Nessus Scan Check',
+        parameters: [
+            { name: 'scan_id', label: 'Scan ID', type: 'text', required: true, placeholder: '12345', helpText: 'The ID of the scan to check.' },
+            { name: 'max_critical', label: 'Maximum Critical Issues', type: 'number', placeholder: '0', helpText: 'Maximum number of critical issues allowed.' },
+            { name: 'max_high', label: 'Maximum High Issues', type: 'number', placeholder: '5', helpText: 'Maximum number of high issues allowed.' }
+        ],
+        targetType: 'connected_system',
+        targetLabel: 'Nessus Scanner',
+        targetHelpText: 'Select the Connected System representing the Nessus scanner.'
+    },
+    'file_permission_check': {
+        label: 'File Permission Check',
+        parameters: [
+            { name: 'file_path', label: 'File Path', type: 'text', required: true, placeholder: '/etc/passwd', helpText: 'The path to the file to check.' },
+            { name: 'expected_permissions', label: 'Expected Permissions', type: 'text', required: true, placeholder: '644', helpText: 'The expected file permissions in octal format.' }
+        ],
+        targetType: 'connected_system',
+        targetLabel: 'Target System',
+        targetHelpText: 'Select the Connected System representing the system where the file exists.'
+    },
+    'ssl_certificate_check': {
+        label: 'SSL Certificate Check',
+        parameters: [
+            { name: 'hostname', label: 'Hostname', type: 'text', required: true, placeholder: 'example.com', helpText: 'The hostname to check SSL certificate for.' },
+            { name: 'port', label: 'Port', type: 'number', required: true, placeholder: '443', helpText: 'The port to check SSL certificate on.' },
+            { name: 'min_days_valid', label: 'Minimum Days Valid', type: 'number', placeholder: '30', helpText: 'Minimum number of days the certificate should be valid for.' }
+        ],
+        targetType: 'connected_system',
+        targetLabel: 'Target System',
+        targetHelpText: 'Select the Connected System representing the system to check SSL certificate on.'
+    },
+    'system_config_check': {
+        label: 'System Configuration Check',
+        parameters: [
+            { name: 'config_path', label: 'Configuration Path', type: 'text', required: true, placeholder: '/etc/ssh/sshd_config', helpText: 'Path to the configuration file to check.' },
+            { name: 'expected_settings', label: 'Expected Settings (JSON)', type: 'textarea', required: true, placeholder: '{"PermitRootLogin": "no", "PasswordAuthentication": "no"}', helpText: 'JSON object of expected configuration settings.' }
+        ],
+        targetType: 'connected_system',
+        targetLabel: 'Target System',
+        targetHelpText: 'Select the Connected System representing the system to check configuration on.'
+    }
 };
 
 const evidenceTypeOptions = [
@@ -216,6 +298,7 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
                         {checkType && checkTypeConfigurations[checkType] && (
                             <>
                                 {checkTypeConfigurations[checkType].targetType === 'connected_system' && (
+                                    <div>
                                     <FloatingLabel controlId="formCheckTargetSystem" label={checkTypeConfigurations[checkType].targetLabel || "Target Connected System"} className="mb-3">
                                         <Form.Select value={checkTarget} onChange={(e) => setCheckTarget(e.target.value)} required={!!checkType}>
                                             <option value="">Select Connected System</option>
@@ -225,6 +308,8 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
                                         </Form.Select>
                                         {checkTypeConfigurations[checkType].targetHelpText && <Form.Text muted>{checkTypeConfigurations[checkType].targetHelpText}</Form.Text>}
                                     </FloatingLabel>
+
+                                    </div>
                                 )}
 
                                 {checkTypeConfigurations[checkType].parameters.map(paramDef => (
@@ -232,7 +317,7 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
                                         {paramDef.type === 'select' ? (
                                             <Form.Select value={checkParams[paramDef.name] || ''} onChange={(e) => handleParamChange(paramDef.name, e.target.value, paramDef)} required={paramDef.required}>
                                                 <option value="">Select {paramDef.label}</option>
-                                                {paramDef.options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                                {paramDef.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                             </Form.Select>
                                         ) : paramDef.type === 'textarea' ? (
                                             <Form.Control as="textarea" value={paramDef.name === 'script_args' && Array.isArray(checkParams[paramDef.name]) ? JSON.stringify(checkParams[paramDef.name]) : (checkParams[paramDef.name] || '')} onChange={(e) => handleParamChange(paramDef.name, e.target.value, paramDef)} placeholder={paramDef.placeholder} required={paramDef.required} style={{ height: '80px' }} />

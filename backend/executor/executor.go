@@ -73,4 +73,6 @@ func InitExecutors() {
 	RegisterExecutor("port_scan_check", &PortScanCheckExecutor{})
 	RegisterExecutor("file_exists_check", &FileExistsCheckExecutor{})
 	RegisterExecutor("database_query_check", &DatabaseQueryCheckExecutor{})
+	RegisterExecutor("aws_security_group_check", &AWSSecurityGroupCheckExecutor{})
+	RegisterExecutor("file_permission_check", &FilePermissionCheckExecutor{})
 }
