@@ -13,7 +13,8 @@ import { FaHourglassHalf,
     FaTasks, FaFileContract, FaShieldAlt, FaBookOpen, FaLayerGroup,
     FaQuestionCircle, FaRegQuestionCircle,
     FaCog,
-    FaHistory
+    FaHistory,
+    FaPlug
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext'; // Import useAuth
 import ThemeSwitcher from './ThemeSwitcher';
@@ -32,6 +33,8 @@ function Sidebar({ /*currentUser,*/ logout, showDetailsPanel, setShowDetailsPane
         { to: "/pending-review", eventKey: "/pending-review", icon: <FaHourglassHalf size="1.2em" />, label: "Pending Review", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/pending-review') },
         { to: "/documents", eventKey: "/documents", icon: <FaBookOpen size="1.2em" />, label: "Documents", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/documents') },
         { to: "/library", eventKey: "/library", icon: <FaLayerGroup size="1.2em" />, label: "Manage Library", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/library') },
+        { to: "/admin/system-integrations", eventKey: "/admin/system-integrations", icon: <FaPlug size="1.2em" />, label: "System Integrations", roles: ['admin'], activeCheck: () => location.pathname.startsWith('/admin/system-integrations') },
+        { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Teams", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/teams') },
         { to: "/audit-logs", eventKey: "/audit-logs", icon: <FaHistory size="1.2em" />, label: "Audit Logs", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/audit-logs') },
 
         // { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Manage Teams", roles: ['admin', 'auditor'] }, // Can be moved to AdminSettings or kept separate

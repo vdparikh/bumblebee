@@ -34,6 +34,8 @@ import Documents from './components/Documents';
 import TeamsPage from './components/TeamsPage'; 
 import AuditLogsPage from './pages/AuditLogsPage'; // You will create this file
 import HelpPage from './pages/HelpPage';
+import SystemIntegrations from './components/admin/SystemIntegrations';
+import SystemIntegrationForm from './components/admin/SystemIntegrationForm';
 
 function DynamicHeader() {
   const location = useLocation();
@@ -108,16 +110,9 @@ function Layout() {
     <Container fluid className="p-0"
     > 
       <Row className="g-0">
-
         <Col md={12}>
-
-
-
-
-
           <Container fluid>
             <Row>
-              
               <Sidebar 
                 currentUser={currentUser} 
                 location={location} 
@@ -125,30 +120,18 @@ function Layout() {
                 showDetailsPanel={showDetailsPanel}
                 setShowDetailsPanel={setShowDetailsPanel}
               />
-
-              
               <Col className="p-0 "> 
-
-
                 <Navbar expand="lg" className="d-none border-bottom shadow-0 topnav">
                   <Container fluid className=''>
                     <Navbar.Toggle aria-controls="top-navbar-nav" />
-                    
-
                     <DynamicHeader /> 
-                    {/* User Dropdown, ThemeSwitcher, and Help Icon are now in Sidebar.js */}
                   </Container>
                 </Navbar>
 
                 <Row className="g-0 " style={{ height: 'calc(100vh)'  }}>
-                  
-                  
                   <Col md={showDetailsPanel ? 8 : 12} xl={showDetailsPanel ? 9 : 12} className="p-0" style={{ height: '100%', overflowY: 'auto', transition: 'width 0.3s ease-in-out' }}>
-
-
                     <Container>
                       <main className="p-4"> 
-                        
                         <Routes>
                           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                           <Route path="/tasks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Tasks /></ProtectedRoute>} />
@@ -156,8 +139,6 @@ function Layout() {
                           <Route path="/library" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><LibraryManagementPage /></ProtectedRoute>} />
                           <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
                           <Route path="/documents" element={<ProtectedRoute roles={['admin', 'auditor']}><Documents /></ProtectedRoute>} />
-
-
                           <Route path="/requirements" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Requirements /></ProtectedRoute>} />
                           <Route path="/standards" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Standards /></ProtectedRoute>} />
                           <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
@@ -166,29 +147,27 @@ function Layout() {
                           <Route path="/teams" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TeamsPage /></ProtectedRoute>} />
                           <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
                           <Route path="/admin-settings" element={<ProtectedRoute requiredRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
-            <Route path="/audit-logs" element={<ProtectedRoute roles={['admin', 'auditor']}><AuditLogsPage /></ProtectedRoute>} />
-
+                          <Route path="/audit-logs" element={<ProtectedRoute roles={['admin', 'auditor']}><AuditLogsPage /></ProtectedRoute>} />
                           <Route path="/alt-view" element={<ProtectedRoute><ThreeColumnView /></ProtectedRoute>} />
                           <Route path="/campaigns/:campaignId" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
+                          <Route path="/admin/system-integrations" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrations /></ProtectedRoute>} />
+                          <Route path="/admin/system-integrations/new" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
+                          <Route path="/admin/system-integrations/edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
                         </Routes>
                       </main>
                     </Container>
                   </Col>
-                  
                   <Col
                     xs={12} md={4} xl={3}
                     className={`p-3 border-start details-pane ${showDetailsPanel ? 'd-md-block' : 'd-none'}`}
                     style={{ height: '100%', overflowY: 'auto', transition: 'display 0.3s ease-in-out' }}
                   >
                     <HelpSupportPanel />
-                    
-                    
                   </Col>
                 </Row>
               </Col>
             </Row>
           </Container>
-
         </Col>
       </Row>
     </Container>
@@ -239,6 +218,9 @@ function AppRoutes() {
         <Route path="standards" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Standards /></ProtectedRoute>} />
         <Route path="teams" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TeamsPage /></ProtectedRoute>} />
         <Route path="campaign-task/:instanceId" element={<ProtectedRoute><CampaignTaskInstanceDetail /></ProtectedRoute>} />
+        <Route path="admin/system-integrations" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrations /></ProtectedRoute>} />
+        <Route path="admin/system-integrations/new" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
+        <Route path="admin/system-integrations/edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
       </Route>
     </Routes>
   );

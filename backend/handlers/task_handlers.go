@@ -25,7 +25,7 @@ func (h *TaskHandler) CreateTaskHandler(c *gin.Context) {
 		Title                 string                 `json:"title" binding:"required"`
 		Description           string                 `json:"description"`
 		Category              string                 `json:"category"`
-		RequirementID         string                 `json:"requirementId"`
+		RequirementIDs        []string               `json:"requirementIds"`
 		CheckType             *string                `json:"checkType"`
 		Target                *string                `json:"target"`
 		Parameters            map[string]interface{} `json:"parameters"`
@@ -48,7 +48,7 @@ func (h *TaskHandler) CreateTaskHandler(c *gin.Context) {
 		Title:                 payload.Title,
 		Description:           payload.Description,
 		Category:              payload.Category,
-		RequirementID:         payload.RequirementID,
+		RequirementIDs:        payload.RequirementIDs,
 		CheckType:             payload.CheckType,
 		Target:                payload.Target,
 		Parameters:            payload.Parameters,
@@ -81,7 +81,7 @@ func (h *TaskHandler) CreateTaskHandler(c *gin.Context) {
 		"title":                   task.Title,
 		"description":             task.Description,
 		"category":                task.Category,
-		"requirement_id":          task.RequirementID,
+		"requirement_ids":         task.RequirementIDs,
 		"check_type":              task.CheckType,
 		"target":                  task.Target,
 		"parameters":              task.Parameters,
@@ -175,14 +175,18 @@ func (h *TaskHandler) UpdateTaskHandler(c *gin.Context) {
 	if existingTask.Title != updatedTask.Title {
 		auditChanges["title"] = map[string]string{"old": existingTask.Title, "new": updatedTask.Title}
 	}
-	if existingTask.Description != updatedTask.Description { // Assuming Description is not a pointer
+	if existingTask.Description != updatedTask.Description {
 		auditChanges["description"] = map[string]string{"old": existingTask.Description, "new": updatedTask.Description}
 	}
-	if existingTask.Category != updatedTask.Category { // Assuming Category is not a pointer
+	if existingTask.Category != updatedTask.Category {
 		auditChanges["category"] = map[string]string{"old": existingTask.Category, "new": updatedTask.Category}
 	}
-	if existingTask.RequirementID != updatedTask.RequirementID {
-		auditChanges["requirement_id"] = map[string]string{"old": existingTask.RequirementID, "new": updatedTask.RequirementID}
+
+	// Compare requirement IDs
+	if !reflect.DeepEqual(existingTask.RequirementIDs, updatedTask.RequirementIDs) {
+		oldReqsJSON, _ := json.Marshal(existingTask.RequirementIDs)
+		newReqsJSON, _ := json.Marshal(updatedTask.RequirementIDs)
+		auditChanges["requirement_ids"] = map[string]string{"old": string(oldReqsJSON), "new": string(newReqsJSON)}
 	}
 
 	// Helper for comparing string pointers
@@ -216,14 +220,9 @@ func (h *TaskHandler) UpdateTaskHandler(c *gin.Context) {
 		auditChanges["evidence_types_expected"] = map[string]string{"old": string(oldEvidenceJSON), "new": string(newEvidenceJSON)}
 	}
 
-	// Comparing LinkedDocumentIDs ([]string) - Assuming taskUpdates contains the new set
-	// Note: existingTask.LinkedDocumentIDs might not be populated by GetTaskByID by default.
-	// For a more accurate diff, ensure existingTask.LinkedDocumentIDs is fetched.
-	// The current GetTaskByID populates LinkedDocuments, not LinkedDocumentIDs directly.
-	// We'll use taskUpdates.LinkedDocumentIDs as the "new" and assume existingTask didn't have them explicitly for simplicity here.
-	// A proper diff would require fetching full old linked document IDs.
-	if !reflect.DeepEqual(existingTask.LinkedDocumentIDs, taskUpdates.LinkedDocumentIDs) { // taskUpdates from payload has new IDs
-		oldLinkedDocsJSON, _ := json.Marshal(existingTask.LinkedDocumentIDs) // This might be nil/empty
+	// Comparing LinkedDocumentIDs ([]string)
+	if !reflect.DeepEqual(existingTask.LinkedDocumentIDs, taskUpdates.LinkedDocumentIDs) {
+		oldLinkedDocsJSON, _ := json.Marshal(existingTask.LinkedDocumentIDs)
 		newLinkedDocsJSON, _ := json.Marshal(taskUpdates.LinkedDocumentIDs)
 		auditChanges["linked_document_ids"] = map[string]string{"old": string(oldLinkedDocsJSON), "new": string(newLinkedDocsJSON)}
 	}

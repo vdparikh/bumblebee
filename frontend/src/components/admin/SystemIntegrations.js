@@ -1,18 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Spinner, Alert, Modal, Form, Card, Accordion, Badge, Col, Row, FloatingLabel } from 'react-bootstrap';
+import { Table, Button, Spinner, Alert, Badge } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import { 
     FaPlusCircle, 
     FaEdit, 
     FaTrash, 
     FaPlug, 
     FaCheckCircle, 
-    FaTimesCircle, 
+    FaTimesCircle
+} from 'react-icons/fa';
+import { getConnectedSystems, deleteConnectedSystem } from '../../services/api';
+import { systemTypeOptions } from '../../constants/systemTypes';
+
+import { 
+    FaAws,
+    FaDatabase,
     FaKey, 
     FaServer, 
-    FaDatabase, 
     FaUserSecret, 
     FaLink,
-    FaAws,
     FaMicrosoft,
     FaGoogle,
     FaGithub,
@@ -39,262 +45,11 @@ import {
     FaFilePdf,
     FaFileArchive
 } from 'react-icons/fa';
-import { getConnectedSystems, createConnectedSystem, updateConnectedSystem, deleteConnectedSystem } from '../../services/api';
 
-const systemTypeOptions = [
-    // Cloud Providers
-    { 
-        value: 'aws', 
-        label: 'AWS', 
-        description: 'Amazon Web Services',
-        icon: <FaAws size={24} />,
-        color: '#FF9900',
-        category: 'Cloud'
-    },
-    { 
-        value: 'azure', 
-        label: 'Azure', 
-        description: 'Microsoft Azure',
-        icon: <FaMicrosoft size={24} />,
-        color: '#0078D4',
-        category: 'Cloud'
-    },
-    { 
-        value: 'gcp', 
-        label: 'GCP', 
-        description: 'Google Cloud Platform',
-        icon: <FaGoogle size={24} />,
-        color: '#4285F4',
-        category: 'Cloud'
-    },
 
-    // Security & Monitoring
-    { 
-        value: 'splunk', 
-        label: 'Splunk', 
-        description: 'Log Management & Analytics',
-        icon: <FaSearch size={24} />,
-        color: '#000000',
-        category: 'Security'
-    },
-    { 
-        value: 'grafana', 
-        label: 'Grafana', 
-        description: 'Monitoring & Visualization',
-        icon: <FaChartLine size={24} />,
-        color: '#F46800',
-        category: 'Security'
-    },
-    { 
-        value: 'nessus', 
-        label: 'Nessus', 
-        description: 'Vulnerability Scanner',
-        icon: <FaShieldAlt size={24} />,
-        color: '#00A8E8',
-        category: 'Security'
-    },
-    { 
-        value: 'qualys', 
-        label: 'Qualys', 
-        description: 'Qualys Guard',
-        icon: <FaShieldAlt size={24} />,
-        color: '#FF4B4B',
-        category: 'Security'
-    },
-    { 
-        value: 'crowdstrike', 
-        label: 'CrowdStrike', 
-        description: 'Endpoint Security',
-        icon: <FaUserShield size={24} />,
-        color: '#FF0000',
-        category: 'Security'
-    },
-    { 
-        value: 'palo_alto', 
-        label: 'Palo Alto', 
-        description: 'Network Security',
-        icon: <FaNetworkWired size={24} />,
-        color: '#7D0000',
-        category: 'Security'
-    },
 
-    // Compliance & Audit
-    { 
-        value: 'arcsight', 
-        label: 'ArcSight', 
-        description: 'Security Information & Event Management',
-        icon: <FaFileAlt size={24} />,
-        color: '#00A0E3',
-        category: 'Compliance'
-    },
-    { 
-        value: 'servicenow', 
-        label: 'ServiceNow', 
-        description: 'IT Service Management',
-        icon: <FaFileContract size={24} />,
-        color: '#81B5A1',
-        category: 'Compliance'
-    },
-    { 
-        value: 'jira', 
-        label: 'Jira', 
-        description: 'Project Management & Tracking',
-        icon: <FaClipboardCheck size={24} />,
-        color: '#0052CC',
-        category: 'Compliance'
-    },
-    { 
-        value: 'confluence', 
-        label: 'Confluence', 
-        description: 'Documentation & Knowledge Base',
-        icon: <FaFileWord size={24} />,
-        color: '#172B4D',
-        category: 'Compliance'
-    },
-
-    // Identity & Access
-    { 
-        value: 'okta', 
-        label: 'Okta', 
-        description: 'Identity & Access Management',
-        icon: <FaUserLock size={24} />,
-        color: '#007DC1',
-        category: 'Identity'
-    },
-    { 
-        value: 'azure_ad', 
-        label: 'Azure AD', 
-        description: 'Microsoft Identity Platform',
-        icon: <FaUserLock size={24} />,
-        color: '#0078D4',
-        category: 'Identity'
-    },
-    { 
-        value: 'pam', 
-        label: 'PAM', 
-        description: 'Privileged Access Management',
-        icon: <FaLock size={24} />,
-        color: '#6C757D',
-        category: 'Identity'
-    },
-
-    // Data & Storage
-    { 
-        value: 'database', 
-        label: 'Database', 
-        description: 'Database Connection',
-        icon: <FaDatabase size={24} />,
-        color: '#0D6EFD',
-        category: 'Data'
-    },
-    { 
-        value: 's3', 
-        label: 'S3', 
-        description: 'Object Storage',
-        icon: <FaFileArchive size={24} />,
-        color: '#FF9900',
-        category: 'Data'
-    },
-    { 
-        value: 'sharepoint', 
-        label: 'SharePoint', 
-        description: 'Document Management',
-        icon: <FaFilePdf size={24} />,
-        color: '#0078D4',
-        category: 'Data'
-    },
-
-    // Development & CI/CD
-    { 
-        value: 'github', 
-        label: 'GitHub', 
-        description: 'GitHub Integration',
-        icon: <FaGithub size={24} />,
-        color: '#181717',
-        category: 'Development'
-    },
-    { 
-        value: 'gitlab', 
-        label: 'GitLab', 
-        description: 'GitLab Integration',
-        icon: <FaGitlab size={24} />,
-        color: '#FC6D26',
-        category: 'Development'
-    },
-    { 
-        value: 'jenkins', 
-        label: 'Jenkins', 
-        description: 'CI/CD Pipeline',
-        icon: <FaCode size={24} />,
-        color: '#D24939',
-        category: 'Development'
-    },
-
-    // Financial & Audit
-    { 
-        value: 'sap', 
-        label: 'SAP', 
-        description: 'Enterprise Resource Planning',
-        icon: <FaFileInvoiceDollar size={24} />,
-        color: '#003366',
-        category: 'Financial'
-    },
-    { 
-        value: 'oracle_erp', 
-        label: 'Oracle ERP', 
-        description: 'Enterprise Resource Planning',
-        icon: <FaFileInvoice size={24} />,
-        color: '#F80000',
-        category: 'Financial'
-    },
-    { 
-        value: 'workday', 
-        label: 'Workday', 
-        description: 'Human Capital Management',
-        icon: <FaFileExcel size={24} />,
-        color: '#2E8B57',
-        category: 'Financial'
-    },
-
-    // Healthcare & Privacy
-    { 
-        value: 'epic', 
-        label: 'Epic', 
-        description: 'Healthcare Information System',
-        icon: <FaFileMedical size={24} />,
-        color: '#2E3192',
-        category: 'Healthcare'
-    },
-    { 
-        value: 'cerner', 
-        label: 'Cerner', 
-        description: 'Healthcare Information System',
-        icon: <FaFileMedical size={24} />,
-        color: '#004B87',
-        category: 'Healthcare'
-    },
-
-    // Generic & Custom
-    { 
-        value: 'generic_api', 
-        label: 'Generic API', 
-        description: 'Custom API Endpoint',
-        icon: <FaCode size={24} />,
-        color: '#6C757D',
-        category: 'Custom'
-    },
-    { 
-        value: 'other', 
-        label: 'Other', 
-        description: 'Custom Integration',
-        icon: <FaGenericServer size={24} />,
-        color: '#6C757D',
-        category: 'Custom'
-    }
-];
-
-// Define configuration schemas for different system types
-const configurationSchemas = {
+// Export the system type options and configuration schemas for use in SystemIntegrationForm
+export const configurationSchemas = {
     aws: [
         { name: 'accessKeyId', label: 'Access Key ID', type: 'text', placeholder: 'AKIAIOSFODNN7EXAMPLE', required: true, sensitive: false },
         { name: 'secretAccessKey', label: 'Secret Access Key', type: 'password', placeholder: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', required: true, sensitive: true },
@@ -327,40 +82,20 @@ const configurationSchemas = {
     // Add more schemas as needed
 };
 
-const getIconForConfigField = (fieldName) => {
-    if (fieldName.toLowerCase().includes('key') || fieldName.toLowerCase().includes('token') || fieldName.toLowerCase().includes('secret')) return <FaKey className="me-2 text-muted" />;
-    if (fieldName.toLowerCase().includes('url') || fieldName.toLowerCase().includes('host') || fieldName.toLowerCase().includes('path')) return <FaLink className="me-2 text-muted" />;
-    if (fieldName.toLowerCase().includes('user') || fieldName.toLowerCase().includes('client')) return <FaUserSecret className="me-2 text-muted" />;
-    if (fieldName.toLowerCase().includes('database') || fieldName.toLowerCase().includes('server')) return <FaDatabase className="me-2 text-muted" />;
-    return <FaPlug className="me-2 text-muted" />;
-};
-
-
 function SystemIntegrations() {
+    const navigate = useNavigate();
     const [systems, setSystems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    const [showModal, setShowModal] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [currentSystem, setCurrentSystem] = useState(null);
-
-    const [name, setName] = useState('');
-    const [systemType, setSystemType] = useState('');
-    const [description, setDescription] = useState('');
-    const [configurationString, setConfigurationString] = useState('{}'); // For 'other' or manual JSON editing
-    const [dynamicConfigFields, setDynamicConfigFields] = useState({}); // For structured fields
-    const [isEnabled, setIsEnabled] = useState(true);
-
     const fetchSystems = useCallback(async () => {
-        setLoading(true);
-        setError('');
         try {
             const response = await getConnectedSystems();
-            setSystems(Array.isArray(response.data) ? response.data : []);
+            setSystems(response.data);
+            setError('');
         } catch (err) {
-            setError('Failed to fetch connected systems. ' + (err.response?.data?.error || err.message));
+            setError('Failed to fetch systems. ' + (err.response?.data?.error || err.message));
         } finally {
             setLoading(false);
         }
@@ -370,103 +105,8 @@ function SystemIntegrations() {
         fetchSystems();
     }, [fetchSystems]);
 
-    const resetForm = () => {
-        setName('');
-        setSystemType('');
-        setDescription('');
-        setConfigurationString('{}');
-        setDynamicConfigFields({});
-        setIsEnabled(true);
-
-        setCurrentSystem(null);
-        setIsEditing(false);
-    };
-
-    const handleShowCreateModal = () => {
-        resetForm();
-        setShowModal(true);
-    };
-
-    const handleShowEditModal = (system) => {
-        setIsEditing(true);
-        setCurrentSystem(system);
-        setName(system.name);
-        setSystemType(system.systemType);
-        setDescription(system.description || '');
-        setIsEnabled(system.isEnabled);
-
-        if (configurationSchemas[system.systemType] && typeof system.configuration === 'object') {
-            setDynamicConfigFields(system.configuration);
-            setConfigurationString('{}'); // Clear manual JSON if schema matches
-        } else {
-            setDynamicConfigFields({});
-            setConfigurationString(typeof system.configuration === 'string' ? system.configuration : JSON.stringify(system.configuration || {}, null, 2));
-        }
-
-
-        setShowModal(true);
-    };
-
-    const handleCloseModal = () => {
-        setShowModal(false);
-        resetForm();
-        setError('');
-        setSuccess('');
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setSuccess('');
-
-        let finalConfiguration;
-        if (systemType && configurationSchemas[systemType]) {
-            // Collect data from dynamic fields
-            finalConfiguration = { ...dynamicConfigFields };
-            // Validate required fields for schema
-            for (const field of configurationSchemas[systemType]) {
-                if (field.required && (finalConfiguration[field.name] === undefined || finalConfiguration[field.name] === '')) {
-                    setError(`${field.label} is required.`);
-                    return;
-                }
-            }
-        } else {
-            // Use manual JSON input
-            try {
-                finalConfiguration = JSON.parse(configurationString);
-            } catch (jsonErr) {
-                setError('Configuration must be valid JSON for "Other" type or if schema is not defined.');
-                return;
-            }
-        }
-
-        const systemData = {
-            name,
-            systemType,
-            description: description || null,
-            configuration: finalConfiguration,
-            isEnabled,
-        };
-
-        try {
-            if (isEditing && currentSystem) {
-                await updateConnectedSystem(currentSystem.id, systemData);
-                setSuccess('System updated successfully.');
-            } else {
-                await createConnectedSystem(systemData);
-                setSuccess('System created successfully.');
-            }
-            fetchSystems();
-            handleCloseModal();
-        } catch (err) {
-            setError('Failed to save system. ' + (err.response?.data?.error || err.message));
-        }
-    };
-
     const handleDelete = async (systemId) => {
-        if (window.confirm('Are you sure you want to delete this system integration?')) {
-            setError('');
-            setSuccess('');
+        if (window.confirm('Are you sure you want to delete this system?')) {
             try {
                 await deleteConnectedSystem(systemId);
                 setSuccess('System deleted successfully.');
@@ -477,186 +117,83 @@ function SystemIntegrations() {
         }
     };
 
-    const handleDynamicConfigChange = (fieldName, value) => {
-        setDynamicConfigFields(prev => ({ ...prev, [fieldName]: value }));
-    };
-
-    const currentSchema = systemType ? configurationSchemas[systemType] : null;
-
-    const renderSystemTypeSelector = () => (
-        <div className="mb-4">
-            <Form.Label className="mb-3">Select System Type</Form.Label>
-            {Object.entries(systemTypeOptions.reduce((acc, option) => {
-                if (!acc[option.category]) acc[option.category] = [];
-                acc[option.category].push(option);
-                return acc;
-            }, {})).map(([category, options]) => (
-                <div key={category} className="mb-4">
-                    <h6 className="mb-3 text-muted">{category}</h6>
-                    <Row className="g-3">
-                        {options.map((option) => (
-                            <Col key={option.value} xs={6} sm={4} md={3}>
-                                <Card 
-                                    className={`h-100 system-type-card ${systemType === option.value ? 'selected' : ''}`}
-                                    onClick={() => setSystemType(option.value)}
-                                    style={{ 
-                                        cursor: 'pointer',
-                                        border: systemType === option.value ? `2px solid ${option.color}` : '1px solid #dee2e6',
-                                        transition: 'all 0.2s ease-in-out'
-                                    }}
-                                >
-                                    <Card.Body className="text-center p-3">
-                                        <div 
-                                            className="mb-2" 
-                                            style={{ 
-                                                color: option.color,
-                                                display: 'flex',
-                                                justifyContent: 'center',
-                                                alignItems: 'center',
-                                                height: '40px'
-                                            }}
-                                        >
-                                            {option.icon}
-                                        </div>
-                                        <h6 className="mb-1">{option.label}</h6>
-                                        <small className="text-muted d-block">{option.description}</small>
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        ))}
-                    </Row>
-                </div>
-            ))}
-        </div>
-    );
-
-    if (loading) return <Spinner animation="border" />;
+    if (loading) {
+        return (
+            <div className="d-flex justify-content-center align-items-center" style={{ height: "200px" }}>
+                <Spinner animation="border" />
+            </div>
+        );
+    }
 
     return (
-        <div>
-
-            <div className="d-flex justify-content-between align-items-center mb-2">
-                <h3><FaPlug className="me-2" />System Integrations</h3>
-                            <Button variant="outline-success" onClick={handleShowCreateModal} className="mb-3 rounded-pill">
-                <FaPlusCircle className="me-2" />Add New Integration
-            </Button>
-
+        <div className="container py-4">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <FaPlug className="me-2" />
+                    System Integrations
+                </h2>
+                <Button variant="primary" onClick={() => navigate('/admin/system-integrations/new')}>
+                    <FaPlusCircle className="me-2" />
+                    Add New System
+                </Button>
             </div>
-            
+
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
 
-
-            <Table striped bordered hover responsive>
+            <Table responsive hover>
                 <thead>
                     <tr>
                         <th>Name</th>
                         <th>Type</th>
+                        <th>Description</th>
                         <th>Status</th>
                         <th>Last Checked</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {systems.length > 0 ? systems.map(system => (
-                        <tr key={system.id}>
-                            <td>{system.name}</td>
-                            <td>{systemTypeOptions.find(opt => opt.value === system.systemType)?.label || system.systemType}</td>
-                            <td>
-                                <Badge bg={system.isEnabled ? 'success' : 'secondary'}>
-                                    {system.isEnabled ? <FaCheckCircle /> : <FaTimesCircle />} {system.isEnabled ? 'Enabled' : 'Disabled'}
-                                </Badge>
-                            </td>
-                            <td>{system.lastCheckedAt ? new Date(system.lastCheckedAt).toLocaleString() : 'N/A'} ({system.lastCheckStatus || 'N/A'})</td>
-                            <td>
-                                <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleShowEditModal(system)} title="Edit">
-                                    <FaEdit />
-                                </Button>
-                                <Button variant="outline-danger" size="sm" onClick={() => handleDelete(system.id)} title="Delete">
-                                    <FaTrash />
-                                </Button>
-                            </td>
-                        </tr>
-                    )) : (
-                        <tr><td colSpan="5" className="text-center">No system integrations found.</td></tr>
-                    )}
+                    {systems.map(system => {
+                        const systemType = systemTypeOptions.find(option => option.value === system.systemType);
+                        return (
+                            <tr key={system.id}>
+                                <td>{system.name}</td>
+                                <td>
+                                    {systemType ? (
+                                        <span style={{ color: systemType.color }}>
+                                            {systemType.icon} {systemType.label}
+                                        </span>
+                                    ) : system.systemType}
+                                </td>
+                                <td>{system.description || '-'}</td>
+                                <td>
+                                    <Badge bg={system.isEnabled ? 'success' : 'secondary'}>
+                                        {system.isEnabled ? 'Active' : 'Disabled'}
+                                    </Badge>
+                                </td>
+                                <td>{system.lastChecked ? new Date(system.lastChecked).toLocaleString() : 'Never'}</td>
+                                <td>
+                                    <Button
+                                        variant="outline-primary"
+                                        size="sm"
+                                        className="me-2"
+                                        onClick={() => navigate(`/admin/system-integrations/edit/${system.id}`)}
+                                    >
+                                        <FaEdit />
+                                    </Button>
+                                    <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => handleDelete(system.id)}
+                                    >
+                                        <FaTrash />
+                                    </Button>
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </Table>
-
-            <Modal show={showModal} onHide={handleCloseModal} size="xl">
-                <Modal.Header closeButton>
-                    <Modal.Title>{isEditing ? 'Edit System Integration' : 'Add New System Integration'}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Form onSubmit={handleSubmit}>
-                        <FloatingLabel controlId="name" label="Name" className="mb-3">
-                            <Form.Control
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="Enter system name"
-                                required
-                            />
-                        </FloatingLabel>
-
-                        {renderSystemTypeSelector()}
-
-                        <FloatingLabel controlId="description" label="Description (Optional)" className="mb-3">
-                            <Form.Control
-                                as="textarea"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Enter description"
-                                style={{ height: '100px' }}
-                            />
-                        </FloatingLabel>
-
-                        <Form.Group className="mb-3" controlId="systemConfiguration">
-                            <Form.Label>Configuration*</Form.Label>
-                            {currentSchema ? (
-                                <Card className="p-3 bg-light">
-                                    {currentSchema.map(field => (
-                                        <FloatingLabel
-                                            key={field.name}
-                                            controlId={`config-${field.name}`}
-                                            label={<>{getIconForConfigField(field.label)} {field.label}{field.required ? '*' : ''}</>}
-                                            className="mb-3"
-                                        >
-                                            {field.type === 'select' ? (
-                                                <Form.Select
-                                                    value={dynamicConfigFields[field.name] || ''}
-                                                    onChange={(e) => handleDynamicConfigChange(field.name, e.target.value)}
-                                                    required={field.required}
-                                                >
-                                                    <option value="">Select {field.label}...</option>
-                                                    {(field.options || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                                </Form.Select>
-                                            ) : (
-                                                <Form.Control
-                                                    type={field.type || 'text'}
-                                                    value={dynamicConfigFields[field.name] || ''}
-                                                    onChange={(e) => handleDynamicConfigChange(field.name, e.target.value)}
-                                                    placeholder={field.placeholder}
-                                                    required={field.required}
-                                                />
-                                            )}
-                                            {field.helpText && <Form.Text muted>{field.helpText}</Form.Text>}
-                                        </FloatingLabel>
-                                    ))}
-                                </Card>
-                            ) : (
-                                <Form.Control as="textarea" rows={5} value={configurationString} onChange={(e) => setConfigurationString(e.target.value)} placeholder='Enter JSON configuration, e.g., {"apiKey": "your_key"}' required />
-                            )}
-                            <Form.Text muted>For sensitive fields like API keys or passwords, consider using environment variables or a secrets manager in production environments.</Form.Text>
-                        </Form.Group>
-                        <Form.Check type="switch" id="systemEnabled" label="Enabled" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} />
-                    </Form>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={handleCloseModal}>Cancel</Button>
-                    <Button variant="primary" onClick={handleSubmit}>Save</Button>
-                </Modal.Footer>
-            </Modal>
         </div>
     );
 }

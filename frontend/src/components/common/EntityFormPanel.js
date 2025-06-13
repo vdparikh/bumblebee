@@ -31,7 +31,7 @@ function EntityFormPanel({
                 if (entityType === 'requirement' && parentId) {
                     dataToSave.standardId = parentId;
                 } else if (entityType === 'task' && parentId) {
-                    dataToSave.requirementId = parentId;
+                    // dataToSave.requirementId = parentId;
                 }
             }
             await onSave(entityType, dataToSave, initialData?.id);

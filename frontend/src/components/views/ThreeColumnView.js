@@ -78,7 +78,9 @@ function ThreeColumnView({
         setError('');
         try {
             const response = await getAllMasterTasks();
-            const filteredTasks = Array.isArray(response.data) ? response.data.filter(task => task.requirementId === requirementId) : [];
+            const filteredTasks = Array.isArray(response.data) ? response.data.filter(task => 
+                task.requirementIds && task.requirementIds.includes(requirementId)
+            ) : [];
             setTasks(filteredTasks);
         } catch (err) {
             console.error(`Error fetching tasks for requirement ${requirementId}:`, err);
@@ -111,21 +113,18 @@ function ThreeColumnView({
     };
 
     useEffect(() => {
-
         if (selectedRequirementId) {
-
             fetchTasksByRequirement(selectedRequirementId);
         } else if (selectedStandardId && !loadingRequirements && requirements.length > 0) {
-
-
-
             const requirementIds = requirements.map(r => r.id);
             if (requirementIds.length > 0) {
                 setLoadingTasks(true);
                 getAllMasterTasks()
                     .then(response => {
                         const allTasks = Array.isArray(response.data) ? response.data : [];
-                        const filtered = allTasks.filter(task => requirementIds.includes(task.requirementId));
+                        const filtered = allTasks.filter(task => 
+                            task.requirementIds && task.requirementIds.some(id => requirementIds.includes(id))
+                        );
                         setTasks(filtered);
                     })
                     .catch(err => {
@@ -140,10 +139,8 @@ function ThreeColumnView({
                 setTasks([]);
             }
         } else if (selectedStandardId && !loadingRequirements && requirements.length === 0) {
-
             setTasks([]);
         } else {
-
             setTasks([]);
         }
     }, [selectedStandardId, selectedRequirementId, requirements, loadingRequirements, getAllMasterTasks, fetchTasksByRequirement]);
