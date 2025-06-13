@@ -15,12 +15,11 @@ import {
     Modal,
     Alert,
     Table,
-    Spinner,
-    OverlayTrigger,
-    Tooltip,
-    Badge
+    Spinner,    
+    Badge,
+    Accordion // Added Accordion
 } from 'react-bootstrap';
-import { FaBook, FaPlusCircle, FaEdit, FaTrashAlt, FaLink, FaInfoCircle } from 'react-icons/fa';
+import { FaBook, FaPlusCircle, FaEdit, FaTrashAlt, FaLink, FaInfoCircle, FaFolder, FaFileAlt } from 'react-icons/fa'; // Added FaFolder, FaFileAlt
 import PageHeader from './common/PageHeader';
 import ConfirmModal from './common/ConfirmModal';
 
@@ -29,6 +28,7 @@ const documentTypes = ["Policy", "Procedure", "Standard Operating Procedure (SOP
 function Documents() {
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [groupedDocuments, setGroupedDocuments] = useState({});
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -64,6 +64,20 @@ function Documents() {
     useEffect(() => {
         fetchDocuments();
     }, [fetchDocuments]);
+
+    useEffect(() => {
+        if (documents.length > 0) {
+            const groups = documents.reduce((acc, doc) => {
+                const type = doc.document_type || 'Uncategorized';
+                if (!acc[type]) {
+                    acc[type] = [];
+                }
+                acc[type].push(doc);
+                return acc;
+            }, {});
+            setGroupedDocuments(groups);
+        }
+    }, [documents]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -173,56 +187,58 @@ function Documents() {
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
 
-            <Card>
-                <Card.Header>Document List</Card.Header>
-                
-                    {documents.length === 0 && !loading ? (
-                        <Card.Body><p className="text-muted">No documents found. Click "Create Document" to add one.</p></Card.Body>
-                    ) : (
-                        <Table variant='flush' striped  hover responsive size="lg">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Description</th>
-                                    <th>Source URL</th>
-                                    <th>Internal Ref.</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {documents.map(doc => (
-                                    <tr key={doc.id}>
-                                        <td>{doc.name}</td>
-                                        <td><Badge bg="info">{doc.document_type}</Badge></td>
-                                        <td>
-                                            <OverlayTrigger placement="top" overlay={<Tooltip id={`tooltip-desc-${doc.id}`}>{doc.description || 'No description'}</Tooltip>}>
-                                                <span>{doc.description ? `${doc.description.substring(0, 50)}...` : 'N/A'}</span>
-                                            </OverlayTrigger>
-                                        </td>
-                                        <td>
-                                            {doc.source_url ? (
-                                                <a href={doc.source_url} target="_blank" rel="noopener noreferrer">
-                                                    <FaLink /> Link
-                                                </a>
-                                            ) : 'N/A'}
-                                        </td>
-                                        <td>{doc.internal_reference || 'N/A'}</td>
-                                        <td>
-                                            <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleOpenEditModal(doc)} title="Edit">
-                                                <FaEdit />
-                                            </Button>
-                                            <Button variant="outline-danger" size="sm" onClick={() => handleDeleteClick(doc)} title="Delete">
-                                                <FaTrashAlt />
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    )}
-                
-            </Card>
+            {documents.length === 0 && !loading ? (
+                <Alert variant="info">No documents found. Click "Create Document" to add one.</Alert>
+            ) : (
+                <Accordion defaultActiveKey={Object.keys(groupedDocuments)[0] || '0'} alwaysOpen>
+                    {Object.entries(groupedDocuments).map(([type, docsInType], index) => (
+                        <Accordion.Item eventKey={String(index)} key={type} className="mb-2 border rounded">
+                            <Accordion.Header>
+                                <FaFolder className="me-2 text-warning" /> {type} <Badge pill bg="secondary" className="ms-2">{docsInType.length}</Badge>
+                            </Accordion.Header>
+                            <Accordion.Body className="p-0">
+                                <Table hover responsive className="mb-0">
+                                    {/* Optional: Add a subtle header within the folder if needed */}
+                                    {/* <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Description</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead> */}
+                                    <tbody>
+                                        {docsInType.map(doc => (
+                                            <tr key={doc.id}>
+                                                <td style={{width: '40%'}}>
+                                                    <FaFileAlt className="me-2 text-muted" />
+                                                    {doc.source_url ? (
+                                                        <a href={doc.source_url} target="_blank" rel="noopener noreferrer" title={doc.name}>
+                                                            {doc.name} <FaLink size="0.8em" />
+                                                        </a>
+                                                    ) : (
+                                                        doc.name
+                                                    )}
+                                                </td>
+                                                <td style={{width: '40%'}} className="text-muted small">
+                                                    {doc.description ? `${doc.description.substring(0, 100)}${doc.description.length > 100 ? '...' : ''}` : 'N/A'}
+                                                </td>
+                                                <td style={{width: '20%'}} className="text-end">
+                                                    <Button variant="link" size="sm" className="me-2 p-0 text-primary" onClick={() => handleOpenEditModal(doc)} title="Edit">
+                                                        <FaEdit />
+                                                    </Button>
+                                                    <Button variant="link" size="sm" onClick={() => handleDeleteClick(doc)} title="Delete" className="p-0 text-danger">
+                                                        <FaTrashAlt />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </Table>
+                            </Accordion.Body>
+                        </Accordion.Item>
+                    ))}
+                </Accordion>
+            )}
 
             <Modal show={showModal} onHide={handleCloseModal} size="lg">
                 <Modal.Header closeButton>

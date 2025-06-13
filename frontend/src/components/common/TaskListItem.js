@@ -4,7 +4,7 @@ import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { Badge, Tooltip, OverlayTrigger } from 'react-bootstrap';
-import { FaUserShield, FaUserCheck, FaCalendarAlt, FaBullhorn, FaExternalLinkAlt, FaTag, FaExclamationCircle, FaFileContract, FaUsers } from 'react-icons/fa';
+import { FaUserShield, FaUserCheck, FaCalendarAlt, FaBullhorn, FaExternalLinkAlt, FaTag, FaExclamationCircle, FaFileContract, FaUsers, FaFlag, FaClock } from 'react-icons/fa';
 import StatusIcon from './StatusIcon';
 import TeamDisplay from './TeamDisplay'; // Import TeamDisplay
 import UserDisplay from './UserDisplay';
@@ -55,10 +55,18 @@ const TaskListItem = ({
                     <div className="d-flex justify-content-between align-items-start mb-2">
                         <div>
                     <span className="me-2" ><StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1.1em" /></span>
-                    {task.defaultPriority && (<Badge bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">{task.defaultPriority}</Badge>)}
-                    <Badge bg={getStatusColor(task.status)} className="me-1 flex-shrink-0">{task.status}</Badge>
+                    {task.defaultPriority && (<Badge bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">
+                        {task.defaultPriority}
+                    </Badge>)}
+                    
+                    
+                    <Badge bg={getStatusColor(task.status)} className="me-1 flex-shrink-0">
+                        <FaFlag className='me-1' />
+                        {task.status}</Badge>
 
-                    {dueDateStatus && <Badge  bg={dueDateStatus === 'Overdue' ? 'danger' : (dueDateStatus === 'Due Today' ? 'warning' : 'info')} className=" fw-normal">{dueDateStatus}</Badge>}
+                    {dueDateStatus && <Badge  bg={dueDateStatus === 'Overdue' ? 'danger' : (dueDateStatus === 'Due Today' ? 'warning' : 'info')} className=" fw-normal">
+                        <FaClock className='me-1' />
+                        {dueDateStatus}</Badge>}
 
 
                     </div>
@@ -66,12 +74,15 @@ const TaskListItem = ({
                         {actionMenu ? actionMenu : (linkTo && <FaExternalLinkAlt style={{ lineHeight: "1em" }} size="1em" className="text-muted mt-1" title="View Details" />)}
                     </div>
                 </div>
-                <div className="d-flex justify-content-between align-items-start">
-
+                
+                <div className="">
+                     {task.category && (
+                        <div style={{ fontSize: "0.7em"}} className="mb-1 fw-normal text-muted text-uppercase small">{task.category}</div>
+                    )}
                     <div className="d-flex justify-content-between align-items-start">
 
                         <div className="mb-0 text-break ">
-                            {linkTo ? <Link to={linkTo} state={linkState} className="text-decoration-none text-black stretched-link">{task.title}</Link> : task.title}
+                            {linkTo ? <Link to={linkTo} state={linkState} className="text-decoration-none stretched-link">{task.title}</Link> : task.title}
                         </div>
                     </div>
                     
@@ -83,7 +94,7 @@ const TaskListItem = ({
 
 
                 <Row>
-                    <Col md={3}>
+                    <Col md={4}>
                         {showOwnerInfo && owners && owners.length > 0 && (
                             <div className="">
                                 {/* <FaUserShield className="me-2 opacity-75" /> */}
@@ -117,7 +128,7 @@ const TaskListItem = ({
                         )}
 
                     </Col>
-                    <Col md={2} className='border-start'>
+                    <Col md={4} className='border-start'>
                         {showAssigneeInfo && (
                             <div className="">
                                 {/* <FaUserCheck className="me-2 opacity-75" /> */}
@@ -127,10 +138,9 @@ const TaskListItem = ({
                         )}
                     </Col>
 
-                    <Col md={2} className='border-start'>
+                    {/* <Col md={2} className='border-start'>
 
                         <div className="">
-                            {/* <FaCalendarAlt className="me-2 opacity-75" /> */}
                             <span className="small me-1 fw-medium">Due:</span> <br />
                             
                             
@@ -142,7 +152,7 @@ const TaskListItem = ({
 
 
                         </div>
-                    </Col>
+                    </Col> */}
                     <Col md={2} className='border-start'>
                         <div className="">
                             <span className="small me-1 fw-medium">Evidence:</span> <br />
@@ -152,7 +162,7 @@ const TaskListItem = ({
                             </Badge>
                         </div>
                     </Col>
-                    <Col md={3} className='border-start'>
+                    <Col md={2} className='border-start'>
                         <div className="">
                             <span className="small me-1 fw-medium">Comments:</span> <br />
                             <Badge pill bg="light" text="dark" className="fw-normal border me-2">
@@ -170,9 +180,9 @@ const TaskListItem = ({
 
             {(task.category || task.requirement_control_id_reference) && (
                 <Card.Footer className="bg-light border-0 py-1 px-3">
-                    {task.category && (
+                    {/* {task.category && (
                         <Badge pill bg="white" text="dark" className="fw-normal me-2 border"><FaTag className="me-1" />{task.category}</Badge>
-                    )}
+                    )} */}
                     {task.requirement_control_id_reference && (
                         <Badge pill bg="white" text="dark" className="fw-normal border me-2">
                             <FaFileContract className="me-2 opacity-75" />

@@ -58,7 +58,8 @@ import {
     FaThumbsUp, // For Approve
     FaUsers, // For Teams
     FaThumbsDown,
-    FaHistory, // For Reject
+    FaHistory,
+    FaFileContract, // For Reject
 } from 'react-icons/fa';
 import { ListGroupItem } from 'react-bootstrap';
 import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils';
@@ -458,7 +459,7 @@ function CampaignTaskInstanceDetail() {
 
 
             <Row>
-                <Col md={12}>
+                <Col md={12} className='mb-3'>
                     <div className="d-flex justify-content-between align-items-center mb-2">
                         <h2 className="mb-0">
                             <div className='mb-1 small fs-6 fw-normal text-muted'>Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> / Req: {taskInstance.requirement_standard_name}</div>
@@ -481,10 +482,7 @@ function CampaignTaskInstanceDetail() {
                             </Dropdown>
                         </div>
                     </div>
-                    <small className="text-muted d-block mb-3">
-                        Created: {new Date(taskInstance.created_at).toLocaleString()} |
-                        Last Updated: {new Date(taskInstance.updatedAt).toLocaleString()}
-                    </small>
+
                 </Col>
                 <Col md={8} className='border-end'>
                     <Tabs defaultActiveKey="details" id="task-instance-detail-tabs" className="nav-line-tabs mb-3">
@@ -494,17 +492,15 @@ function CampaignTaskInstanceDetail() {
                                 <ListGroup variant='flush'>
                                     <ListGroupItem>
 
-<strong>Task Details:</strong>
-                                    <p>{taskInstance.description || 'N/A'}</p>
+                                        <strong>Task Details:</strong>
+                                        <p>{taskInstance.description || 'N/A'}</p>
 
                                     </ListGroupItem>
 
                                     <ListGroupItem>
                                         <strong>Requirement:</strong>
-
-
-
-                                        <h6 className='mt-3'>{taskInstance.requirement_control_id_reference} - {taskInstance.requirement_standard_name || 'Standard N/A'}</h6>
+                                        <h6>
+                                            {taskInstance.requirement_control_id_reference} - {taskInstance.requirement_standard_name || 'Standard N/A'}</h6>
                                         <p className='mt-2 text-muted' style={{ whiteSpace: 'pre-wrap' }}>{taskInstance.requirement_text || 'No detailed text available.'}</p>
                                     </ListGroupItem>
 
@@ -514,8 +510,8 @@ function CampaignTaskInstanceDetail() {
                                             <ListGroup flush>
                                                 {taskInstance.linked_documents.map(doc => (
                                                     <ListGroupItem key={doc.id} className="">
-                                                        <div  className="">
-                                                            <FaBookOpen className="me-2 text-muted" />
+                                                        <div className="">
+                                                            <FaFileAlt className="me-2 text-muted" />
                                                             {doc.source_url ? (
                                                                 <a href={doc.source_url} target="_blank" rel="noopener noreferrer" title={doc.description || doc.name}>
                                                                     {doc.name} <FaLink size="0.8em" />
@@ -828,74 +824,79 @@ function CampaignTaskInstanceDetail() {
                 </Col>
                 <Col md={4}>
 
-
-<ListGroup >
-
-                                        <ListGroupItem>
-                                        <FaExclamationCircle className="me-2 text-muted" /><strong>Priority:</strong>
-                                        {taskInstance.defaultPriority ? <Badge bg={getPriorityBadgeColor(taskInstance.defaultPriority)} className="ms-2">{taskInstance.defaultPriority}</Badge> : ' N/A'}
-                                    </ListGroupItem>
+                    <small className="text-muted d-block mb-3">
+                        Created: {new Date(taskInstance.created_at).toLocaleString()}<br />
+                        Last Updated: {new Date(taskInstance.updatedAt).toLocaleString()}
+                    </small>
 
 
+                    <ListGroup >
 
-                                    <ListGroupItem>
-                                        <FaTag className="me-2 text-muted" /><strong>Category:</strong><br/>
+                        <ListGroupItem>
+                            <FaExclamationCircle className="me-2 text-muted" /><strong>Priority:</strong>
+                            {taskInstance.defaultPriority ? <Badge bg={getPriorityBadgeColor(taskInstance.defaultPriority)} className="ms-2">{taskInstance.defaultPriority}</Badge> : ' N/A'}
+                        </ListGroupItem>
 
-                                        {taskInstance.category && (
-                                            <Badge pill bg="light" text="dark" className="fw-normal ms-2 border"><FaTag className="me-1" />{taskInstance.category}</Badge>
-                                        )}
-                                        {taskInstance.requirement_control_id_reference && (
-                                            <Badge pill bg="light" text="dark" className="fw-normal border">Req: {taskInstance.requirement_control_id_reference}</Badge>
-                                        )}
 
-                                    </ListGroupItem>
-                                    <ListGroupItem>
-                                        <FaUserShield className="me-2 text-muted" /><strong className='me-2'>Owner(s):</strong><br/>
-                                        {taskInstance.owners && taskInstance.owners.length > 0 ?
-                                            taskInstance.owners.map((owner, index) => (
-                                                <React.Fragment key={owner.id}>
-                                                    
-                                                    <UserDisplay userId={owner.id} userName={owner.name} allUsers={users} />
-                                                    {index < taskInstance.owners.length - 1 && ' '}
-                                                </React.Fragment>
-                                            )) : ' N/A'}
-                                    </ListGroupItem>
-                                    <ListGroupItem><FaUserCheck className="me-2 text-muted" /><strong className="me-1">Assignee:</strong><br/>
 
-                                        <UserDisplay userId={taskInstance.assignee_user_id} userName={taskInstance.assignee_user_id} allUsers={users} />
-                                        
+                        <ListGroupItem>
+                            <FaTag className="me-2 text-muted" /><strong>Category:</strong><br />
 
-                                    </ListGroupItem>
-                                    {taskInstance.owner_team && taskInstance.owner_team.name && (
-                                        <ListGroupItem>
-                                            <FaUsers className="me-2 text-muted" /><strong>Owner Team:</strong>
-                                            <TeamDisplay teamId={taskInstance.owner_team.id} teamName={taskInstance.owner_team.name} teamDescription={taskInstance.owner_team.description} teamMembers={taskInstance.owner_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} /> 
-                                            {/* Note: allTeams prop might need adjustment based on how you fetch all teams globally or pass them down */}
-                                        </ListGroupItem>
-                                    )}
-                                    {/* {taskInstance.assignee_team && taskInstance.assignee_team.name && (
+                            {taskInstance.category && (
+                                <Badge pill bg="light" text="dark" className="fw-normal ms-2 border"><FaTag className="me-1" />{taskInstance.category}</Badge>
+                            )}
+                            {taskInstance.requirement_control_id_reference && (
+                                <Badge pill bg="light" text="dark" className="fw-normal border">Req: {taskInstance.requirement_control_id_reference}</Badge>
+                            )}
+
+                        </ListGroupItem>
+                        <ListGroupItem>
+                            <FaUserShield className="me-2 text-muted" /><strong className='me-2'>Owner(s):</strong><br />
+                            {taskInstance.owners && taskInstance.owners.length > 0 ?
+                                taskInstance.owners.map((owner, index) => (
+                                    <React.Fragment key={owner.id}>
+
+                                        <UserDisplay userId={owner.id} userName={owner.name} allUsers={users} />
+                                        {index < taskInstance.owners.length - 1 && ' '}
+                                    </React.Fragment>
+                                )) : ' N/A'}
+                        </ListGroupItem>
+                        <ListGroupItem><FaUserCheck className="me-2 text-muted" /><strong className="me-1">Assignee:</strong><br />
+
+                            <UserDisplay userId={taskInstance.assignee_user_id} userName={taskInstance.assignee_user_id} allUsers={users} />
+
+
+                        </ListGroupItem>
+                        {taskInstance.owner_team && taskInstance.owner_team.name && (
+                            <ListGroupItem>
+                                <FaUsers className="me-2 text-muted" /><strong>Owner Team:</strong>
+                                <TeamDisplay teamId={taskInstance.owner_team.id} teamName={taskInstance.owner_team.name} teamDescription={taskInstance.owner_team.description} teamMembers={taskInstance.owner_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} />
+                                {/* Note: allTeams prop might need adjustment based on how you fetch all teams globally or pass them down */}
+                            </ListGroupItem>
+                        )}
+                        {/* {taskInstance.assignee_team && taskInstance.assignee_team.name && (
                                         <ListGroupItem>
                                             <FaUsers className="me-2 text-muted" /><strong>Assignee Team:</strong>
                                             <TeamDisplay teamId={taskInstance.assignee_team.id} teamName={taskInstance.assignee_team.name} teamDescription={taskInstance.assignee_team.description} teamMembers={taskInstance.assignee_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} />
                                         </ListGroupItem>
                                     )} */}
-                                    <ListGroupItem>
-                                        <FaFileMedicalAlt className="me-2 text-muted" /><strong>Expected Evidence:</strong><br/>
-                                        {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
-                                            taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
-                                                <React.Fragment key={evidenceType}>
+                        <ListGroupItem>
+                            <FaFileMedicalAlt className="me-2 text-muted" /><strong>Expected Evidence:</strong><br />
+                            {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
+                                taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
+                                    <React.Fragment key={evidenceType}>
 
-                                                    <Badge variant="secondary" className='bg-secondary me-1 ms-1'>{evidenceType}</Badge>
+                                        <Badge variant="secondary" className='bg-secondary me-1 ms-1'>{evidenceType}</Badge>
 
-                                                </React.Fragment>
-                                            )) : ' N/A'}
-                                    </ListGroupItem>
-                                    <ListGroupItem><FaCalendarAlt className="me-2 text-muted" /><strong>Due Date:</strong><br/>{taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</ListGroupItem>
-                                   
+                                    </React.Fragment>
+                                )) : ' N/A'}
+                        </ListGroupItem>
+                        <ListGroupItem><FaCalendarAlt className="me-2 text-muted" /><strong>Due Date:</strong><br />{taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</ListGroupItem>
 
-                                   
 
-                                </ListGroup>
+
+
+                    </ListGroup>
 
 
                 </Col>

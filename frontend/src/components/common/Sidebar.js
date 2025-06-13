@@ -56,7 +56,7 @@ function Sidebar({ /*currentUser,*/ logout, showDetailsPanel, setShowDetailsPane
                             title={
                                 <OverlayTrigger placement="right" delay={{ show: 250, hide: 100 }} overlay={<Tooltip id="tooltip-user-actions">{currentUser?.name || 'User Menu'}</Tooltip>}>
                                     <div style={{  height: "50px"}} className="d-flex justify-content-center align-items-center  border-0">
-                                        <FaUser className='' size="1.2em" />
+                                        <FaUser className='text-white' size="1.2em" />
                                     </div>
                                 </OverlayTrigger>
                             }

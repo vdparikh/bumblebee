@@ -31,13 +31,13 @@ code {
   --custom-card-header-bg: #ffffff; /* White card headers */
 
   /* Bootstrap Theme Color Overrides */
-  --bs-primary: #0078D3; /* Flexy: Primary Blue */
+  --bs-primary: #2E5B78; /* Flexy: Primary Blue */
   --bs-primary-rgb: 93, 135, 255;
   --bs-primary-light: #ECF2FF; /* Flexy: Very Light Blue (for backgrounds) */
   --bs-primary-dark: #4a6ecc; /* Darker shade for hover/active */
 
   /* If you want to customize other Bootstrap semantic colors: */
-  --bs-secondary: #49BEFF; /* Flexy: Light Blue Accent */
+  --bs-secondary: #E1E4E9; /* Flexy: Light Blue Accent */
   --bs-secondary-rgb: 73, 190, 255;
   --bs-success: #13DEB9; /* Flexy: Green Accent */
   --bs-success-rgb: 19, 222, 185;
@@ -205,7 +205,7 @@ form, select, input, .form-control, .form-select {
 }
 
 .list-group-item.active {
-  background-color: var(--bs-gray-300); /* Changed from --bs-secondary to match primary theme */
+  background-color: var(--bs-secondary); /* Changed from --bs-secondary to match primary theme */
   border-color: var(--bs-light);
 }
 
@@ -312,7 +312,7 @@ form, select, input, .form-control, .form-select {
 /* Sidebar Specific Styles */
 
 .sidebar { 
-  background-color: #2A3547; /* Flexy: Dark Sidebar Background */
+  background-color: #1D305A; /* Flexy: Dark Sidebar Background */
   /* border-right: 1px solid #dee2e6; */ /* No border in Flexy */
 }
 
