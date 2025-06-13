@@ -40,7 +40,7 @@ function Dashboard() {
         setError('');
         try {
             
-            const tasksPromise = getUserCampaignTasks(loggedInUserId, "owner"); 
+            const tasksPromise = getUserCampaignTasks(loggedInUserId, "owner", "Active"); 
             const campaignsPromise = getCampaigns("Active"); 
             const feedPromise = getUserFeed({ limit: 7 }); 
             const usersPromise = getUsers();
@@ -174,17 +174,19 @@ function Dashboard() {
 
     return (
         <div>
-            <PageHeader icon={<FaTachometerAlt />} title="Dashboard Overview" />
+            <PageHeader icon={<FaTachometerAlt />} title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, ${currentUser?.name || 'User'}!`} 
+            subtitle={"Here's a quick overview of your compliance activities."}
+            />
 
             
-            <Row className="mb-4">
+            {/* <Row className="mb-4">
                 <Col>
                     <h5>
                         Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {currentUser?.name || 'User'}!
                     </h5>
                     <p className="text-muted">Here's a quick overview of your compliance activities.</p>
                 </Col>
-            </Row>
+            </Row> */}
 
             
             <Row className="mb-4">

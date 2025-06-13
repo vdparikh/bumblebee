@@ -1,18 +1,60 @@
 import React from 'react';
-import { Card, Form, Button, ListGroup, Alert, Row, Col, Image } from 'react-bootstrap';
+import { Card, Form, Button, ListGroup, Alert, Row, Col } from 'react-bootstrap';
 import { FaRegComment, FaPaperPlane } from 'react-icons/fa';
-import UserDisplay from './UserDisplay'; 
+import UserDisplay from './UserDisplay';
+import { avatarColors } from '../../theme';
+
+const Avatar = ({ name, size = 40 }) => {
+    // Get initials from name
+    const getInitials = (name) => {
+        if (!name) return '?';
+        return name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
+    };
+
+    // Generate a consistent color based on the name
+    const getColor = (name) => {
+        if (!name) return avatarColors[0];
+        const hash = name.split('').reduce((acc, char) => char.charCodeAt(0) + acc, 0);
+        return avatarColors[hash % avatarColors.length];
+    };
+
+    const initials = getInitials(name);
+    const backgroundColor = getColor(name);
+
+    return (
+        <div
+            style={{
+                width: size,
+                height: size,
+                borderRadius: '50%',
+                backgroundColor,
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: `${size * 0.4}px`,
+                fontWeight: 'bold'
+            }}
+        >
+            {initials}
+        </div>
+    );
+};
 
 const CommentItem = ({ comment, allUsers }) => {
-    
     const userForComment = allUsers.find(u => u.id === comment.userId);
-    const avatarSrc = userForComment?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.userName || 'U')}&background=random&size=40`;
+    const userName = userForComment?.name || comment.userName || 'User';
 
     return (
         <ListGroup.Item className="bg-transparent border-0 px-0 py-3">
             <Row className="gx-2">
                 <Col xs="auto">
-                    <Image src={avatarSrc} roundedCircle width={40} height={40} alt={comment.userName || 'User'} />
+                    <Avatar name={userName} size={40} />
                 </Col>
                 <Col>
                     <div className="d-flex justify-content-between align-items-center">
@@ -37,9 +79,6 @@ const CommentSection = ({
     commentError,
     setCommentError
 }) => {
-
-    const currentUserAvatarSrc = currentUser?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.name?.charAt(0) || 'Me')}&background=random&size=40`;
-
     return (
         <Card className="shadow-sm">
             <Card.Header as="h5" className="d-flex align-items-center bg-light">
@@ -51,7 +90,7 @@ const CommentSection = ({
                 <Form onSubmit={onCommentSubmit} className="mb-4">
                     <Row className="gx-2 align-items-start">
                         <Col xs="auto">
-                            <Image src={currentUserAvatarSrc} roundedCircle width={40} height={40} alt={currentUser?.name || 'You'} />
+                            <Avatar name={currentUser?.name || 'You'} size={40} />
                         </Col>
                         <Col>
                             <Form.Group controlId="newCommentText">

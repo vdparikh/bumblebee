@@ -513,3 +513,12 @@ form, select, input, .form-control, .form-select {
 .nopadding {
   padding: 0px 0px!important;
 }
+
+
+.progress-bar.small-progress-bar-label {
+    font-size: 0.7rem; /* Adjust as needed */
+    font-weight: bold;
+    color: #fff; /* Or a contrasting color */
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.4); /* Optional shadow for readability */
+}
+

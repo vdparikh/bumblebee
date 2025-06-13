@@ -9,6 +9,7 @@ import { getAuditLogs, getUsers } from '../services/api';
 import PageHeader from '../components/common/PageHeader';
 import UserDisplay from '../components/common/UserDisplay';
 import { debounce } from 'lodash';
+import { colors } from '../theme';
 
 const entityTypeOptions = [
     "task", "evidence", "user", "campaign", "requirement", "standard",
@@ -134,14 +135,14 @@ function AuditLogsPage() {
     };
 
     const actionIcons = {
-        create: <FaPlusCircle className="text-success" title="Create" />,
-        update: <FaEdit className="text-info" title="Update" />,
-        delete: <FaTrashAlt className="text-danger" title="Delete" />,
-        login: <FaSignInAlt className="text-primary" title="Login" />,
-        logout: <FaSignOutAlt className="text-warning" title="Logout" />,
-        upload: <FaFileUpload className="text-secondary" title="Upload" />, // for upload_evidence
-        review: <FaClipboardCheck className="text-success" title="Review" />, // for review_evidence
-        default: <FaHistory className="text-muted" title="Generic Action" />
+        create: <FaPlusCircle style={{ color: colors.success.main }} title="Create" />,
+        update: <FaEdit style={{ color: colors.info.main }} title="Update" />,
+        delete: <FaTrashAlt style={{ color: colors.danger.main }} title="Delete" />,
+        login: <FaSignInAlt style={{ color: colors.primary.main }} title="Login" />,
+        logout: <FaSignOutAlt style={{ color: colors.warning.main }} title="Logout" />,
+        upload: <FaFileUpload style={{ color: colors.secondary.main }} title="Upload" />,
+        review: <FaClipboardCheck style={{ color: colors.success.main }} title="Review" />,
+        default: <FaHistory style={{ color: colors.neutral.gray }} title="Generic Action" />
     };
 
     const getActionIcon = (action) => {

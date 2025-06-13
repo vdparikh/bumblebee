@@ -21,9 +21,10 @@ apiClient.interceptors.request.use(config => {
     return Promise.reject(error);
 });
 
-export const getCampaigns = async (status) => {
+export const getCampaigns = async (status, includeTaskSummary = false) => {
     let url = `/campaigns`;
-    if (status) {
+    const params = new URLSearchParams();
+    if (status) { // Corrected: append status to params
         url += `?status=${encodeURIComponent(status)}`;
     }
     const response = await apiClient.get(url);

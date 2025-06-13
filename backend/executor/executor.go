@@ -15,6 +15,27 @@ const (
 	StatusError   = "Error"
 )
 
+// Status Color Constants
+const (
+	ColorSuccess   = "success"   // Green
+	ColorWarning   = "warning"   // Yellow
+	ColorDanger    = "danger"    // Red
+	ColorInfo      = "info"      // Blue
+	ColorSecondary = "secondary" // Gray
+)
+
+// Status to Color Mapping
+var StatusColorMap = map[string]string{
+	StatusSuccess:    ColorSuccess,
+	StatusFailed:     ColorDanger,
+	StatusError:      ColorDanger,
+	"Open":           ColorSecondary,
+	"In Progress":    ColorInfo,
+	"Pending Review": ColorWarning,
+	"Closed":         ColorSuccess,
+	"Not Applicable": ColorSecondary,
+}
+
 type ExecutionResult struct {
 	Status string
 	Output string

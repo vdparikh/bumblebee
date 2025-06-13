@@ -80,7 +80,7 @@ import BarChartCard from './common/BarChartCard';
 import KeyMetricsCard from './common/KeyMetricsCard';
 import TeamDisplay from './common/TeamDisplay'; // Import TeamDisplay
 import { useAuth } from '../contexts/AuthContext';
-import { getStatusColor } from '../utils/displayUtils';
+import { getStatusVariant, getStatusColor, chartColors } from '../theme';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -483,10 +483,9 @@ function CampaignDetail() {
                     progressElements.push(
                         <ProgressBar
                             striped
-                            variant={getStatusColor(statusKey)}
+                            variant={getStatusVariant(statusKey)}
                             now={percentage}
                             key={statusKey}
-                            label={`${statusCounts[statusKey]} ${statusKey}`}
                             bsPrefix="progress-bar small-progress-bar-label"
                             className='rounded-0'
                         />
@@ -502,13 +501,43 @@ function CampaignDetail() {
                     <small className="text-muted">{req.requirement_text?.substring(0, 70)}...</small>
                     {totalTasks > 0 && (
                         <div>
-                        <ProgressBar style={{ height: '15px', marginTop: '5px', minWidth: '150px' }} className="rounded-1 small-progress-bar">
-                            {progressElements}
-                        </ProgressBar>
+                            <ProgressBar style={{ height: '15px', marginTop: '5px', minWidth: '150px' }} className="rounded-1 small-progress-bar">
+                                {progressElements}
+                            </ProgressBar>
                         </div>
                     )}
                 </div>
                 <Badge pill bg="light" text="dark" className="ms-2">{totalTasks}</Badge>
+            </div>
+        );
+    };
+
+    // Add a new function to render the status legend
+    const renderStatusLegend = () => {
+        const statuses = [
+            'Closed',
+            'Pending Review',
+            'In Progress',
+            'Open',
+            'Failed'
+        ];
+
+        return (
+            <div className="d-flex flex-wrap gap-2 mt-2 small text-muted">
+                {statuses.map(status => (
+                    <div key={status} className="d-flex align-items-center">
+                        <div 
+                            className="me-1" 
+                            style={{ 
+                                width: '12px', 
+                                height: '12px', 
+                                backgroundColor: `var(--bs-${getStatusVariant(status)})`,
+                                borderRadius: '2px'
+                            }} 
+                        />
+                        {status}
+                    </div>
+                ))}
             </div>
         );
     };
@@ -641,7 +670,7 @@ function CampaignDetail() {
                                 )}
 
                                 <Dropdown className="d-inline me-2">
-                                    <Dropdown.Toggle variant={getStatusColor(campaign.status)} id="dropdown-campaign-status" size="sm">
+                                    <Dropdown.Toggle variant={getStatusVariant(campaign.status)} id="dropdown-campaign-status" size="sm">
                                         {campaign.status}
                                     </Dropdown.Toggle>
                                     <Dropdown.Menu>
@@ -658,7 +687,9 @@ function CampaignDetail() {
                                 </Button>
                             </>
                         ) : (
-                            <Badge bg={getStatusColor(campaign.status)} className="p-2 fs-6">{campaign.status}</Badge>
+                            <Badge pill bg={getStatusVariant(campaign.status)} className="p-2 fs-6">
+                                {campaign.status}
+                            </Badge>
                         )}
                     </>
                 }
@@ -758,7 +789,8 @@ function CampaignDetail() {
                 <Col md={4}>
                     <Card>
                         <Card.Header as="h5">Scoped Requirements ({selectedRequirements.length})</Card.Header>
-                        <ListGroup variant="flush" style={{  }}>
+                        <div className='p-2 ps-3 pe-3 bg-light small'>{selectedRequirements.length > 0 && renderStatusLegend()}</div>
+                        <ListGroup variant="flush" style={{}}>
                             {selectedRequirements.map(req => (
                                 <ListGroup.Item
                                     key={req.id}
@@ -766,15 +798,7 @@ function CampaignDetail() {
                                     active={selectedRequirementFilterId === req.id}
                                     onClick={() => handleRequirementClick(req.id)}
                                 >
-                                    {/* <div>
-                                        <strong>{req.control_id_reference}</strong>
-                                        <small className="d-block">{req.requirement_text?.substring(0, 70)}...</small>
-                                    </div>
-                                    <Badge bg={req.is_applicable ? "success" : "secondary"} pill>
-                                        {req.is_applicable ? "Applicable" : "N/A"}
-                                    </Badge> */}
                                     {renderRequirementWithProgressBar(req)}
-
                                 </ListGroup.Item>
                             ))}
                             {selectedRequirements.length === 0 && <ListGroup.Item>No requirements scoped.</ListGroup.Item>}
@@ -795,110 +819,7 @@ function CampaignDetail() {
                             </Button>
                         </div>
                     </div>
-                    {/* {taskViewMode === 'list' && (
-                        <div>
-                            {filteredTaskInstances.map(task => {
-                                const taskActionMenu = (
-                                    <div className="d-flex align-items-center">
-                                        
-                                        
-                                        
-                                        {canEditCampaign && (
-                                                            <Button style={{ lineHeight: "1em"}}  variant='transparent' onClick={() => handleOpenAssignModal(task)} className="small p-0 m-0 me-2"><FaUserEdit size="1.2em" /></Button>
-                                                        )}
-                                          
-                                          <Button style={{ lineHeight: "1em"}} variant='transparent' as={Link} to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }} className="small p-0 m-0"><FaExternalLinkAlt size="1em" /></Button>
-
-                                                
-                                            </div>
-                                );
-                                return (
-                                    <TaskListItem
-                                        key={task.id}
-                                        task={task}
-                                        allUsers={allUsers}
-                                        
-                                        
-                                        isOverdueFn={isOverdue}
-                                        showCampaignInfo={false} 
-                                        showOwnerInfo={true}
-                                        ownerTeam={task.owner_team} 
-                                        assigneeTeam={task.assignee_team}
-
-                                        
-                                        owners={task.owners} 
-                                        actionMenu={taskActionMenu} 
-                                    />
-                                );
-                            })}
-                            {filteredTaskInstances.length === 0 && taskInstances.length > 0 && <ListGroup.Item>No tasks match the current filters.</ListGroup.Item>}
-                            {taskInstances.length === 0 && <ListGroup.Item>No task instances found for this campaign.</ListGroup.Item>}
-                        </div>
-                    )}
-                    {taskViewMode === 'table' && (
-                        <Card>
-                            <Table responsive hover striped size="sm">
-                                <thead>
-                                    <tr>
-                                        <th onClick={() => requestSort('title')} style={{ cursor: 'pointer' }}>Title {getSortIcon('title')}</th>
-                                        <th onClick={() => requestSort('status')} style={{ cursor: 'pointer' }}>Status {getSortIcon('status')}</th>
-                                        <th width="100px" onClick={() => requestSort('assignee_user_id')} style={{ cursor: 'pointer' }}>Assignee {getSortIcon('assignee_user_id')}</th>
-                                        <th>Owner(s)</th> 
-                                                                                <th>Team(s)</th>
-
-                                        <th width="100px" onClick={() => requestSort('due_date')} style={{ cursor: 'pointer' }}>Due Date {getSortIcon('due_date')}</th>
-                                        <th>Actions </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredTaskInstances.map(task => (
-                                        <tr key={task.id} className={isOverdue(task.due_date, task.status) ? 'table-danger-light' : ''}>
-                                            <td>
-                                                <Link to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }}>
-                                                    {task.title}
-                                                </Link>
-                                                {task.category && <Badge pill bg="light" text="dark" className="ms-2 fw-normal">{task.category}</Badge>}
-                                            </td>
-                                            <td><Badge bg={getStatusColor(task.status)}>{task.status}</Badge></td>
-                                            <td><UserDisplay userId={task.assignee_user_id} allUsers={allUsers} /></td>
-                                            <td>
-                                                {task.owners && task.owners.map((owner, index) => (
-                                                    <React.Fragment key={owner.id}>
-                                                        <UserDisplay userId={owner.id} userName={owner.name} allUsers={allUsers} />
-                                                        {index < task.owners.length - 1 && ', '}
-                                                    </React.Fragment>
-                                                ))}
-                                            </td>
-                                             <td>
-                                                {task.owner_team && task.owner_team.name && (
-                                                    <div className="mb-1">
-                                                        <small className="text-muted me-1">Own:</small>
-                                                        <TeamDisplay teamId={task.owner_team.id} teamName={task.owner_team.name} teamDescription={task.owner_team.description} teamMembers={task.owner_team.members} allTeams={allTeams} />
-                                                    </div>
-                                                )}
-                                                {task.assignee_team && task.assignee_team.name && (
-                                                    <div>
-                                                        <small className="text-muted me-1">Assign:</small>
-                                                        <TeamDisplay teamId={task.assignee_team.id} teamName={task.assignee_team.name} teamDescription={task.assignee_team.description} teamMembers={task.assignee_team.members} allTeams={allTeams} />
-                                                    </div>
-                                                )}
-                                                {!task.owner_team && !task.assignee_team && <small className="text-muted">N/A</small>}
-                                            </td>
-                                            <td>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}</td>
-                                            <td>
-                                                {canEditCampaign && (
-                                                    <Button variant='link' size="sm" onClick={() => handleOpenAssignModal(task)} title="Assign Users & Due Date" className="p-0 me-2"><FaUserEdit /></Button>
-                                                )}
-                                                <Button variant='link' size="sm" as={Link} to={`/campaign-task/${task.id}`} state={{ from: `/campaigns/${campaignId}` }} title="View Details" className="p-0"><FaExternalLinkAlt /></Button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </Table>
-                            {filteredTaskInstances.length === 0 && <Card.Body className="text-center text-muted">No tasks match the current filters or no tasks available.</Card.Body>}
-                        </Card>
-                    )} */}
-
+                   
                     <Tabs
                         activeKey={tasksTabKey}
                         onSelect={(k) => setTasksTabKey(k)}

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"encoding/json" // For audit logging complex fields
 	"errors"
 	"fmt"
 	"io"
@@ -9,11 +10,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect" // For audit logging complex fields
 	"strings"
 	"time"
-	"encoding/json" // For audit logging complex fields
-	"reflect"     // For audit logging complex fields
-
 
 	"github.com/gin-gonic/gin"
 	"github.com/vdparikh/compliance-automation/backend/auth"
@@ -100,13 +99,13 @@ func (h *CampaignHandler) CreateCampaignHandler(c *gin.Context) {
 	}
 
 	auditChanges := map[string]interface{}{
-		"id":                   campaign.ID,
-		"name":                 campaign.Name,
-		"description":          campaign.Description,
-		"standard_id":          campaign.StandardID,
-		"start_date":           campaign.StartDate,
-		"end_date":             campaign.EndDate,
-		"status":               campaign.Status,
+		"id":                    campaign.ID,
+		"name":                  campaign.Name,
+		"description":           campaign.Description,
+		"standard_id":           campaign.StandardID,
+		"start_date":            campaign.StartDate,
+		"end_date":              campaign.EndDate,
+		"status":                campaign.Status,
 		"selected_requirements": selectedReqsSummary,
 	}
 	if err := utils.RecordAuditLog(h.Store, actorUserIDStrPtr, "create_campaign", "campaign", campaign.ID, auditChanges); err != nil {
@@ -127,6 +126,53 @@ func (h *CampaignHandler) GetCampaignsHandler(c *gin.Context) {
 	if campaigns == nil {
 		campaigns = []models.Campaign{}
 	}
+
+	// Populate RequirementsCount and TaskSummary for each campaign
+	for i := range campaigns {
+		// Get requirements count
+		requirements, err := h.Store.GetCampaignSelectedRequirements(campaigns[i].ID)
+		if err != nil {
+			log.Printf("Error fetching requirements count for campaign %s: %v", campaigns[i].ID, err)
+			continue
+		}
+		campaigns[i].RequirementsCount = len(requirements)
+
+		// Get task instances for summary
+		taskInstances, err := h.Store.GetCampaignTaskInstances(campaigns[i].ID, "", "")
+		if err != nil {
+			log.Printf("Error fetching task instances for campaign %s: %v", campaigns[i].ID, err)
+			continue
+		}
+
+		// Initialize task summary
+		summary := &models.TaskSummary{}
+		now := time.Now()
+
+		// Count tasks by status
+		for _, task := range taskInstances {
+			summary.TotalTasks++
+			switch task.Status {
+			case "Open":
+				summary.Open++
+			case "In Progress":
+				summary.InProgress++
+			case "Pending Review":
+				summary.PendingReview++
+			case "Closed":
+				summary.Closed++
+			case "Failed":
+				summary.Failed++
+			}
+
+			// Check for overdue tasks
+			if task.DueDate != nil && task.Status != "Closed" && task.Status != "Failed" && task.DueDate.Before(now) {
+				summary.OverdueTasks++
+			}
+		}
+
+		campaigns[i].TaskSummary = summary
+	}
+
 	c.JSON(http.StatusOK, campaigns)
 }
 
@@ -274,7 +320,6 @@ func (h *CampaignHandler) UpdateCampaignHandler(c *gin.Context) {
 		auditChanges["selected_requirements_new"] = string(newReqsJSON)
 	}
 
-
 	if len(auditChanges) > 0 {
 		if errLog := utils.RecordAuditLog(h.Store, actorUserIDStrPtr, "update_campaign", "campaign", campaignID, auditChanges); errLog != nil {
 			log.Printf("Error recording audit log for update campaign %s: %v", campaignID, errLog)
@@ -293,7 +338,6 @@ func (h *CampaignHandler) DeleteCampaignHandler(c *gin.Context) {
 	if errGet != nil {
 		log.Printf("Warning: Could not fetch campaign %s before deletion for audit log: %v", campaignID, errGet)
 	}
-
 
 	err := h.Store.DeleteCampaign(campaignID)
 	if err != nil {
@@ -515,7 +559,6 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 		existingInstance.Parameters = payload.Parameters // map is reference, careful if oldInstance.Parameters was not deep copied
 	}
 
-
 	err = h.Store.UpdateCampaignTaskInstance(existingInstance) // existingInstance is now the new state
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "Failed to update campaign task instance", err)
@@ -540,14 +583,22 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 		}
 		if (oldInstance.Description == nil && existingInstance.Description != nil) || (oldInstance.Description != nil && existingInstance.Description == nil) || (oldInstance.Description != nil && existingInstance.Description != nil && *oldInstance.Description != *existingInstance.Description) {
 			oldDesc, newDesc := "", ""
-			if oldInstance.Description != nil { oldDesc = *oldInstance.Description }
-			if existingInstance.Description != nil { newDesc = *existingInstance.Description }
+			if oldInstance.Description != nil {
+				oldDesc = *oldInstance.Description
+			}
+			if existingInstance.Description != nil {
+				newDesc = *existingInstance.Description
+			}
 			auditChanges["description"] = map[string]string{"old": oldDesc, "new": newDesc}
 		}
 		if (oldInstance.Category == nil && existingInstance.Category != nil) || (oldInstance.Category != nil && existingInstance.Category == nil) || (oldInstance.Category != nil && existingInstance.Category != nil && *oldInstance.Category != *existingInstance.Category) {
 			oldCat, newCat := "", ""
-			if oldInstance.Category != nil { oldCat = *oldInstance.Category }
-			if existingInstance.Category != nil { newCat = *existingInstance.Category }
+			if oldInstance.Category != nil {
+				oldCat = *oldInstance.Category
+			}
+			if existingInstance.Category != nil {
+				newCat = *existingInstance.Category
+			}
 			auditChanges["category"] = map[string]string{"old": oldCat, "new": newCat}
 		}
 		if !reflect.DeepEqual(oldInstance.OwnerUserIDs, existingInstance.OwnerUserIDs) {
@@ -557,20 +608,32 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 		}
 		if (oldInstance.AssigneeUserID == nil && existingInstance.AssigneeUserID != nil) || (oldInstance.AssigneeUserID != nil && existingInstance.AssigneeUserID == nil) || (oldInstance.AssigneeUserID != nil && existingInstance.AssigneeUserID != nil && *oldInstance.AssigneeUserID != *existingInstance.AssigneeUserID) {
 			oldAssignee, newAssignee := "", ""
-			if oldInstance.AssigneeUserID != nil { oldAssignee = *oldInstance.AssigneeUserID }
-			if existingInstance.AssigneeUserID != nil { newAssignee = *existingInstance.AssigneeUserID }
+			if oldInstance.AssigneeUserID != nil {
+				oldAssignee = *oldInstance.AssigneeUserID
+			}
+			if existingInstance.AssigneeUserID != nil {
+				newAssignee = *existingInstance.AssigneeUserID
+			}
 			auditChanges["assignee_user_id"] = map[string]string{"old": oldAssignee, "new": newAssignee}
 		}
 		if (oldInstance.OwnerTeamID == nil && existingInstance.OwnerTeamID != nil) || (oldInstance.OwnerTeamID != nil && existingInstance.OwnerTeamID == nil) || (oldInstance.OwnerTeamID != nil && existingInstance.OwnerTeamID != nil && *oldInstance.OwnerTeamID != *existingInstance.OwnerTeamID) {
 			oldVal, newVal := "", ""
-			if oldInstance.OwnerTeamID != nil { oldVal = *oldInstance.OwnerTeamID }
-			if existingInstance.OwnerTeamID != nil { newVal = *existingInstance.OwnerTeamID }
+			if oldInstance.OwnerTeamID != nil {
+				oldVal = *oldInstance.OwnerTeamID
+			}
+			if existingInstance.OwnerTeamID != nil {
+				newVal = *existingInstance.OwnerTeamID
+			}
 			auditChanges["owner_team_id"] = map[string]string{"old": oldVal, "new": newVal}
 		}
 		if (oldInstance.AssigneeTeamID == nil && existingInstance.AssigneeTeamID != nil) || (oldInstance.AssigneeTeamID != nil && existingInstance.AssigneeTeamID == nil) || (oldInstance.AssigneeTeamID != nil && existingInstance.AssigneeTeamID != nil && *oldInstance.AssigneeTeamID != *existingInstance.AssigneeTeamID) {
 			oldVal, newVal := "", ""
-			if oldInstance.AssigneeTeamID != nil { oldVal = *oldInstance.AssigneeTeamID }
-			if existingInstance.AssigneeTeamID != nil { newVal = *existingInstance.AssigneeTeamID }
+			if oldInstance.AssigneeTeamID != nil {
+				oldVal = *oldInstance.AssigneeTeamID
+			}
+			if existingInstance.AssigneeTeamID != nil {
+				newVal = *existingInstance.AssigneeTeamID
+			}
 			auditChanges["assignee_team_id"] = map[string]string{"old": oldVal, "new": newVal}
 		}
 		if oldInstance.Status != existingInstance.Status {
@@ -578,20 +641,32 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 		}
 		if (oldInstance.DueDate == nil && existingInstance.DueDate != nil) || (oldInstance.DueDate != nil && existingInstance.DueDate == nil) || (oldInstance.DueDate != nil && existingInstance.DueDate != nil && !oldInstance.DueDate.Equal(*existingInstance.DueDate)) {
 			oldDate, newDate := "", ""
-			if oldInstance.DueDate != nil { oldDate = oldInstance.DueDate.Format(time.RFC3339) }
-			if existingInstance.DueDate != nil { newDate = existingInstance.DueDate.Format(time.RFC3339) }
+			if oldInstance.DueDate != nil {
+				oldDate = oldInstance.DueDate.Format(time.RFC3339)
+			}
+			if existingInstance.DueDate != nil {
+				newDate = existingInstance.DueDate.Format(time.RFC3339)
+			}
 			auditChanges["due_date"] = map[string]string{"old": oldDate, "new": newDate}
 		}
 		if (oldInstance.CheckType == nil && existingInstance.CheckType != nil) || (oldInstance.CheckType != nil && existingInstance.CheckType == nil) || (oldInstance.CheckType != nil && existingInstance.CheckType != nil && *oldInstance.CheckType != *existingInstance.CheckType) {
 			oldVal, newVal := "", ""
-			if oldInstance.CheckType != nil { oldVal = *oldInstance.CheckType }
-			if existingInstance.CheckType != nil { newVal = *existingInstance.CheckType }
+			if oldInstance.CheckType != nil {
+				oldVal = *oldInstance.CheckType
+			}
+			if existingInstance.CheckType != nil {
+				newVal = *existingInstance.CheckType
+			}
 			auditChanges["check_type"] = map[string]string{"old": oldVal, "new": newVal}
 		}
 		if (oldInstance.Target == nil && existingInstance.Target != nil) || (oldInstance.Target != nil && existingInstance.Target == nil) || (oldInstance.Target != nil && existingInstance.Target != nil && *oldInstance.Target != *existingInstance.Target) {
 			oldVal, newVal := "", ""
-			if oldInstance.Target != nil { oldVal = *oldInstance.Target }
-			if existingInstance.Target != nil { newVal = *existingInstance.Target }
+			if oldInstance.Target != nil {
+				oldVal = *oldInstance.Target
+			}
+			if existingInstance.Target != nil {
+				newVal = *existingInstance.Target
+			}
 			auditChanges["target"] = map[string]string{"old": oldVal, "new": newVal}
 		}
 		if !reflect.DeepEqual(oldInstance.Parameters, existingInstance.Parameters) {
@@ -602,7 +677,6 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 	} else { // Fallback if deep copy failed
 		auditChanges["updated_fields_payload"] = payload // Log the payload as a fallback
 	}
-
 
 	if len(auditChanges) > 0 {
 		if errLog := utils.RecordAuditLog(h.Store, actorUserIDStrPtr, "update_campaign_task_instance", "campaign_task_instance", ctiID, auditChanges); errLog != nil {
@@ -799,13 +873,13 @@ func (h *CampaignHandler) UploadCampaignTaskInstanceEvidenceHandler(c *gin.Conte
 	// Audit log for evidence upload
 	evidenceActorID := uploaderUserID // uploaderUserID is claims.UserID
 	auditEvidenceChanges := map[string]interface{}{
-		"evidence_id":                 evidence.ID,
-		"campaign_task_instance_id":   evidence.CampaignTaskInstanceID,
-		"file_name":                   evidence.FileName,
-		"description":                 evidence.Description,
-		"mime_type":                   evidence.MimeType,
-		"file_size":                   evidence.FileSize,
-		"uploaded_by_user_id":         uploaderUserID,
+		"evidence_id":               evidence.ID,
+		"campaign_task_instance_id": evidence.CampaignTaskInstanceID,
+		"file_name":                 evidence.FileName,
+		"description":               evidence.Description,
+		"mime_type":                 evidence.MimeType,
+		"file_size":                 evidence.FileSize,
+		"uploaded_by_user_id":       uploaderUserID,
 	}
 	if err := utils.RecordAuditLog(h.Store, &evidenceActorID, "upload_evidence", "evidence", evidence.ID, auditEvidenceChanges); err != nil {
 		log.Printf("Error recording audit log for upload evidence %s (CTI: %s): %v", evidence.ID, instanceID, err)

@@ -55,20 +55,20 @@ func (e *HTTPGetCheckExecutor) ValidateParameters(taskParamsMap map[string]inter
 
 func (e *HTTPGetCheckExecutor) Execute(checkCtx CheckContext) (ExecutionResult, error) {
 	var output strings.Builder
-	resultStatus := "Failed"
+	resultStatus := StatusFailed // Default to Failed
 
 	taskInstance := checkCtx.TaskInstance
 	connectedSystem := checkCtx.ConnectedSystem
 
 	if connectedSystem == nil {
 		output.WriteString("Error: Connected System is required for http_get_check but was not found or provided.\n")
-		return ExecutionResult{Status: "Error", Output: output.String()}, fmt.Errorf("connected system is nil or not found for target ID %s", *taskInstance.Target)
+		return ExecutionResult{Status: StatusError, Output: output.String()}, fmt.Errorf("connected system is nil or not found for target ID %s", *taskInstance.Target)
 	}
 
 	var sysConfig httpGetSystemConfig
 	if err := json.Unmarshal(connectedSystem.Configuration, &sysConfig); err != nil {
 		output.WriteString(fmt.Sprintf("Error parsing configuration for Connected System %s (%s): %v\n", connectedSystem.Name, connectedSystem.ID, err))
-		return ExecutionResult{Status: "Error", Output: output.String()}, err
+		return ExecutionResult{Status: StatusError, Output: output.String()}, err
 	}
 
 	taskParamsBytes, _ := json.Marshal(taskInstance.Parameters)
@@ -84,7 +84,7 @@ func (e *HTTPGetCheckExecutor) Execute(checkCtx CheckContext) (ExecutionResult, 
 	req, err := http.NewRequestWithContext(httpCtx, "GET", finalURL, nil)
 	if err != nil {
 		output.WriteString(fmt.Sprintf("Error creating request: %v\n", err))
-		return ExecutionResult{Status: "Error", Output: output.String()}, err
+		return ExecutionResult{Status: StatusError, Output: output.String()}, err
 	}
 
 	client := &http.Client{}
@@ -94,7 +94,7 @@ func (e *HTTPGetCheckExecutor) Execute(checkCtx CheckContext) (ExecutionResult, 
 		if httpCtx.Err() == context.DeadlineExceeded {
 			output.WriteString("Request timed out.\n")
 		}
-		return ExecutionResult{Status: "Error", Output: output.String()}, err
+		return ExecutionResult{Status: StatusError, Output: output.String()}, err
 	}
 	defer resp.Body.Close()
 
@@ -112,7 +112,7 @@ func (e *HTTPGetCheckExecutor) Execute(checkCtx CheckContext) (ExecutionResult, 
 	}
 
 	if resp.StatusCode == expectedStatusCode {
-		resultStatus = "Success"
+		resultStatus = StatusSuccess
 		output.WriteString(fmt.Sprintf("Check PASSED: Received expected status code %d.\n", expectedStatusCode))
 	} else {
 		output.WriteString(fmt.Sprintf("Check FAILED: Expected status code %d, but received %d.\n", expectedStatusCode, resp.StatusCode))

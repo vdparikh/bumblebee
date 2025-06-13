@@ -28,9 +28,11 @@ import {
     FaEdit, 
     FaShieldAlt,
     FaFileContract,
-    FaTasks as FaTasksIcon
+    FaTasks as FaTasksIcon,
+    FaExclamationTriangle
 } from 'react-icons/fa';
 import PageHeader from './common/PageHeader';
+import { ProgressBar, Spinner } from 'react-bootstrap';
 
 function Campaigns() {
    const { currentUser } = useAuth();
@@ -54,13 +56,21 @@ function Campaigns() {
     const [availableRequirements, setAvailableRequirements] = useState([]);
     const [selectedRequirementsForCampaign, setSelectedRequirementsForCampaign] = useState([]); 
 
+        const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+
     const fetchCampaigns = useCallback(async () => {
         try {
-            const response = await getCampaigns();
+            // const response = await getCampaigns();
+                        setLoadingCampaigns(true);
+            // Request task summaries when fetching campaigns for the "existing" tab
+            const response = await getCampaigns(null, true); // Pass true to include summaries
+
             setCampaigns(Array.isArray(response.data) ? response.data : []);
         } catch (err) {
             console.error("Error fetching campaigns:", err);
             setError('Failed to fetch campaigns.');
+        } finally {
+            setLoadingCampaigns(false);
         }
     }, []);
 
@@ -82,7 +92,7 @@ function Campaigns() {
             
             window.history.replaceState({}, document.title) 
         }
-    }, [fetchCampaigns, fetchFormData]);
+    }, [fetchCampaigns, fetchFormData, location.state]);
 
     const handleStandardChangeForModal = async (standardId) => {
         setSelectedStandard(standardId);
@@ -118,6 +128,36 @@ function Campaigns() {
         setSelectedRequirementsForCampaign(prev => prev.map(r => 
             r.requirement_id === reqId ? { ...r, is_applicable: isApplicable } : r
         ));
+    };
+
+const getStatusColor = (status) => {
+        switch (status) {
+            case 'Closed': return 'success';
+            case 'Completed': return 'success';
+            case 'Open': return 'secondary';
+            case 'In Progress': return 'info';
+            case 'Pending Review': return 'warning';
+            case 'Failed': return 'danger';
+            case 'Active': return 'primary';
+            case 'Draft': return 'light';
+            default: return 'secondary';
+        }
+    };
+
+    const renderTaskProgressBar = (taskSummary) => {
+        if (!taskSummary || taskSummary.total_tasks === 0) {
+            return <ProgressBar now={0} label="0 Tasks" />;
+        }
+        const { open = 0, in_progress = 0, pending_review = 0, closed = 0, failed = 0, total_tasks = 0 } = taskSummary;
+        return (
+            <ProgressBar style={{ height: '20px', fontSize: '0.75rem' }}>
+                <ProgressBar  variant="success" now={(closed / total_tasks) * 100} key={1} label={`${closed} Closed`} />
+                <ProgressBar  variant="warning" now={(pending_review / total_tasks) * 100} key={2} label={`${pending_review} Review`} />
+                <ProgressBar  variant="info" now={(in_progress / total_tasks) * 100} key={3} label={`${in_progress} Active`} />
+                <ProgressBar  variant="secondary" now={(open / total_tasks) * 100} key={4} label={`${open} Open`} />
+                <ProgressBar  variant="danger" now={(failed / total_tasks) * 100} key={5} label={`${failed} Failed`} />
+            </ProgressBar>
+        );
     };
 
 
@@ -242,7 +282,7 @@ function Campaigns() {
                 </Tab>
                 <Tab eventKey="existing" title={<><FaListUl className="me-1"/>Existing Campaigns</>}>
                     {campaigns.length === 0 && <Alert variant="info">No campaigns found.</Alert>}
-                    <ListGroup variant="flush">
+                    {/* <ListGroup variant="flush">
                         {campaigns.map(camp => (
                             <ListGroup.Item key={camp.id} action as={Link} to={`/campaigns/${camp.id}`} className="p-3"> 
                                 <Row className="align-items-center">
@@ -262,7 +302,53 @@ function Campaigns() {
                                 </Row>
                             </ListGroup.Item>
                         ))}
-                    </ListGroup>
+                    </ListGroup> */}
+
+                                        {loadingCampaigns ? (
+                        <div className="text-center mt-5"><Spinner animation="border" /> Loading campaigns...</div>
+                    ) : campaigns.length === 0 ? (
+                        <Alert variant="info">No campaigns found.</Alert>
+                    ) : (
+                        <Row xs={1} md={2} lg={3} className="g-4">
+                            {campaigns.map(camp => (
+                                <Col key={camp.id}>
+                                    <Card className="h-100 shadow-sm campaign-card">
+                                        <Card.Header className="d-flex justify-content-between align-items-center">
+                                            <FaShieldAlt className="me-2 text-primary" />
+                                            <span className="fw-bold">{camp.standard_name || getStandardName(camp.standard_id)}</span>
+                                            <Badge bg={getStatusColor(camp.status)} pill>{camp.status}</Badge>
+                                        </Card.Header>
+                                        <Card.Body as={Link} to={`/campaigns/${camp.id}`} className="text-decoration-none text-dark stretched-link">
+                                            <Card.Title className="h5">{camp.name}</Card.Title>
+                                            <Card.Text className="small text-muted mb-2">
+                                                {camp.description ? `${camp.description.substring(0, 100)}${camp.description.length > 100 ? '...' : ''}` : 'No description.'}
+                                            </Card.Text>
+                                            <Row className="small text-muted mb-2">
+                                                <Col>
+                                                    <FaFileContract className="me-1" /> {camp.requirements_count || 0} Requirements
+                                                </Col>
+                                                <Col>
+                                                    <FaTasksIcon className="me-1" /> {camp.task_summary?.total_tasks || 0} Tasks
+                                                </Col>
+                                            </Row>
+                                            {camp.task_summary && camp.task_summary.total_tasks > 0 && (
+                                                <div className="mb-2">
+                                                    {renderTaskProgressBar(camp.task_summary)}
+                                                </div>
+                                            )}
+                                            {camp.task_summary?.overdue_tasks > 0 && (
+                                                <Badge bg="danger" className="mb-2"><FaExclamationTriangle className="me-1" /> {camp.task_summary.overdue_tasks} Overdue</Badge>
+                                            )}
+                                        </Card.Body>
+                                        <Card.Footer className="text-muted small">
+                                            Dates: {camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A'} - {camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A'}
+                                        </Card.Footer>
+                                    </Card>
+                                </Col>
+                            ))}
+                        </Row>
+                    )}
+
                 </Tab>
             </Tabs>
 

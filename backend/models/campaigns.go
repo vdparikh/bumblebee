@@ -21,6 +21,20 @@ type Campaign struct {
 	CreatedAt            time.Time                     `json:"created_at"`
 	UpdatedAt            time.Time                     `json:"updated_at"`
 	SelectedRequirements []CampaignSelectedRequirement `json:"selected_requirements,omitempty"`
+
+	RequirementsCount int          `json:"requirements_count,omitempty" db:"requirements_count"` // If calculated by DB query
+	TaskSummary       *TaskSummary `json:"task_summary,omitempty"`                               // Pointer to allow null if no tasks
+
+}
+
+type TaskSummary struct {
+	TotalTasks    int `json:"total_tasks"`
+	Open          int `json:"open"`
+	InProgress    int `json:"in_progress"`
+	PendingReview int `json:"pending_review"`
+	Closed        int `json:"closed"`
+	Failed        int `json:"failed"`
+	OverdueTasks  int `json:"overdue_tasks"`
 }
 
 type CampaignSelectedRequirement struct {
