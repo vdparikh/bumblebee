@@ -15,15 +15,17 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/vdparikh/compliance-automation/backend/auth"
-	"github.com/vdparikh/compliance-automation/backend/executor"
 	"github.com/vdparikh/compliance-automation/backend/models"
+	"github.com/vdparikh/compliance-automation/backend/queue"
 	"github.com/vdparikh/compliance-automation/backend/store"
 	"github.com/vdparikh/compliance-automation/backend/utils" // For audit logging
 )
 
 type CampaignHandler struct {
 	Store *store.DBStore
+	Queue queue.Queue
 }
 
 func sendError(c *gin.Context, statusCode int, message string, errDetail error) {
@@ -37,9 +39,10 @@ func sendError(c *gin.Context, statusCode int, message string, errDetail error) 
 	c.JSON(statusCode, errObj)
 }
 
-func NewCampaignHandler(s *store.DBStore) *CampaignHandler {
-	return &CampaignHandler{Store: s}
+func NewCampaignHandler(s *store.DBStore, q queue.Queue) *CampaignHandler {
+	return &CampaignHandler{Store: s, Queue: q}
 }
+
 func (h *CampaignHandler) CreateCampaignHandler(c *gin.Context) {
 	var payload struct {
 		Name                 string                               `json:"name" binding:"required"`
@@ -926,91 +929,73 @@ func (h *CampaignHandler) ExecuteCampaignTaskInstanceHandler(c *gin.Context) {
 		return
 	}
 
-	var executionOutput strings.Builder
-	executionStatus := "Failed"
-	var execDetails executor.ExecutionResult
-
 	if taskInstance.CheckType == nil || *taskInstance.CheckType == "" {
-		executionOutput.WriteString("This task is not configured for automated execution (no check_type defined).\n")
-		executionStatus = "Not Applicable"
-	} else {
-		checkType := *taskInstance.CheckType
-		exec, found := executor.GetExecutor(checkType)
-		if !found {
-			executionOutput.WriteString(fmt.Sprintf("Execution logic for check type '%s' is not implemented.\n", checkType))
-			executionStatus = "Error"
-		} else {
-			checkCtx := executor.CheckContext{
-				TaskInstance: taskInstance,
-				Store:        h.Store,
-			}
-
-			if taskInstance.Target != nil && *taskInstance.Target != "" {
-				connectedSystemID := *taskInstance.Target
-				connectedSystem, err := h.Store.GetConnectedSystemByID(connectedSystemID)
-				if err != nil {
-					executionOutput.WriteString(fmt.Sprintf("Error retrieving Connected System %s (specified as Target): %v\n", connectedSystemID, err))
-					executionStatus = "Error"
-				} else if connectedSystem == nil {
-					executionOutput.WriteString(fmt.Sprintf("Error: Connected System with ID %s (specified as Target) not found.\n", connectedSystemID))
-					executionStatus = "Error"
-				} else {
-					checkCtx.ConnectedSystem = connectedSystem
-				}
-			} else {
-				executionOutput.WriteString(fmt.Sprintf("Error: A Target (Connected System ID) is required for check type '%s' but not provided.\n", checkType))
-				executionStatus = "Error"
-			}
-
-			if executionStatus != "Error" {
-				var systemConfigForValidation []byte
-				if checkCtx.ConnectedSystem != nil {
-					systemConfigForValidation = checkCtx.ConnectedSystem.Configuration
-				}
-				isValid, expectedParams, validationErr := exec.ValidateParameters(taskInstance.Parameters, systemConfigForValidation)
-				if !isValid || validationErr != nil {
-					executionOutput.WriteString(fmt.Sprintf("Parameter validation failed for check type '%s': %v\n", checkType, validationErr))
-					executionOutput.WriteString(fmt.Sprintf("Expected parameters: %s\n", expectedParams))
-					executionStatus = "Error"
-				} else {
-					execDetails, err = exec.Execute(checkCtx)
-					if err != nil {
-						executionOutput.WriteString(fmt.Sprintf("Error during execution of check type '%s': %v\n", checkType, err))
-						if execDetails.Output != "" {
-							executionOutput.WriteString("Executor output before error:\n" + execDetails.Output)
-						}
-						executionStatus = "Error"
-					} else {
-						executionStatus = execDetails.Status
-						executionOutput.WriteString(execDetails.Output)
-					}
-				}
-			}
-		}
-	}
-
-	result := models.CampaignTaskInstanceResult{
-		CampaignTaskInstanceID: instanceID,
-		ExecutedByUserID:       &executedByUserID,
-		Timestamp:              time.Now(),
-		Status:                 executionStatus,
-		Output:                 executionOutput.String(),
-	}
-
-	if err := h.Store.CreateCampaignTaskInstanceResult(&result); err != nil {
-		log.Printf("Error storing execution result for instance %s: %v", instanceID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store execution result", "details": err.Error()})
+		sendError(c, http.StatusBadRequest, "This task is not configured for automated execution (no check_type defined)", nil)
 		return
 	}
 
+	// Get the connected system if target is specified
+	var systemConfig []byte
+	if taskInstance.Target != nil && *taskInstance.Target != "" {
+		connectedSystem, err := h.Store.GetConnectedSystemByID(*taskInstance.Target)
+		if err != nil {
+			sendError(c, http.StatusInternalServerError, fmt.Sprintf("Error retrieving Connected System %s: %v", *taskInstance.Target, err), nil)
+			return
+		}
+		if connectedSystem == nil {
+			sendError(c, http.StatusBadRequest, fmt.Sprintf("Connected System with ID %s not found", *taskInstance.Target), nil)
+			return
+		}
+		systemConfig = connectedSystem.Configuration
+	} else {
+		sendError(c, http.StatusBadRequest, "A Target (Connected System ID) is required for automated execution", nil)
+		return
+	}
+
+	// Create a task execution request
+	request := &queue.TaskExecutionRequest{
+		ID:             uuid.New(),
+		TaskInstanceID: uuid.MustParse(instanceID),
+		TaskType:       *taskInstance.CheckType,
+		Parameters:     taskInstance.Parameters,
+		SystemConfig:   map[string]interface{}{"configuration": systemConfig},
+		CreatedAt:      time.Now(),
+		Status:         "pending",
+	}
+
+	// Enqueue the task
+	if err := h.Queue.EnqueueTask(c.Request.Context(), request); err != nil {
+		sendError(c, http.StatusInternalServerError, "Failed to enqueue task for execution", err)
+		return
+	}
+
+	// Create an initial result record
+	idStr := request.ID.String()
+	result := models.CampaignTaskInstanceResult{
+		CampaignTaskInstanceID: instanceID,
+		TaskExecutionID:        &idStr,
+		ExecutedByUserID:       &executedByUserID,
+		Timestamp:              time.Now(),
+		Status:                 "queued",
+		Output:                 "Task has been queued for execution. Results will be available shortly.",
+	}
+
+	if err := h.Store.CreateCampaignTaskInstanceResult(&result); err != nil {
+		log.Printf("Error storing initial execution result for instance %s: %v", instanceID, err)
+	}
+
+	// Update the task instance with the last check status
 	taskInstance.LastCheckedAt = &result.Timestamp
 	taskInstance.LastCheckStatus = &result.Status
 	if err := h.Store.UpdateCampaignTaskInstance(taskInstance); err != nil {
 		log.Printf("Error updating task instance %s with last check status: %v", instanceID, err)
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Task instance execution processed.", "status": executionStatus, "output": result.Output})
-
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Task has been queued for execution",
+		"status":  "queued",
+		"output":  "Task has been queued for execution. Results will be available shortly.",
+	})
 }
 
 func (h *CampaignHandler) GetCampaignTaskInstanceResultsHandler(c *gin.Context) {
@@ -1062,4 +1047,60 @@ func (h *CampaignHandler) CopyEvidenceHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Evidence copied successfully"})
+}
+
+func (h *CampaignHandler) GetTaskExecutionStatusHandler(c *gin.Context) {
+	instanceID := c.Param("id")
+
+	// Get the task instance
+	taskInstance, err := h.Store.GetCampaignTaskInstanceByID(instanceID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			sendError(c, http.StatusNotFound, "Campaign Task Instance not found", err)
+			return
+		}
+		sendError(c, http.StatusInternalServerError, "Failed to retrieve campaign task instance", err)
+		return
+	}
+
+	// Get the latest task execution result
+	results, err := h.Store.GetCampaignTaskInstanceResults(instanceID)
+	if err != nil {
+		sendError(c, http.StatusInternalServerError, "Failed to retrieve execution results", err)
+		return
+	}
+
+	// Get the task execution status from the queue
+	var executionStatus *queue.TaskExecutionRequest
+	if len(results) > 0 {
+		// Get the task ID from the latest result
+		var execUUID uuid.UUID
+		if results[0].TaskExecutionID != nil {
+			execUUID, err = uuid.Parse(*results[0].TaskExecutionID)
+			if err != nil {
+				// handle error, e.g. log or return
+			}
+		}
+		executionStatus, err = h.Queue.GetTaskStatus(c.Request.Context(), execUUID)
+		if err != nil {
+			log.Printf("Error getting task execution status: %v", err)
+		}
+	}
+
+	// Prepare the response
+	response := gin.H{
+		"task_instance":    taskInstance,
+		"latest_result":    nil,
+		"execution_status": nil,
+	}
+
+	if len(results) > 0 {
+		response["latest_result"] = results[0]
+	}
+
+	if executionStatus != nil {
+		response["execution_status"] = executionStatus
+	}
+
+	c.JSON(http.StatusOK, response)
 }

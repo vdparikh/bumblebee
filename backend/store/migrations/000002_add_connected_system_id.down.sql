@@ -1,0 +1,2 @@
+ALTER TABLE campaign_task_instances
+DROP COLUMN connected_system_id; 

@@ -1,13 +1,15 @@
 module github.com/vdparikh/compliance-automation/backend
 
-go 1.24.2
+go 1.23.0
+
+toolchain go1.24.2
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.29.16
+	github.com/aws/aws-sdk-go-v2/config v1.27.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.69
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.225.1
 	github.com/gin-contrib/cors v1.7.5
-	github.com/gin-gonic/gin v1.10.1
+	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0

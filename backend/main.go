@@ -8,9 +8,9 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/vdparikh/compliance-automation/backend/executor"
 	"github.com/vdparikh/compliance-automation/backend/handlers"
 	"github.com/vdparikh/compliance-automation/backend/middleware"
+	"github.com/vdparikh/compliance-automation/backend/queue"
 	"github.com/vdparikh/compliance-automation/backend/store"
 )
 
@@ -63,7 +63,14 @@ func main() {
 	}
 	defer dbStore.DB.Close()
 
-	executor.InitExecutors()
+	// Initialize the queue
+	queueConfig := map[string]interface{}{
+		"connection_string": os.Getenv("DATABASE_URL"),
+	}
+	q, err := queue.NewQueue(queueConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize queue: %v", err)
+	}
 
 	router := gin.Default()
 
@@ -77,7 +84,7 @@ func main() {
 	requirementHandler := handlers.NewRequirementHandler(dbStore)
 	standardHandler := handlers.NewStandardHandler(dbStore)
 	userHandler := handlers.NewUserHandler(dbStore)
-	campaignHandler := handlers.NewCampaignHandler(dbStore)
+	campaignHandler := handlers.NewCampaignHandler(dbStore, q)
 	authAPI := handlers.NewAuthAPI(dbStore)
 	systemIntegrationHandler := handlers.NewSystemIntegrationHandler(dbStore)
 	documentHandler := handlers.NewDocumentHandler(dbStore)
@@ -126,6 +133,7 @@ func main() {
 
 		api.PUT("/campaign-task-instances/:id", campaignHandler.UpdateCampaignTaskInstanceHandler)
 		api.GET("/campaign-task-instances/:id", campaignHandler.GetCampaignTaskInstanceByIDHandler)
+		api.GET("/campaign-task-instances/:id/execution-status", campaignHandler.GetTaskExecutionStatusHandler)
 		api.GET("/user-campaign-tasks", campaignHandler.GetUserCampaignTaskInstancesHandler)
 		api.GET("/campaign-tasks-by-status", campaignHandler.GetCampaignTaskInstancesByStatusHandler) // New Route
 		api.GET("/master-tasks/:masterTaskId/instances", campaignHandler.GetTaskInstancesByMasterTaskIDHandler)

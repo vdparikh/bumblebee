@@ -101,11 +101,13 @@ type CampaignTaskInstance struct {
 	RequirementText         *string    `json:"requirement_text,omitempty" db:"requirement_text"`
 	RequirementStandardName *string    `json:"requirement_standard_name,omitempty" db:"requirement_standard_name"`
 	LinkedDocuments         []Document `json:"linked_documents,omitempty" db:"-"`
+	ConnectedSystemID       *string    `json:"connected_system_id,omitempty" db:"connected_system_id"`
 }
 
 type CampaignTaskInstanceResult struct {
 	ID                     string         `json:"id" db:"id"`
 	CampaignTaskInstanceID string         `json:"campaignTaskInstanceId" db:"campaign_task_instance_id"`
+	TaskExecutionID        *string        `json:"taskExecutionId,omitempty" db:"task_execution_id"`
 	ExecutedByUserID       *string        `json:"executedByUserId,omitempty" db:"executed_by_user_id"`
 	Timestamp              time.Time      `json:"timestamp" db:"timestamp"`
 	Status                 string         `json:"status" db:"status"`

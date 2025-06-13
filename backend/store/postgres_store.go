@@ -1848,9 +1848,16 @@ func (s *DBStore) UpdateConnectedSystemStatus(id string, lastCheckedAt time.Time
 }
 
 func (s *DBStore) CreateCampaignTaskInstanceResult(result *models.CampaignTaskInstanceResult) error {
-	query := `INSERT INTO campaign_task_instance_results (campaign_task_instance_id, executed_by_user_id, timestamp, status, output)
-              VALUES ($1, $2, $3, $4, $5) RETURNING id`
-	err := s.DB.QueryRow(query, result.CampaignTaskInstanceID, result.ExecutedByUserID, result.Timestamp, result.Status, result.Output).Scan(&result.ID)
+	query := `INSERT INTO campaign_task_instance_results (campaign_task_instance_id, task_execution_id, executed_by_user_id, timestamp, status, output)
+              VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
+	err := s.DB.QueryRow(query,
+		result.CampaignTaskInstanceID,
+		result.TaskExecutionID,
+		result.ExecutedByUserID,
+		result.Timestamp,
+		result.Status,
+		result.Output,
+	).Scan(&result.ID)
 	if err != nil {
 		log.Printf("Error creating campaign task instance result in DB: %v. Result details: %+v", err, result)
 		return fmt.Errorf("failed to create campaign task instance result: %w", err)
@@ -1863,7 +1870,8 @@ func (s *DBStore) GetCampaignTaskInstanceResults(instanceID string) ([]models.Ca
 	query := `
 		SELECT 
 			ctir.id, 
-			ctir.campaign_task_instance_id, 
+			ctir.campaign_task_instance_id,
+			ctir.task_execution_id,
 			ctir.executed_by_user_id, 
 			u.name as executed_by_user_name, 
 			ctir.timestamp, 
@@ -1881,20 +1889,30 @@ func (s *DBStore) GetCampaignTaskInstanceResults(instanceID string) ([]models.Ca
 	defer rows.Close()
 
 	for rows.Next() {
-		var res models.CampaignTaskInstanceResult
+		var result models.CampaignTaskInstanceResult
+		var executedByUser models.UserBasicInfo
 		var userName sql.NullString
-		err := rows.Scan(&res.ID, &res.CampaignTaskInstanceID, &res.ExecutedByUserID, &userName, &res.Timestamp, &res.Status, &res.Output)
+		err := rows.Scan(
+			&result.ID,
+			&result.CampaignTaskInstanceID,
+			&result.TaskExecutionID,
+			&result.ExecutedByUserID,
+			&userName,
+			&result.Timestamp,
+			&result.Status,
+			&result.Output,
+		)
 		if err != nil {
-			log.Printf("Error scanning campaign task instance result row: %v", err)
 			return nil, fmt.Errorf("failed to scan campaign task instance result: %w", err)
 		}
-		if userName.Valid {
-			res.ExecutedByUser = &models.UserBasicInfo{Name: userName.String}
-			if res.ExecutedByUserID != nil {
-				res.ExecutedByUser.ID = *res.ExecutedByUserID
+		if result.ExecutedByUserID != nil {
+			executedByUser.ID = *result.ExecutedByUserID
+			if userName.Valid {
+				executedByUser.Name = userName.String
 			}
+			result.ExecutedByUser = &executedByUser
 		}
-		results = append(results, res)
+		results = append(results, result)
 	}
 	return results, rows.Err()
 }

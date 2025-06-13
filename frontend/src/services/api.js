@@ -324,3 +324,13 @@ export const getAuditLogs = async (params = {}) => {
         throw error;
     }
 };
+
+export const getTaskExecutionStatus = async (taskInstanceId) => {
+    try {
+        const response = await apiClient.get(`/campaign-task-instances/${taskInstanceId}/execution-status`);
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching execution status for task instance ${taskInstanceId}:`, error.response || error.message);
+        throw error;
+    }
+};

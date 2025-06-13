@@ -1,14 +1,14 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres:13-alpine
+  postgres:
+    image: postgres:15-alpine
     container_name: compliance_postgres_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-mysecretpassword} # Ensure this matches your backend config or .env
-      POSTGRES_DB: ${DB_NAME:-compliance}
+      POSTGRES_USER: compliance
+      POSTGRES_PASSWORD: compliance
+      POSTGRES_DB: compliance
     ports:
       - "5432:5432" # Map host port 5432 to container port 5432
     volumes:
@@ -23,18 +23,22 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-mysecretpassword} # Should match db service's POSTGRES_PASSWORD
-      DB_HOST: db # This refers to the service name 'db'
-      DB_NAME: ${DB_NAME:-compliance} # Should match db service's POSTGRES_DB
-      DB_PORT: ${DB_PORT:-5432}
-      GIN_MODE: ${GIN_MODE:-release} # Or debug
+      DATABASE_URL: postgres://compliance:compliance@postgres:5432/compliance?sslmode=disable
     depends_on:
-      - db
+      - postgres
     volumes:
       - ./backend/uploads:/app/uploads # Persist uploads, ensure /app/uploads is where backend saves them
       # If your backend executable is in /root/ as per Dockerfile, and uploads are relative to executable:
       # - ./backend/uploads:/root/uploads
+
+  integrations:
+    build:
+      context: ./backend
+      dockerfile: cmd/integrations/Dockerfile
+    environment:
+      DATABASE_URL: postgres://compliance:compliance@postgres:5432/compliance?sslmode=disable
+    depends_on:
+      - postgres
 
   frontend:
     build:

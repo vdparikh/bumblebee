@@ -12,6 +12,7 @@ import {
     executeCampaignTaskInstance, copyEvidenceToCampaignTaskInstance,
     getCampaignTaskInstanceResults,
     getTaskInstancesByMasterTaskId,
+    getTaskExecutionStatus,
 
     reviewEvidence, // Assumed to be added in services/api.js
 } from '../services/api';
@@ -92,8 +93,9 @@ function CampaignTaskInstanceDetail() {
     const [reviewComment, setReviewComment] = useState('');
     const [reviewError, setReviewError] = useState('');
 
-
     const [executionResults, setExecutionResults] = useState([]);
+    const [executionStatus, setExecutionStatus] = useState(null);
+    const [pollingInterval, setPollingInterval] = useState(null);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -105,8 +107,6 @@ function CampaignTaskInstanceDetail() {
     const [executionSuccess, setExecutionSuccess] = useState('');
     const [lastExecutionAttempt, setLastExecutionAttempt] = useState(null);
     const [loadingResults, setLoadingResults] = useState(false);
-
-
 
     const canUpdateTaskStatus = useMemo(() => {
         if (!currentUser || !taskInstance) return false;
@@ -120,7 +120,6 @@ function CampaignTaskInstanceDetail() {
         return currentUser.role === 'admin' || currentUser.role === 'auditor'; // Or task owners, etc.
     }, [currentUser, taskInstance]);
 
-
     const canManageEvidenceAndExecution = useMemo(() => {
         if (!currentUser || !taskInstance) return false;
         return currentUser.role === 'admin' ||
@@ -129,17 +128,20 @@ function CampaignTaskInstanceDetail() {
     }, [currentUser, taskInstance]);
 
     const getStatusColor = (status) => {
-        switch (status) {
-            case 'Closed': return 'success';
-            case 'Open': return 'secondary';
-            case 'In Progress': return 'info';
-            case 'Pending Review': return 'warning';
-            case 'Failed': return 'danger';
-            case 'Success': return 'success';
-            case 'Error': return 'danger';
-            case 'Approved': return 'success'; // Review status
-            case 'Rejected': return 'danger';  // Review status
-            case 'Pending': return 'warning'; // Review status
+        switch (status?.toLowerCase()) {
+            case 'closed': return 'success';
+            case 'open': return 'secondary';
+            case 'in progress': return 'info';
+            case 'pending review': return 'warning';
+            case 'failed': return 'danger';
+            case 'success': return 'success';
+            case 'error': return 'danger';
+            case 'approved': return 'success'; // Review status
+            case 'rejected': return 'danger';  // Review status
+            case 'pending': return 'warning'; // Review status
+            case 'queued': return 'info';     // Execution status
+            case 'completed': return 'success'; // Execution status
+            case 'running': return 'info';    // Execution status
             default: return 'secondary';
         }
     };
@@ -242,7 +244,6 @@ function CampaignTaskInstanceDetail() {
             fetchHistoricalTasks(taskInstance.master_task_id);
         }
     }, [taskInstance, fetchHistoricalTasks]);
-
 
     const fetchData = useCallback(async () => {
         if (!instanceId) {
@@ -443,6 +444,39 @@ function CampaignTaskInstanceDetail() {
             return content;
         }
     };
+
+    useEffect(() => {
+        // Start polling when execution is triggered
+        if (executionSuccess) {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await getTaskExecutionStatus(instanceId);
+                    setExecutionStatus(response.execution_status);
+                    
+                    // If task is completed or failed, stop polling
+                    if (response.execution_status && 
+                        (response.execution_status.status === 'completed' || 
+                         response.execution_status.status === 'failed')) {
+                        clearInterval(interval);
+                        setPollingInterval(null);
+                        // Refresh the results
+                        await fetchInstanceResults();
+                    }
+                } catch (error) {
+                    console.error('Error polling task status:', error);
+                }
+            }, 2000); // Poll every 2 seconds
+            
+            setPollingInterval(interval);
+        }
+        
+        // Cleanup on unmount
+        return () => {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+        };
+    }, [executionSuccess, instanceId]);
 
     if (loading) return <div className="text-center mt-5"><Spinner animation="border" /><p>Loading task instance details...</p></div>;
     if (error) return <Alert variant="danger" className="mt-3">{error}</Alert>;
@@ -810,12 +844,12 @@ function CampaignTaskInstanceDetail() {
                                     </Card.Body>
                                     {executionResults.length > 0 ? (
                                         <ListGroup variant="flush">
-                                            {executionResults.map((res, index) => (
-                                                <ListGroup.Item key={res.id} >
+                                            {executionResults.map(res => (
+                                                <ListGroup.Item key={res.id}>
                                                     <div>
                                                         <div className="d-flex justify-content-between align-items-start">
-
-                                                            <div><small><strong>Timestamp:</strong> {new Date(res.timestamp).toLocaleString()}</small><br />
+                                                            <div>
+                                                                <small><strong>Timestamp:</strong> {new Date(res.timestamp).toLocaleString()}</small><br />
                                                                 <small><strong>Status:</strong> <Badge bg={getStatusColor(res.status)}>{res.status}</Badge></small>
                                                                 {res.executedByUser && res.executedByUser.name && (
                                                                     <small className='ms-1 ps-1 border-start'>
@@ -829,18 +863,32 @@ function CampaignTaskInstanceDetail() {
                                                                         <FaPlus className="me-1" /> Evidence
                                                                     </Button>
                                                                 )}
-
-                                                            </div></div>
+                                                            </div>
+                                                        </div>
                                                         <small className="d-block mt-1"><strong>Output:</strong></small>
-                                                        <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>{res.output}</pre>
-
+                                                        <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>
+                                                            {res.output}
+                                                        </pre>
                                                     </div>
-                                                    {/* <small><strong>Output:</strong></small>
-                                                <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>{res.output}</pre> */}
                                                 </ListGroup.Item>
                                             ))}
                                         </ListGroup>
-                                    ) : <Card.Footer><p className="text-muted">No execution results available for this task instance. Execute the task or refresh if recently executed.</p></Card.Footer>}
+                                    ) : (
+                                        <Card.Footer>
+                                            {executionStatus ? (
+                                                <div>
+                                                    <p className="text-muted mb-2">Task execution status: <Badge bg={getStatusColor(executionStatus.status)}>{executionStatus.status}</Badge></p>
+                                                    {executionStatus.error_message && (
+                                                        <Alert variant="danger" className="mt-2">
+                                                            Error: {executionStatus.error_message}
+                                                        </Alert>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-muted">No execution results available for this task instance. Execute the task or refresh if recently executed.</p>
+                                            )}
+                                        </Card.Footer>
+                                    )}
                                 </Card>
 
                             </div>

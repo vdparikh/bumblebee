@@ -422,3 +422,25 @@ CREATE INDEX idx_audit_logs_entity_type ON audit_logs(entity_type);
 CREATE INDEX idx_audit_logs_entity_id ON audit_logs(entity_id);
 CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp);
 CREATE INDEX idx_audit_logs_entity_type_entity_id ON audit_logs(entity_type, entity_id);
+
+
+
+CREATE TABLE IF NOT EXISTS campaign_task_instance_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    campaign_task_instance_id UUID NOT NULL REFERENCES campaign_task_instances(id),
+    task_execution_id UUID,
+    executed_by_user_id UUID REFERENCES users(id),
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    status VARCHAR(50) NOT NULL,
+    output TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+
+ALTER TABLE campaign_task_instances
+ADD COLUMN connected_system_id UUID REFERENCES connected_systems(id); 
+
+
+ALTER TABLE campaign_task_instances
+DROP COLUMN connected_system_id; 

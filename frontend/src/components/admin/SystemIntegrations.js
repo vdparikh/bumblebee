@@ -20,80 +20,276 @@ import {
     FaShieldAlt,
     FaCloud,
     FaCode,
-    FaServer as FaGenericServer
+    FaServer as FaGenericServer,
+    FaChartLine,
+    FaFileAlt,
+    FaLock,
+    FaUserLock,
+    FaNetworkWired,
+    FaSearch,
+    FaFileSignature,
+    FaClipboardCheck,
+    FaFileContract,
+    FaFileInvoiceDollar,
+    FaUserShield,
+    FaFileMedical,
+    FaFileInvoice,
+    FaFileWord,
+    FaFileExcel,
+    FaFilePdf,
+    FaFileArchive
 } from 'react-icons/fa';
 import { getConnectedSystems, createConnectedSystem, updateConnectedSystem, deleteConnectedSystem } from '../../services/api';
 
 const systemTypeOptions = [
+    // Cloud Providers
     { 
         value: 'aws', 
         label: 'AWS', 
         description: 'Amazon Web Services',
         icon: <FaAws size={24} />,
-        color: '#FF9900'
+        color: '#FF9900',
+        category: 'Cloud'
     },
     { 
         value: 'azure', 
         label: 'Azure', 
         description: 'Microsoft Azure',
         icon: <FaMicrosoft size={24} />,
-        color: '#0078D4'
+        color: '#0078D4',
+        category: 'Cloud'
     },
     { 
         value: 'gcp', 
         label: 'GCP', 
         description: 'Google Cloud Platform',
         icon: <FaGoogle size={24} />,
-        color: '#4285F4'
+        color: '#4285F4',
+        category: 'Cloud'
+    },
+
+    // Security & Monitoring
+    { 
+        value: 'splunk', 
+        label: 'Splunk', 
+        description: 'Log Management & Analytics',
+        icon: <FaSearch size={24} />,
+        color: '#000000',
+        category: 'Security'
     },
     { 
-        value: 'github', 
-        label: 'GitHub', 
-        description: 'GitHub Integration',
-        icon: <FaGithub size={24} />,
-        color: '#181717'
-    },
-    { 
-        value: 'gitlab', 
-        label: 'GitLab', 
-        description: 'GitLab Integration',
-        icon: <FaGitlab size={24} />,
-        color: '#FC6D26'
+        value: 'grafana', 
+        label: 'Grafana', 
+        description: 'Monitoring & Visualization',
+        icon: <FaChartLine size={24} />,
+        color: '#F46800',
+        category: 'Security'
     },
     { 
         value: 'nessus', 
         label: 'Nessus', 
         description: 'Vulnerability Scanner',
         icon: <FaShieldAlt size={24} />,
-        color: '#00A8E8'
+        color: '#00A8E8',
+        category: 'Security'
     },
     { 
         value: 'qualys', 
         label: 'Qualys', 
         description: 'Qualys Guard',
         icon: <FaShieldAlt size={24} />,
-        color: '#FF4B4B'
+        color: '#FF4B4B',
+        category: 'Security'
     },
     { 
-        value: 'generic_api', 
-        label: 'Generic API', 
-        description: 'Custom API Endpoint',
-        icon: <FaCode size={24} />,
-        color: '#6C757D'
+        value: 'crowdstrike', 
+        label: 'CrowdStrike', 
+        description: 'Endpoint Security',
+        icon: <FaUserShield size={24} />,
+        color: '#FF0000',
+        category: 'Security'
     },
+    { 
+        value: 'palo_alto', 
+        label: 'Palo Alto', 
+        description: 'Network Security',
+        icon: <FaNetworkWired size={24} />,
+        color: '#7D0000',
+        category: 'Security'
+    },
+
+    // Compliance & Audit
+    { 
+        value: 'arcsight', 
+        label: 'ArcSight', 
+        description: 'Security Information & Event Management',
+        icon: <FaFileAlt size={24} />,
+        color: '#00A0E3',
+        category: 'Compliance'
+    },
+    { 
+        value: 'servicenow', 
+        label: 'ServiceNow', 
+        description: 'IT Service Management',
+        icon: <FaFileContract size={24} />,
+        color: '#81B5A1',
+        category: 'Compliance'
+    },
+    { 
+        value: 'jira', 
+        label: 'Jira', 
+        description: 'Project Management & Tracking',
+        icon: <FaClipboardCheck size={24} />,
+        color: '#0052CC',
+        category: 'Compliance'
+    },
+    { 
+        value: 'confluence', 
+        label: 'Confluence', 
+        description: 'Documentation & Knowledge Base',
+        icon: <FaFileWord size={24} />,
+        color: '#172B4D',
+        category: 'Compliance'
+    },
+
+    // Identity & Access
+    { 
+        value: 'okta', 
+        label: 'Okta', 
+        description: 'Identity & Access Management',
+        icon: <FaUserLock size={24} />,
+        color: '#007DC1',
+        category: 'Identity'
+    },
+    { 
+        value: 'azure_ad', 
+        label: 'Azure AD', 
+        description: 'Microsoft Identity Platform',
+        icon: <FaUserLock size={24} />,
+        color: '#0078D4',
+        category: 'Identity'
+    },
+    { 
+        value: 'pam', 
+        label: 'PAM', 
+        description: 'Privileged Access Management',
+        icon: <FaLock size={24} />,
+        color: '#6C757D',
+        category: 'Identity'
+    },
+
+    // Data & Storage
     { 
         value: 'database', 
         label: 'Database', 
         description: 'Database Connection',
         icon: <FaDatabase size={24} />,
-        color: '#0D6EFD'
+        color: '#0D6EFD',
+        category: 'Data'
+    },
+    { 
+        value: 's3', 
+        label: 'S3', 
+        description: 'Object Storage',
+        icon: <FaFileArchive size={24} />,
+        color: '#FF9900',
+        category: 'Data'
+    },
+    { 
+        value: 'sharepoint', 
+        label: 'SharePoint', 
+        description: 'Document Management',
+        icon: <FaFilePdf size={24} />,
+        color: '#0078D4',
+        category: 'Data'
+    },
+
+    // Development & CI/CD
+    { 
+        value: 'github', 
+        label: 'GitHub', 
+        description: 'GitHub Integration',
+        icon: <FaGithub size={24} />,
+        color: '#181717',
+        category: 'Development'
+    },
+    { 
+        value: 'gitlab', 
+        label: 'GitLab', 
+        description: 'GitLab Integration',
+        icon: <FaGitlab size={24} />,
+        color: '#FC6D26',
+        category: 'Development'
+    },
+    { 
+        value: 'jenkins', 
+        label: 'Jenkins', 
+        description: 'CI/CD Pipeline',
+        icon: <FaCode size={24} />,
+        color: '#D24939',
+        category: 'Development'
+    },
+
+    // Financial & Audit
+    { 
+        value: 'sap', 
+        label: 'SAP', 
+        description: 'Enterprise Resource Planning',
+        icon: <FaFileInvoiceDollar size={24} />,
+        color: '#003366',
+        category: 'Financial'
+    },
+    { 
+        value: 'oracle_erp', 
+        label: 'Oracle ERP', 
+        description: 'Enterprise Resource Planning',
+        icon: <FaFileInvoice size={24} />,
+        color: '#F80000',
+        category: 'Financial'
+    },
+    { 
+        value: 'workday', 
+        label: 'Workday', 
+        description: 'Human Capital Management',
+        icon: <FaFileExcel size={24} />,
+        color: '#2E8B57',
+        category: 'Financial'
+    },
+
+    // Healthcare & Privacy
+    { 
+        value: 'epic', 
+        label: 'Epic', 
+        description: 'Healthcare Information System',
+        icon: <FaFileMedical size={24} />,
+        color: '#2E3192',
+        category: 'Healthcare'
+    },
+    { 
+        value: 'cerner', 
+        label: 'Cerner', 
+        description: 'Healthcare Information System',
+        icon: <FaFileMedical size={24} />,
+        color: '#004B87',
+        category: 'Healthcare'
+    },
+
+    // Generic & Custom
+    { 
+        value: 'generic_api', 
+        label: 'Generic API', 
+        description: 'Custom API Endpoint',
+        icon: <FaCode size={24} />,
+        color: '#6C757D',
+        category: 'Custom'
     },
     { 
         value: 'other', 
         label: 'Other', 
         description: 'Custom Integration',
         icon: <FaGenericServer size={24} />,
-        color: '#6C757D'
+        color: '#6C757D',
+        category: 'Custom'
     }
 ];
 
@@ -290,38 +486,47 @@ function SystemIntegrations() {
     const renderSystemTypeSelector = () => (
         <div className="mb-4">
             <Form.Label className="mb-3">Select System Type</Form.Label>
-            <Row className="g-3">
-                {systemTypeOptions.map((option) => (
-                    <Col key={option.value} xs={6} sm={4} md={3}>
-                        <Card 
-                            className={`h-100 system-type-card ${systemType === option.value ? 'selected' : ''}`}
-                            onClick={() => setSystemType(option.value)}
-                            style={{ 
-                                cursor: 'pointer',
-                                border: systemType === option.value ? `2px solid ${option.color}` : '1px solid #dee2e6',
-                                transition: 'all 0.2s ease-in-out'
-                            }}
-                        >
-                            <Card.Body className="text-center p-3">
-                                <div 
-                                    className="mb-2" 
+            {Object.entries(systemTypeOptions.reduce((acc, option) => {
+                if (!acc[option.category]) acc[option.category] = [];
+                acc[option.category].push(option);
+                return acc;
+            }, {})).map(([category, options]) => (
+                <div key={category} className="mb-4">
+                    <h6 className="mb-3 text-muted">{category}</h6>
+                    <Row className="g-3">
+                        {options.map((option) => (
+                            <Col key={option.value} xs={6} sm={4} md={3}>
+                                <Card 
+                                    className={`h-100 system-type-card ${systemType === option.value ? 'selected' : ''}`}
+                                    onClick={() => setSystemType(option.value)}
                                     style={{ 
-                                        color: option.color,
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        height: '40px'
+                                        cursor: 'pointer',
+                                        border: systemType === option.value ? `2px solid ${option.color}` : '1px solid #dee2e6',
+                                        transition: 'all 0.2s ease-in-out'
                                     }}
                                 >
-                                    {option.icon}
-                                </div>
-                                <h6 className="mb-1">{option.label}</h6>
-                                <small className="text-muted d-block">{option.description}</small>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                ))}
-            </Row>
+                                    <Card.Body className="text-center p-3">
+                                        <div 
+                                            className="mb-2" 
+                                            style={{ 
+                                                color: option.color,
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                height: '40px'
+                                            }}
+                                        >
+                                            {option.icon}
+                                        </div>
+                                        <h6 className="mb-1">{option.label}</h6>
+                                        <small className="text-muted d-block">{option.description}</small>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        ))}
+                    </Row>
+                </div>
+            ))}
         </div>
     );
 
