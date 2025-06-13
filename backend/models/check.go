@@ -15,13 +15,12 @@ type ComplianceStandard struct {
 }
 
 type Task struct {
-	ID            string    `json:"id"`
-	RequirementID string    `json:"requirementId"`
-	Title         string    `json:"title"`
-	Description   string    `json:"description"`
-	Category      string    `json:"category"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Category    string    `json:"category"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 
 	CheckType  *string                `json:"checkType,omitempty"`
 	Target     *string                `json:"target,omitempty"`
@@ -32,6 +31,10 @@ type Task struct {
 
 	EvidenceTypesExpected []string `json:"evidenceTypesExpected,omitempty" db:"evidence_types_expected"`
 	DefaultPriority       *string  `json:"defaultPriority,omitempty" db:"default_priority"`
+
+	// Requirements related fields
+	RequirementIDs []string      `json:"requirementIds,omitempty" db:"-"`
+	Requirements   []Requirement `json:"requirements,omitempty" db:"-"`
 }
 
 type TaskExecutionResult struct {

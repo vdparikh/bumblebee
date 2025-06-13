@@ -127,8 +127,8 @@ const taskCategories = [
     "Vulnerability Management", "Audit", "Policy", "Other"
 ];
 
-function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, connectedSystems, documents, parentId, /* checkTypeConfigurations (if passed as prop) */ }) {
-    const [requirementId, setRequirementId] = useState('');
+function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, connectedSystems, documents, parentId }) {
+    const [requirementIds, setRequirementIds] = useState([]);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('');
@@ -141,7 +141,10 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
 
     useEffect(() => {
         if (mode === 'edit' && initialData) {
-            setRequirementId(initialData.requirementId || '');
+            setRequirementIds(initialData.requirementIds ? initialData.requirementIds.map(id => ({
+                value: id,
+                label: requirements.find(r => r.id === id)?.controlIdReference || id
+            })) : []);
             setTitle(initialData.title || '');
             setDescription(initialData.description || '');
             setCategory(initialData.category || '');
@@ -152,7 +155,14 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
             setEvidenceTypesExpected(initialData.evidenceTypesExpected ? initialData.evidenceTypesExpected.map(et => ({ value: et, label: evidenceTypeOptions.find(opt => opt.value === et)?.label || et })) : []);
             setLinkedDocumentIDs(initialData.linked_documents ? initialData.linked_documents.map(doc => ({ value: doc.id, label: doc.name })) : []);
         } else {
-            setRequirementId(parentId || ''); // Pre-select requirement if parentId is provided
+            if (parentId) {
+                const parentRequirement = requirements.find(r => r.id === parentId);
+                if (parentRequirement) {
+                    setRequirementIds([{ value: parentId, label: parentRequirement.controlIdReference }]);
+                }
+            } else {
+                setRequirementIds([]);
+            }
             setTitle('');
             setDescription('');
             setCategory('');
@@ -163,12 +173,12 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
             setEvidenceTypesExpected([]);
             setLinkedDocumentIDs([]);
         }
-    }, [initialData, mode, parentId]);
+    }, [initialData, mode, parentId, requirements]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
         onSubmit({
-            requirementId,
+            requirementIds: requirementIds.map(option => option.value),
             title,
             description,
             category,
@@ -221,14 +231,19 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
 
     return (
         <Form onSubmit={handleSubmit}>
-            <FloatingLabel controlId="formTaskRequirement" label={<><FaFileContract className="me-1" />Associated Requirement*</>} className="mb-3">
-                 <Form.Select value={requirementId} onChange={(e) => setRequirementId(e.target.value)} required disabled={mode === 'edit'}>
-                    <option value="">Select a Requirement</option>
-                    {requirements.map(req => (
-                        <option key={req.id} value={req.id}>{req.controlIdReference} - {req.requirementText.substring(0, 50)}...</option>
-                    ))}
-                </Form.Select>
-            </FloatingLabel>
+            <Form.Group className="mb-3" controlId="formTaskRequirements">
+                <Form.Label><><FaFileContract className="me-1" />Associated Requirements*</></Form.Label>
+                <Select
+                    isMulti
+                    options={requirementOptions}
+                    value={requirementIds}
+                    onChange={setRequirementIds}
+                    placeholder="Select one or more requirements..."
+                    isClearable
+                    required
+                />
+                <Form.Text muted>Select one or more requirements this task addresses.</Form.Text>
+            </Form.Group>
 
             <FloatingLabel controlId="formTaskTitle" label={<><FaTasks className="me-1" />Task Title*</>} className="mb-3">
                 <Form.Control type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Task Title" required />

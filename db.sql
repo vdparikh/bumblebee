@@ -444,3 +444,20 @@ ADD COLUMN connected_system_id UUID REFERENCES connected_systems(id);
 
 ALTER TABLE campaign_task_instances
 DROP COLUMN connected_system_id; 
+
+
+
+-- Create task_requirements junction table
+CREATE TABLE IF NOT EXISTS task_requirements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    requirement_id UUID NOT NULL REFERENCES requirements(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(task_id, requirement_id)
+);
+
+INSERT INTO task_requirements (task_id, requirement_id)
+SELECT id, requirement_id FROM tasks WHERE requirement_id IS NOT NULL;
+
+-- Drop the requirement_id column from tasks table
+ALTER TABLE tasks DROP COLUMN requirement_id; 

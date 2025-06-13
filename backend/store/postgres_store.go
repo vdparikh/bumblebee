@@ -139,61 +139,90 @@ func (s *DBStore) CreateTask(task *models.Task) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to begin transaction: %w", err)
 	}
+	defer tx.Rollback()
 
-	var checkType sql.NullString
-	if task.CheckType != nil && *task.CheckType != "" {
-		checkType.String = *task.CheckType
-		checkType.Valid = true
-	}
-	var target sql.NullString
-	if task.Target != nil && *task.Target != "" {
-		target.String = *task.Target
-		target.Valid = true
-	}
-
-	var paramsJSON []byte
-	if task.Parameters != nil {
-		paramsJSON, err = json.Marshal(task.Parameters)
-		if err != nil {
-			tx.Rollback()
-			return "", fmt.Errorf("failed to marshal task parameters: %w", err)
-		}
-	} else {
-		paramsJSON = []byte("{}")
-	}
-
-	query := `
-		INSERT INTO tasks (id, requirement_id, title, description, category, created_at, updated_at, check_type, target, parameters, evidence_types_expected, default_priority)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id
-	`
-
-	_, err = tx.Exec(query, task.ID, task.RequirementID, task.Title, task.Description, task.Category, task.CreatedAt, task.UpdatedAt, checkType, target, paramsJSON, pq.Array(task.EvidenceTypesExpected), task.DefaultPriority)
+	// Convert parameters to JSON
+	paramsJSON, err := json.Marshal(task.Parameters)
 	if err != nil {
-		tx.Rollback()
+		return "", fmt.Errorf("failed to marshal task parameters: %w", err)
+	}
+
+	// Insert task
+	query := `
+		INSERT INTO tasks (id, title, description, category, created_at, updated_at, check_type, target, parameters, evidence_types_expected, default_priority)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id
+	`
+	_, err = tx.Exec(query, task.ID, task.Title, task.Description, task.Category, task.CreatedAt, task.UpdatedAt, task.CheckType, task.Target, paramsJSON, pq.Array(task.EvidenceTypesExpected), task.DefaultPriority)
+	if err != nil {
 		return "", fmt.Errorf("failed to insert task: %w", err)
 	}
 
-	if len(task.LinkedDocumentIDs) > 0 {
-		if err := s.linkDocumentsToTask(tx, task.ID, task.LinkedDocumentIDs); err != nil {
-			tx.Rollback()
-			return "", fmt.Errorf("failed to link documents to new task: %w", err)
+	// Insert task-requirement associations
+	if len(task.RequirementIDs) > 0 {
+		stmt, err := tx.Preparex(`
+			INSERT INTO task_requirements (task_id, requirement_id)
+			VALUES ($1, $2)
+		`)
+		if err != nil {
+			return "", fmt.Errorf("failed to prepare task_requirements insert statement: %w", err)
+		}
+		defer stmt.Close()
+
+		for _, reqID := range task.RequirementIDs {
+			_, err = stmt.Exec(task.ID, reqID)
+			if err != nil {
+				return "", fmt.Errorf("failed to insert task-requirement association: %w", err)
+			}
 		}
 	}
 
-	return task.ID, tx.Commit()
+	// Link documents if any
+	if len(task.LinkedDocumentIDs) > 0 {
+		if err := s.linkDocumentsToTask(tx, task.ID, task.LinkedDocumentIDs); err != nil {
+			return "", fmt.Errorf("failed to link documents to task: %w", err)
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return "", fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return task.ID, nil
 }
 
 func (s *DBStore) GetTasks(userID, userField string) ([]models.Task, error) {
 	baseQuery := `
-		SELECT id, requirement_id, title, description, category, created_at, updated_at, check_type, target, parameters, evidence_types_expected, default_priority
-		FROM tasks
+		SELECT t.id, t.title, t.description, t.category, t.created_at, t.updated_at, 
+		       t.check_type, t.target, t.parameters, t.evidence_types_expected, t.default_priority,
+		       COALESCE(
+			   json_agg(
+				   json_build_object(
+					   'id', r.id,
+					   'controlIdReference', r.control_id_reference,
+					   'requirementText', r.requirement_text
+				   )
+			   ) FILTER (WHERE r.id IS NOT NULL),
+			   '[]'
+		   ) as requirements
+		FROM tasks t
+		LEFT JOIN task_requirements tr ON t.id = tr.task_id
+		LEFT JOIN requirements r ON tr.requirement_id = r.id
 	`
 	var args []interface{}
-	var fullQuery string
 
-	fullQuery = baseQuery + " ORDER BY created_at DESC"
+	if userID != "" {
+		baseQuery += " WHERE "
+		if userField == "owner" {
+			baseQuery += "t.owner_user_id = $1"
+		} else if userField == "assignee" {
+			baseQuery += "t.assignee_user_id = $1"
+		}
+		args = append(args, userID)
+	}
 
-	rows, err := s.DB.Query(fullQuery, args...)
+	baseQuery += " GROUP BY t.id ORDER BY t.created_at DESC"
+
+	rows, err := s.DB.Query(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query tasks: %w", err)
 	}
@@ -203,9 +232,19 @@ func (s *DBStore) GetTasks(userID, userField string) ([]models.Task, error) {
 	for rows.Next() {
 		var t models.Task
 		var paramsJSON []byte
-		if err := rows.Scan(&t.ID, &t.RequirementID, &t.Title, &t.Description, &t.Category, &t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target, &paramsJSON, pq.Array(&t.EvidenceTypesExpected), &t.DefaultPriority); err != nil {
+		var requirementsJSON []byte
+
+		err := rows.Scan(
+			&t.ID, &t.Title, &t.Description, &t.Category,
+			&t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target,
+			&paramsJSON, pq.Array(&t.EvidenceTypesExpected), &t.DefaultPriority,
+			&requirementsJSON,
+		)
+		if err != nil {
 			return nil, fmt.Errorf("failed to scan task row: %w", err)
 		}
+
+		// Parse parameters
 		if len(paramsJSON) > 0 && string(paramsJSON) != "null" {
 			if err := json.Unmarshal(paramsJSON, &t.Parameters); err != nil {
 				log.Printf("Warning: failed to unmarshal parameters for task %s: %v", t.ID, err)
@@ -215,49 +254,98 @@ func (s *DBStore) GetTasks(userID, userField string) ([]models.Task, error) {
 			t.Parameters = make(map[string]interface{})
 		}
 
+		// Parse requirements
+		if len(requirementsJSON) > 0 && string(requirementsJSON) != "null" {
+			if err := json.Unmarshal(requirementsJSON, &t.Requirements); err != nil {
+				log.Printf("Warning: failed to unmarshal requirements for task %s: %v", t.ID, err)
+			}
+			// Populate RequirementIDs from Requirements
+			t.RequirementIDs = make([]string, len(t.Requirements))
+			for i, req := range t.Requirements {
+				t.RequirementIDs[i] = req.ID
+			}
+		}
+
+		// Get linked documents
 		linkedDocs, err := s.getLinkedDocumentsForTask(t.ID)
 		if err != nil {
 			log.Printf("Warning: failed to fetch linked documents for task %s: %v", t.ID, err)
 		}
 		t.LinkedDocuments = linkedDocs
+
 		tasks = append(tasks, t)
 	}
+
 	return tasks, rows.Err()
 }
 
 func (s *DBStore) GetTaskByID(taskID string) (*models.Task, error) {
 	query := `
-		SELECT id, requirement_id, title, description, category, created_at, updated_at, check_type, target, parameters, evidence_types_expected, default_priority
-		FROM tasks WHERE id = $1
+		SELECT t.id, t.title, t.description, t.category, t.created_at, t.updated_at, 
+		       t.check_type, t.target, t.parameters, t.evidence_types_expected, t.default_priority,
+		       COALESCE(
+			   json_agg(
+				   json_build_object(
+					   'id', r.id,
+					   'controlIdReference', r.control_id_reference,
+					   'requirementText', r.requirement_text,
+					   'standardId', r.standard_id
+				   )
+			   ) FILTER (WHERE r.id IS NOT NULL),
+			   '[]'
+		   ) as requirements
+		FROM tasks t
+		LEFT JOIN task_requirements tr ON t.id = tr.task_id
+		LEFT JOIN requirements r ON tr.requirement_id = r.id
+		WHERE t.id = $1
+		GROUP BY t.id
 	`
-	row := s.DB.QueryRow(query, taskID)
-
-	var t models.Task
+	var task models.Task
 	var paramsJSON []byte
-	err := row.Scan(&t.ID, &t.RequirementID, &t.Title, &t.Description, &t.Category, &t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target, &paramsJSON, pq.Array(&t.EvidenceTypesExpected), &t.DefaultPriority)
+	var requirementsJSON []byte
+
+	err := s.DB.QueryRow(query, taskID).Scan(
+		&task.ID, &task.Title, &task.Description, &task.Category,
+		&task.CreatedAt, &task.UpdatedAt, &task.CheckType, &task.Target,
+		&paramsJSON, pq.Array(&task.EvidenceTypesExpected), &task.DefaultPriority,
+		&requirementsJSON,
+	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed to scan task row: %w", err)
+		return nil, fmt.Errorf("failed to get task: %w", err)
 	}
 
+	// Parse parameters
 	if len(paramsJSON) > 0 && string(paramsJSON) != "null" {
-		if err := json.Unmarshal(paramsJSON, &t.Parameters); err != nil {
-			log.Printf("Warning: failed to unmarshal parameters for task %s: %v", t.ID, err)
-			t.Parameters = make(map[string]interface{})
+		if err := json.Unmarshal(paramsJSON, &task.Parameters); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal task parameters: %w", err)
 		}
 	} else {
-		t.Parameters = make(map[string]interface{})
+		task.Parameters = make(map[string]interface{})
 	}
 
-	linkedDocs, err := s.getLinkedDocumentsForTask(t.ID)
+	// Parse requirements
+	if len(requirementsJSON) > 0 && string(requirementsJSON) != "null" {
+		if err := json.Unmarshal(requirementsJSON, &task.Requirements); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal task requirements: %w", err)
+		}
+		// Populate RequirementIDs from Requirements
+		task.RequirementIDs = make([]string, len(task.Requirements))
+		for i, req := range task.Requirements {
+			task.RequirementIDs[i] = req.ID
+		}
+	}
+
+	// Get linked documents
+	linkedDocs, err := s.getLinkedDocumentsForTask(task.ID)
 	if err != nil {
-		log.Printf("Warning: failed to fetch linked documents for task %s: %v", t.ID, err)
+		log.Printf("Warning: failed to fetch linked documents for task %s: %v", task.ID, err)
 	}
-	t.LinkedDocuments = linkedDocs
+	task.LinkedDocuments = linkedDocs
 
-	return &t, nil
+	return &task, nil
 }
 
 func (s *DBStore) UpdateTask(task *models.Task) error {
@@ -269,43 +357,60 @@ func (s *DBStore) UpdateTask(task *models.Task) error {
 	}
 	defer tx.Rollback()
 
-	var checkType sql.NullString
-	if task.CheckType != nil && *task.CheckType != "" {
-		checkType.String = *task.CheckType
-		checkType.Valid = true
-	}
-	var target sql.NullString
-	if task.Target != nil && *task.Target != "" {
-		target.String = *task.Target
-		target.Valid = true
+	// Convert parameters to JSON
+	paramsJSON, err := json.Marshal(task.Parameters)
+	if err != nil {
+		return fmt.Errorf("failed to marshal task parameters: %w", err)
 	}
 
-	var paramsJSON []byte
-	if task.Parameters != nil {
-		paramsJSON, err = json.Marshal(task.Parameters)
-		if err != nil {
-			return fmt.Errorf("failed to marshal task parameters for update: %w", err)
-		}
-	} else {
-		paramsJSON = []byte("{}")
-	}
-
+	// Update task details
 	query := `
 		UPDATE tasks
-		SET requirement_id = $2, title = $3, description = $4, category = $5, updated_at = $6, 
-		    check_type = $7, target = $8, parameters = $9, evidence_types_expected = $10, default_priority = $11
-		WHERE id = $1`
-	_, err = tx.Exec(query, task.ID, task.RequirementID, task.Title, task.Description, task.Category, task.UpdatedAt, checkType, target, paramsJSON, pq.Array(task.EvidenceTypesExpected), task.DefaultPriority)
+		SET title = $2, description = $3, category = $4, updated_at = $5, 
+		    check_type = $6, target = $7, parameters = $8, evidence_types_expected = $9, default_priority = $10
+		WHERE id = $1
+	`
+	_, err = tx.Exec(query,
+		task.ID, task.Title, task.Description, task.Category, task.UpdatedAt,
+		task.CheckType, task.Target, paramsJSON, pq.Array(task.EvidenceTypesExpected), task.DefaultPriority,
+	)
 	if err != nil {
-		return fmt.Errorf("failed to update task with id %s: %w", task.ID, err)
+		return fmt.Errorf("failed to update task: %w", err)
 	}
 
+	// Update task-requirement associations
+	// First, delete existing associations
+	_, err = tx.Exec(`DELETE FROM task_requirements WHERE task_id = $1`, task.ID)
+	if err != nil {
+		return fmt.Errorf("failed to delete existing task-requirement associations: %w", err)
+	}
+
+	// Then, insert new associations
+	if len(task.RequirementIDs) > 0 {
+		stmt, err := tx.Preparex(`
+			INSERT INTO task_requirements (task_id, requirement_id)
+			VALUES ($1, $2)
+		`)
+		if err != nil {
+			return fmt.Errorf("failed to prepare task_requirements insert statement: %w", err)
+		}
+		defer stmt.Close()
+
+		for _, reqID := range task.RequirementIDs {
+			_, err = stmt.Exec(task.ID, reqID)
+			if err != nil {
+				return fmt.Errorf("failed to insert task-requirement association: %w", err)
+			}
+		}
+	}
+
+	// Update document links
 	if err := s.unlinkAllDocumentsFromTask(tx, task.ID); err != nil {
-		return fmt.Errorf("failed to clear existing document links for task %s: %w", task.ID, err)
+		return fmt.Errorf("failed to clear existing document links: %w", err)
 	}
 	if len(task.LinkedDocumentIDs) > 0 {
 		if err := s.linkDocumentsToTask(tx, task.ID, task.LinkedDocumentIDs); err != nil {
-			return fmt.Errorf("failed to link documents to task %s: %w", task.ID, err)
+			return fmt.Errorf("failed to link documents to task: %w", err)
 		}
 	}
 
@@ -314,9 +419,24 @@ func (s *DBStore) UpdateTask(task *models.Task) error {
 
 func (s *DBStore) GetTasksByRequirementID(requirementID string) ([]models.Task, error) {
 	query := `
-		SELECT id, requirement_id, title, description, category, created_at, updated_at, check_type, target, parameters, evidence_types_expected, default_priority
-		FROM tasks
-		WHERE requirement_id = $1
+		SELECT t.id, t.title, t.description, t.category, t.created_at, t.updated_at, 
+		       t.check_type, t.target, t.parameters, t.evidence_types_expected, t.default_priority,
+		       COALESCE(
+			   json_agg(
+				   json_build_object(
+					   'id', r.id,
+					   'controlIdReference', r.control_id_reference,
+					   'requirementText', r.requirement_text
+				   )
+			   ) FILTER (WHERE r.id IS NOT NULL),
+			   '[]'
+		   ) as requirements
+		FROM tasks t
+		JOIN task_requirements tr ON t.id = tr.task_id
+		LEFT JOIN task_requirements tr2 ON t.id = tr2.task_id
+		LEFT JOIN requirements r ON tr2.requirement_id = r.id
+		WHERE tr.requirement_id = $1
+		GROUP BY t.id
 	`
 	rows, err := s.DB.Query(query, requirementID)
 	if err != nil {
@@ -328,9 +448,19 @@ func (s *DBStore) GetTasksByRequirementID(requirementID string) ([]models.Task, 
 	for rows.Next() {
 		var t models.Task
 		var paramsJSON []byte
-		if err := rows.Scan(&t.ID, &t.RequirementID, &t.Title, &t.Description, &t.Category, &t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target, &paramsJSON, pq.Array(&t.EvidenceTypesExpected), &t.DefaultPriority); err != nil {
+		var requirementsJSON []byte
+
+		err := rows.Scan(
+			&t.ID, &t.Title, &t.Description, &t.Category,
+			&t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target,
+			&paramsJSON, pq.Array(&t.EvidenceTypesExpected), &t.DefaultPriority,
+			&requirementsJSON,
+		)
+		if err != nil {
 			return nil, fmt.Errorf("failed to scan task row for requirement_id %s: %w", requirementID, err)
 		}
+
+		// Parse parameters
 		if len(paramsJSON) > 0 && string(paramsJSON) != "null" {
 			if err := json.Unmarshal(paramsJSON, &t.Parameters); err != nil {
 				log.Printf("Warning: failed to unmarshal parameters for task %s: %v", t.ID, err)
@@ -339,8 +469,22 @@ func (s *DBStore) GetTasksByRequirementID(requirementID string) ([]models.Task, 
 		} else {
 			t.Parameters = make(map[string]interface{})
 		}
+
+		// Parse requirements
+		if len(requirementsJSON) > 0 && string(requirementsJSON) != "null" {
+			if err := json.Unmarshal(requirementsJSON, &t.Requirements); err != nil {
+				log.Printf("Warning: failed to unmarshal requirements for task %s: %v", t.ID, err)
+			}
+			// Populate RequirementIDs from Requirements
+			t.RequirementIDs = make([]string, len(t.Requirements))
+			for i, req := range t.Requirements {
+				t.RequirementIDs[i] = req.ID
+			}
+		}
+
 		tasks = append(tasks, t)
 	}
+
 	return tasks, rows.Err()
 }
 
