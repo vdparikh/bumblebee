@@ -1,19 +1,100 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Button, Spinner, Alert, Modal, Form, Card, Accordion, Badge, Col, Row, FloatingLabel } from 'react-bootstrap';
-import { FaPlusCircle, FaEdit, FaTrash, FaPlug, FaCheckCircle, FaTimesCircle, FaKey, FaServer, FaDatabase, FaUserSecret, FaLink } from 'react-icons/fa';
+import { 
+    FaPlusCircle, 
+    FaEdit, 
+    FaTrash, 
+    FaPlug, 
+    FaCheckCircle, 
+    FaTimesCircle, 
+    FaKey, 
+    FaServer, 
+    FaDatabase, 
+    FaUserSecret, 
+    FaLink,
+    FaAws,
+    FaMicrosoft,
+    FaGoogle,
+    FaGithub,
+    FaGitlab,
+    FaShieldAlt,
+    FaCloud,
+    FaCode,
+    FaServer as FaGenericServer
+} from 'react-icons/fa';
 import { getConnectedSystems, createConnectedSystem, updateConnectedSystem, deleteConnectedSystem } from '../../services/api';
 
 const systemTypeOptions = [
-    { value: 'aws', label: 'AWS (Amazon Web Services)' },
-    { value: 'azure', label: 'Azure (Microsoft Azure)' },
-    { value: 'gcp', label: 'GCP (Google Cloud Platform)' },
-    { value: 'github', label: 'GitHub' },
-    { value: 'gitlab', label: 'GitLab' },
-    { value: 'nessus', label: 'Nessus Vulnerability Scanner' },
-    { value: 'qualys', label: 'Qualys Guard' },
-    { value: 'generic_api', label: 'Generic API Endpoint' },
-    { value: 'database', label: 'Database (PostgreSQL, MySQL, etc.)' },
-    { value: 'other', label: 'Other' },
+    { 
+        value: 'aws', 
+        label: 'AWS', 
+        description: 'Amazon Web Services',
+        icon: <FaAws size={24} />,
+        color: '#FF9900'
+    },
+    { 
+        value: 'azure', 
+        label: 'Azure', 
+        description: 'Microsoft Azure',
+        icon: <FaMicrosoft size={24} />,
+        color: '#0078D4'
+    },
+    { 
+        value: 'gcp', 
+        label: 'GCP', 
+        description: 'Google Cloud Platform',
+        icon: <FaGoogle size={24} />,
+        color: '#4285F4'
+    },
+    { 
+        value: 'github', 
+        label: 'GitHub', 
+        description: 'GitHub Integration',
+        icon: <FaGithub size={24} />,
+        color: '#181717'
+    },
+    { 
+        value: 'gitlab', 
+        label: 'GitLab', 
+        description: 'GitLab Integration',
+        icon: <FaGitlab size={24} />,
+        color: '#FC6D26'
+    },
+    { 
+        value: 'nessus', 
+        label: 'Nessus', 
+        description: 'Vulnerability Scanner',
+        icon: <FaShieldAlt size={24} />,
+        color: '#00A8E8'
+    },
+    { 
+        value: 'qualys', 
+        label: 'Qualys', 
+        description: 'Qualys Guard',
+        icon: <FaShieldAlt size={24} />,
+        color: '#FF4B4B'
+    },
+    { 
+        value: 'generic_api', 
+        label: 'Generic API', 
+        description: 'Custom API Endpoint',
+        icon: <FaCode size={24} />,
+        color: '#6C757D'
+    },
+    { 
+        value: 'database', 
+        label: 'Database', 
+        description: 'Database Connection',
+        icon: <FaDatabase size={24} />,
+        color: '#0D6EFD'
+    },
+    { 
+        value: 'other', 
+        label: 'Other', 
+        description: 'Custom Integration',
+        icon: <FaGenericServer size={24} />,
+        color: '#6C757D'
+    }
 ];
 
 // Define configuration schemas for different system types
@@ -206,6 +287,43 @@ function SystemIntegrations() {
 
     const currentSchema = systemType ? configurationSchemas[systemType] : null;
 
+    const renderSystemTypeSelector = () => (
+        <div className="mb-4">
+            <Form.Label className="mb-3">Select System Type</Form.Label>
+            <Row className="g-3">
+                {systemTypeOptions.map((option) => (
+                    <Col key={option.value} xs={6} sm={4} md={3}>
+                        <Card 
+                            className={`h-100 system-type-card ${systemType === option.value ? 'selected' : ''}`}
+                            onClick={() => setSystemType(option.value)}
+                            style={{ 
+                                cursor: 'pointer',
+                                border: systemType === option.value ? `2px solid ${option.color}` : '1px solid #dee2e6',
+                                transition: 'all 0.2s ease-in-out'
+                            }}
+                        >
+                            <Card.Body className="text-center p-3">
+                                <div 
+                                    className="mb-2" 
+                                    style={{ 
+                                        color: option.color,
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        height: '40px'
+                                    }}
+                                >
+                                    {option.icon}
+                                </div>
+                                <h6 className="mb-1">{option.label}</h6>
+                                <small className="text-muted d-block">{option.description}</small>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                ))}
+            </Row>
+        </div>
+    );
 
     if (loading) return <Spinner animation="border" />;
 
@@ -260,27 +378,34 @@ function SystemIntegrations() {
                 </tbody>
             </Table>
 
-            <Modal show={showModal} onHide={handleCloseModal} size="lg">
+            <Modal show={showModal} onHide={handleCloseModal} size="xl">
                 <Modal.Header closeButton>
-                    <Modal.Title>{isEditing ? 'Edit' : 'Add New'} System Integration</Modal.Title>
+                    <Modal.Title>{isEditing ? 'Edit System Integration' : 'Add New System Integration'}</Modal.Title>
                 </Modal.Header>
-                <Form onSubmit={handleSubmit}>
-                    <Modal.Body>
-                        <Form.Group className="mb-3" controlId="systemName">
-                            <Form.Label>Name*</Form.Label>
-                            <Form.Control type="text" value={name} onChange={(e) => setName(e.target.value)} required />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="systemType">
-                            <Form.Label>System Type*</Form.Label>
-                            <Form.Select value={systemType} onChange={(e) => setSystemType(e.target.value)} required>
-                                <option value="">Select Type...</option>
-                                {systemTypeOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                            </Form.Select>
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="systemDescription">
-                            <Form.Label>Description</Form.Label>
-                            <Form.Control as="textarea" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
-                        </Form.Group>
+                <Modal.Body>
+                    <Form onSubmit={handleSubmit}>
+                        <FloatingLabel controlId="name" label="Name" className="mb-3">
+                            <Form.Control
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Enter system name"
+                                required
+                            />
+                        </FloatingLabel>
+
+                        {renderSystemTypeSelector()}
+
+                        <FloatingLabel controlId="description" label="Description (Optional)" className="mb-3">
+                            <Form.Control
+                                as="textarea"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="Enter description"
+                                style={{ height: '100px' }}
+                            />
+                        </FloatingLabel>
+
                         <Form.Group className="mb-3" controlId="systemConfiguration">
                             <Form.Label>Configuration*</Form.Label>
                             {currentSchema ? (
@@ -320,12 +445,12 @@ function SystemIntegrations() {
                             <Form.Text muted>For sensitive fields like API keys or passwords, consider using environment variables or a secrets manager in production environments.</Form.Text>
                         </Form.Group>
                         <Form.Check type="switch" id="systemEnabled" label="Enabled" checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)} />
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={handleCloseModal}>Cancel</Button>
-                        <Button variant="primary" type="submit">{isEditing ? 'Save Changes' : 'Create System'}</Button>
-                    </Modal.Footer>
-                </Form>
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={handleCloseModal}>Cancel</Button>
+                    <Button variant="primary" onClick={handleSubmit}>Save</Button>
+                </Modal.Footer>
             </Modal>
         </div>
     );
