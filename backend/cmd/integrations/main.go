@@ -9,7 +9,13 @@ import (
 	"syscall"
 
 	"github.com/vdparikh/compliance-automation/backend/integrations"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/databasequerier"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/filechecker"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/httpchecker"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/portscanner"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/scriptrunner"
 	"github.com/vdparikh/compliance-automation/backend/queue"
+	"github.com/vdparikh/compliance-automation/backend/services"
 	"github.com/vdparikh/compliance-automation/backend/store"
 )
 
@@ -55,7 +61,39 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Create and start the integration service
-	integrationService := integrations.NewIntegrationService(db, q, store)
-	integrationService.Start(ctx)
+	// Initialize the plugin registry service
+	pluginRegistry := services.NewPluginRegistryService(store)
+
+	httpPlugin := httpchecker.New()
+	if err := pluginRegistry.RegisterPlugin(httpPlugin); err != nil {
+		log.Fatalf("Failed to register HTTP checker plugin: %v", err)
+	}
+
+	scriptPlugin := scriptrunner.New()
+	if err := pluginRegistry.RegisterPlugin(scriptPlugin); err != nil {
+		log.Fatalf("Failed to register script runner plugin: %v", err)
+	}
+
+	dbQueryPlugin := databasequerier.New()
+	if err := pluginRegistry.RegisterPlugin(dbQueryPlugin); err != nil {
+		log.Fatalf("Failed to register Database Querier plugin: %v", err)
+	}
+
+	portScanPlugin := portscanner.New()
+	if err := pluginRegistry.RegisterPlugin(portScanPlugin); err != nil {
+		log.Fatalf("Failed to register Port Scanner plugin: %v", err)
+	}
+
+	fileExistsPlugin := filechecker.New()
+	if err := pluginRegistry.RegisterPlugin(fileExistsPlugin); err != nil {
+		log.Fatalf("Failed to register File Checker plugin: %v", err)
+	}
+
+	// // Example: Print registered check types (optional)
+	// checkTypes := pluginRegistry.GetCheckTypeConfigurations()
+	// fmt.Printf("Registered check types: %+v\n", checkTypes)
+
+	// Create and start the task execution service (queue processor)
+	taskExecutionSvc := integrations.NewTaskExecutionService(db, q, store, pluginRegistry)
+	taskExecutionSvc.Start(ctx)
 }

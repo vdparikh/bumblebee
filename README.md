@@ -108,8 +108,8 @@ For setting up the Bumblebee environment, please refer to the technical setup gu
 4.  **(Optional) Populate Sample Data:**
     If you have a `sample_data.sql` file:
     ```sh
-    docker cp ./path/to/your/sample_data.sql bumblebee-db:/tmp/sample_data.sql
-    docker exec -it bumblebee-db psql -U postgres -d compliance -f /tmp/sample_data.sql
+    docker cp sample_data.sql mypostgres:/tmp/sample_data.sql
+    docker exec -it mypostgres psql -U postgres -d compliance -f /tmp/sample_data.sql
     ```
 
 ### Running the Application

@@ -89,7 +89,8 @@ func main() {
 	systemIntegrationHandler := handlers.NewSystemIntegrationHandler(dbStore)
 	documentHandler := handlers.NewDocumentHandler(dbStore)
 	teamHandler := handlers.NewTeamHandler(dbStore)
-	auditLogHandler := handlers.NewAuditLogHandler(dbStore) // Instantiate AuditLogHandler
+	auditLogHandler := handlers.NewAuditLogHandler(dbStore)       // Instantiate AuditLogHandler
+	integrationHandler := handlers.NewIntegrationHandler(dbStore) // Instantiate IntegrationHandler
 
 	apiV1 := router.Group("/api")
 
@@ -104,6 +105,9 @@ func main() {
 	api.Use(middleware.AuthMiddleware())
 	{
 		api.GET("/auth/me", authAPI.GetCurrentUser)
+
+		// Endpoint for fetching dynamic check type configurations for the frontend
+		api.GET("/integration-check-types", integrationHandler.GetIntegrationCheckTypesHandler)
 		api.POST("/auth/change-password", authAPI.ChangePasswordHandler)
 
 		api.POST("/tasks", taskHandler.CreateTaskHandler)

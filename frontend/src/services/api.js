@@ -21,6 +21,17 @@ apiClient.interceptors.request.use(config => {
     return Promise.reject(error);
 });
 
+export const fetchIntegrationCheckTypes = async () => {
+    const response = await apiClient.get('/integration-check-types');
+    // if (!response.ok) {
+    //     const errorBody = await response.text();
+    //     console.error("API Error Response Body:", errorBody);
+    //     throw new Error(`Failed to fetch check type configurations: ${response.status} ${response.statusText}`);
+    // }
+    return response;
+};
+
+
 export const getCampaigns = async (status, includeTaskSummary = false) => {
     let url = `/campaigns`;
     const params = new URLSearchParams();

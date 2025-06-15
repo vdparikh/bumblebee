@@ -5,6 +5,28 @@ import (
 	"time"
 )
 
+// ParameterDefinition describes a single parameter required by a check type.
+type ParameterDefinition struct {
+	Name        string   `json:"name"`
+	Label       string   `json:"label"`
+	Type        string   `json:"type"` // e.g., "text", "number", "select", "textarea"
+	Required    bool     `json:"required"`
+	Placeholder string   `json:"placeholder,omitempty"`
+	HelpText    string   `json:"helpText,omitempty"`
+	Options     []string `json:"options,omitempty"` // For "select" type
+}
+
+// CheckTypeConfiguration defines the structure for a specific automated check.
+type CheckTypeConfiguration struct {
+	Label          string                `json:"label"`
+	Parameters     []ParameterDefinition `json:"parameters"`
+	TargetType     string                `json:"targetType"` // e.g., "connected_system", "none"
+	TargetLabel    string                `json:"targetLabel,omitempty"`
+	TargetHelpText string                `json:"targetHelpText,omitempty"`
+	// You might add an IntegrationID here if needed for frontend/backend correlation
+	// IntegrationID string `json:"integrationId"`
+}
+
 type ComplianceStandard struct {
 	ID           string  `json:"id"`
 	Name         string  `json:"name"`

@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vdparikh/compliance-automation/backend/integrations/executor"
 	"github.com/vdparikh/compliance-automation/backend/queue"
 	"github.com/vdparikh/compliance-automation/backend/store"
 )
@@ -22,10 +21,13 @@ type IntegrationService struct {
 	store *store.DBStore
 }
 
+type ExecutionResult struct {
+	Status string
+	Output string
+}
+
 // NewIntegrationService creates a new integration service
 func NewIntegrationService(db *sql.DB, queue queue.Queue, store *store.DBStore) *IntegrationService {
-	// Initialize executors
-	executor.InitExecutors()
 	return &IntegrationService{
 		db:    db,
 		queue: queue,
@@ -98,29 +100,31 @@ func (s *IntegrationService) processTask(ctx context.Context, task *queue.TaskEx
 		return
 	}
 
-	// Get the executor for this task type
-	exec, exists := executor.GetExecutor(task.TaskType)
-	if !exists {
-		result.Status = "failed"
-		result.ErrorMessage = fmt.Sprintf("No executor found for task type: %s", task.TaskType)
-		if err := s.queue.UpdateTaskResult(ctx, result); err != nil {
-			log.Printf("Error updating task result: %v", err)
-		}
-		return
-	}
+	fmt.Println(connectedSystem)
+	// This section is now handled by the plugin system in TaskExecutionService.
+	// For this old service file, we'll simulate a "not implemented" for plugin-based tasks.
+	// If this service were still active, it would need to be updated to use the pluginRegistry.
+	result.Status = "failed"
+	result.ErrorMessage = fmt.Sprintf("Task type %s execution is not supported by this (old) service version. Use TaskExecutionService.", task.TaskType)
+	log.Printf(result.ErrorMessage)
 
-	// Create the check context
-	checkCtx := executor.CheckContext{
-		TaskInstance:    taskInstance,
-		ConnectedSystem: connectedSystem,
-		Store:           s.store,
-	}
+	// The following is placeholder for where execution would happen if this service was updated.
+	// // Get the executor for this task type
+	// exec, exists := executor.GetExecutor(task.TaskType) // This would be pluginRegistry.GetPluginForCheckType
+	// if !exists {
+	// 	result.Status = "failed"
+	// 	result.ErrorMessage = fmt.Sprintf("No executor/plugin found for task type: %s", task.TaskType)
+	// 	// ... update queue ...
+	// 	return
+	// }
+	// // Create the check context
+	// checkCtx := executor.CheckContext{ /* ... */ }
+	// // Override task instance parameters
+	// taskInstance.Parameters = task.Parameters
+	// // Execute the task
+	// execResult, err := exec.Execute(checkCtx) // This would be plugin.ExecuteCheck
 
-	// Override task instance parameters with the ones from the execution request
-	taskInstance.Parameters = task.Parameters
-
-	// Execute the task
-	execResult, err := exec.Execute(checkCtx)
+	var execResult ExecutionResult // Placeholder
 	if err != nil {
 		result.Status = "failed"
 		result.ErrorMessage = err.Error()

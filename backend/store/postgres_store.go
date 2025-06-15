@@ -2270,3 +2270,65 @@ func (s *DBStore) GetAuditLogs(filters map[string]interface{}, page, limit int) 
 // Placeholder for other methods...
 // Ensure all existing methods from the original file are preserved below this line.
 // ... (rest of the file content from the read_files output)
+
+// CreateOrUpdateRegisteredPlugin inserts a new plugin or updates an existing one.
+// It stores the plugin's check type configurations as JSON.
+func (s *DBStore) CreateOrUpdateRegisteredPlugin(pluginID, pluginName string, checkConfigs map[string]models.CheckTypeConfiguration) error {
+	configsJSON, err := json.Marshal(checkConfigs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal check type configurations for plugin %s: %w", pluginID, err)
+	}
+
+	query := `
+		INSERT INTO registered_plugins (id, name, check_type_configurations, is_active)
+		VALUES ($1, $2, $3, TRUE)
+		ON CONFLICT (id) DO UPDATE
+		SET name = EXCLUDED.name,
+			check_type_configurations = EXCLUDED.check_type_configurations,
+			is_active = TRUE, -- Ensure it's marked active on update/registration
+			updated_at = CURRENT_TIMESTAMP;
+	`
+	_, err = s.DB.Exec(query, pluginID, pluginName, configsJSON)
+	if err != nil {
+		return fmt.Errorf("failed to execute create/update for registered plugin %s: %w", pluginID, err)
+	}
+	return nil
+}
+
+// SetRegisteredPluginActiveStatus updates the is_active flag for a plugin.
+func (s *DBStore) SetRegisteredPluginActiveStatus(pluginID string, isActive bool) error {
+	query := `UPDATE registered_plugins SET is_active = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2;`
+	_, err := s.DB.Exec(query, isActive, pluginID)
+	if err != nil {
+		return fmt.Errorf("failed to set active status for plugin %s: %w", pluginID, err)
+	}
+	return nil
+}
+
+// GetActiveCheckTypeConfigurations retrieves and merges CheckTypeConfiguration maps
+// from all plugins marked as active in the database.
+func (s *DBStore) GetActiveCheckTypeConfigurations() (map[string]models.CheckTypeConfiguration, error) {
+	query := `SELECT check_type_configurations FROM registered_plugins WHERE is_active = TRUE;`
+	rows, err := s.DB.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query active plugin configurations: %w", err)
+	}
+	defer rows.Close()
+
+	mergedConfigs := make(map[string]models.CheckTypeConfiguration)
+	for rows.Next() {
+		var configsJSON json.RawMessage
+		if err := rows.Scan(&configsJSON); err != nil {
+			return nil, fmt.Errorf("failed to scan plugin configurations row: %w", err)
+		}
+
+		var pluginCheckConfigs map[string]models.CheckTypeConfiguration
+		if err := json.Unmarshal(configsJSON, &pluginCheckConfigs); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal check type configurations from DB: %w", err)
+		}
+		for key, config := range pluginCheckConfigs {
+			mergedConfigs[key] = config // Assumes check type keys are globally unique
+		}
+	}
+	return mergedConfigs, rows.Err()
+}

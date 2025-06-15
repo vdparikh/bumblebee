@@ -465,3 +465,29 @@ ALTER TABLE tasks DROP COLUMN requirement_id;
 
 ALTER TABLE campaign_task_instances
 ADD COLUMN IF NOT EXISTS priority VARCHAR(50);
+
+
+
+-- Add to your database schema
+CREATE TABLE IF NOT EXISTS registered_plugins (
+    id TEXT PRIMARY KEY, -- Corresponds to plugin.ID()
+    name TEXT NOT NULL,
+    check_type_configurations JSONB NOT NULL, -- Stores the map[string]CheckTypeConfiguration
+    is_active BOOLEAN DEFAULT TRUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Optional: Trigger to update updated_at timestamp automatically
+CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_timestamp_on_registered_plugins
+BEFORE UPDATE ON registered_plugins
+FOR EACH ROW
+EXECUTE FUNCTION trigger_set_timestamp();
