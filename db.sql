@@ -461,3 +461,7 @@ SELECT id, requirement_id FROM tasks WHERE requirement_id IS NOT NULL;
 
 -- Drop the requirement_id column from tasks table
 ALTER TABLE tasks DROP COLUMN requirement_id; 
+
+
+ALTER TABLE campaign_task_instances
+ADD COLUMN IF NOT EXISTS priority VARCHAR(50);

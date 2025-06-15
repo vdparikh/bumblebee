@@ -59,6 +59,16 @@ export const systemTypeOptions = [
         category: 'Cloud'
     },
 
+    // API & Generic
+    {
+        value: 'generic_api',
+        label: 'Generic API',
+        description: 'Any HTTP/REST API endpoint',
+        icon: <FaLink size={24} />,
+        color: '#1976D2',
+        category: 'API'
+    },
+
     // Security & Monitoring
     { 
         value: 'splunk', 

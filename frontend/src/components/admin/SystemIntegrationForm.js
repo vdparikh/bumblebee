@@ -235,6 +235,7 @@ function SystemIntegrationForm() {
                             <Form.Label>Configuration*</Form.Label>
                             {currentSchema ? (
                                 <Card className="p-3 bg-light">
+{/* { JSON.stringify(currentSchema)} */}
                                     {currentSchema.map(field => (
                                         <FloatingLabel
                                             key={field.name}
@@ -243,6 +244,7 @@ function SystemIntegrationForm() {
                                             className="mb-3"
                                         >
                                             {field.type === 'select' ? (
+                                                
                                                 <Form.Select
                                                     value={dynamicConfigFields[field.name] || ''}
                                                     onChange={(e) => handleDynamicConfigChange(field.name, e.target.value)}
@@ -250,7 +252,7 @@ function SystemIntegrationForm() {
                                                 >
                                                     <option value="">Select {field.label}...</option>
                                                     {(field.options || []).map(opt => (
-                                                        <option key={opt} value={opt}>{opt}</option>
+                                                        <option key={opt.label} value={opt.value}>{opt.label}</option>
                                                     ))}
                                                 </Form.Select>
                                             ) : (

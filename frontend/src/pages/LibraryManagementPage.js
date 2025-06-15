@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Button, Alert, Spinner } from 'react-bootstrap';
-import { FaEdit, FaPlusCircle } from 'react-icons/fa';
+import { Container, Button, Alert, Spinner, Row, Col, Card, Badge, Tabs, Tab } from 'react-bootstrap';
+import { 
+    FaEdit, FaPlusCircle, FaChartLine, FaHistory, FaFileAlt, 
+    FaLink, FaFileUpload, FaShieldAlt, FaBook, FaTasks,
+    FaExclamationCircle, FaCheckCircle, FaClock, FaFileContract,
+    FaCogs, FaTag, FaUserShield, FaCalendarAlt, FaBuilding
+} from 'react-icons/fa';
 import ThreeColumnView from '../components/views/ThreeColumnView';
 import EntityFormPanel from '../components/common/EntityFormPanel';
 import PageHeader from '../components/common/PageHeader';
@@ -14,9 +19,8 @@ import {
     updateRequirement,
     createTask,
     updateTask,
-    getConnectedSystems, // Import
-    getDocuments,        // Import
-    // Add delete functions if needed
+    getConnectedSystems,
+    getDocuments,
 } from '../services/api';
 
 function LibraryManagementPage() {
@@ -25,16 +29,27 @@ function LibraryManagementPage() {
     const [masterTasks, setMasterTasks] = useState([]);
     const [connectedSystems, setConnectedSystems] = useState([]);
     const [documents, setDocuments] = useState([]);
-
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [activeTab, setActiveTab] = useState('dashboard');
 
     const [showPanel, setShowPanel] = useState(false);
-    const [panelMode, setPanelMode] = useState('add'); // 'add' or 'edit'
-    const [panelEntityType, setPanelEntityType] = useState(''); // 'standard', 'requirement', 'task'
+    const [panelMode, setPanelMode] = useState('add');
+    const [panelEntityType, setPanelEntityType] = useState('');
     const [panelDataToEdit, setPanelDataToEdit] = useState(null);
-    const [panelParentId, setPanelParentId] = useState(null); // For adding req to std, or task to req
+    const [panelParentId, setPanelParentId] = useState(null);
+
+    // Compliance metrics
+    const [metrics, setMetrics] = useState({
+        totalStandards: 0,
+        totalRequirements: 0,
+        totalTasks: 0,
+        automatedChecks: 0,
+        manualChecks: 0,
+        recentUpdates: 0,
+        pendingReviews: 0
+    });
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -43,7 +58,7 @@ function LibraryManagementPage() {
             const [stdRes, reqRes, taskRes, systemsRes, docsRes] = await Promise.all([
                 getComplianceStandards(),
                 getRequirements(),
-                getTasks(), // Assuming this gets master tasks
+                getTasks(),
                 getConnectedSystems(),
                 getDocuments()
             ]);
@@ -52,6 +67,17 @@ function LibraryManagementPage() {
             setMasterTasks(Array.isArray(taskRes.data) ? taskRes.data : []);
             setConnectedSystems(Array.isArray(systemsRes.data) ? systemsRes.data : []);
             setDocuments(Array.isArray(docsRes.data) ? docsRes.data : []);
+
+            // Calculate metrics
+            setMetrics({
+                totalStandards: stdRes.data.length,
+                totalRequirements: reqRes.data.length,
+                totalTasks: taskRes.data.length,
+                automatedChecks: taskRes.data.filter(t => t.checkType).length,
+                manualChecks: taskRes.data.filter(t => !t.checkType).length,
+                recentUpdates: 0, // TODO: Implement
+                pendingReviews: 0 // TODO: Implement
+            });
         } catch (err) {
             console.error("Error fetching library data:", err);
             setError('Failed to load library data. ' + (err.response?.data?.error || err.message));
@@ -67,7 +93,11 @@ function LibraryManagementPage() {
     const handleOpenPanel = (mode, entityType, dataToEdit = null, parentId = null) => {
         setPanelMode(mode);
         setPanelEntityType(entityType);
-        setPanelDataToEdit(dataToEdit);
+        if (entityType === 'requirement' && parentId) {
+            setPanelDataToEdit({ standardId: parentId });
+        } else {
+            setPanelDataToEdit(dataToEdit);
+        }
         setPanelParentId(parentId);
         setShowPanel(true);
         setError('');
@@ -93,15 +123,14 @@ function LibraryManagementPage() {
                 response = idToUpdate ? await updateTask(idToUpdate, data) : await createTask(data);
             }
             setSuccess(`${entityType.charAt(0).toUpperCase() + entityType.slice(1)} ${idToUpdate ? 'updated' : 'created'} successfully!`);
-            fetchData(); // Refresh all data
+            fetchData();
             handleClosePanel();
             return response;
         } catch (err) {
             console.error(`Error saving ${entityType}:`, err);
             const errorMessage = `Failed to save ${entityType}. ${err.response?.data?.error || err.message}`;
             setError(errorMessage);
-            // Keep panel open on error by not calling handleClosePanel()
-            throw err; // Re-throw to let the form know about the error
+            throw err;
         }
     };
 
@@ -109,42 +138,131 @@ function LibraryManagementPage() {
         return <Container className="text-center mt-5"><Spinner animation="border" /> Loading Library...</Container>;
     }
 
+    const renderDashboard = () => (
+        <div className="mb-4">
+            <Row>
+                <Col md={3}>
+                    <Card className="mb-3">
+                        <Card.Body>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 className="text-muted mb-2">Total Standards</h6>
+                                    <h3>{metrics.totalStandards}</h3>
+                                </div>
+                                <FaShieldAlt size={24} className="text-primary" />
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col md={3}>
+                    <Card className="mb-3">
+                        <Card.Body>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 className="text-muted mb-2">Requirements</h6>
+                                    <h3>{metrics.totalRequirements}</h3>
+                                </div>
+                                <FaFileContract size={24} className="text-success" />
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col md={3}>
+                    <Card className="mb-3">
+                        <Card.Body>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 className="text-muted mb-2">Tasks</h6>
+                                    <h3>{metrics.totalTasks}</h3>
+                                </div>
+                                <FaTasks size={24} className="text-warning" />
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col md={3}>
+                    <Card className="mb-3">
+                        <Card.Body>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 className="text-muted mb-2">Automated Checks</h6>
+                                    <h3>{metrics.automatedChecks}</h3>
+                                </div>
+                                <FaCogs size={24} className="text-info" />
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+
+            <Row>
+                <Col md={6}>
+                    <Card className="mb-3">
+                        <Card.Header>
+                            <FaHistory className="me-2" /> Recent Updates
+                        </Card.Header>
+                        <Card.Body>
+                            <p className="text-muted">No recent updates</p>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col md={6}>
+                    <Card className="mb-3">
+                        <Card.Header>
+                            <FaExclamationCircle className="me-2" /> Pending Reviews
+                        </Card.Header>
+                        <Card.Body>
+                            <p className="text-muted">No pending reviews</p>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+        </div>
+    );
+
     return (
         <Container fluid>
-            <PageHeader title="Compliance Library Management" />
+            <PageHeader 
+                title="Compliance Library Management" 
+                subtitle="Manage compliance standards, requirements, and tasks"
+            />
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
 
-            <ThreeColumnView
-                // Pass fetched data directly if ThreeColumnView is modified to accept it
-                // standards={standards}
-                // requirements={requirements}
-                // masterTasks={masterTasks}
-                // Otherwise, ThreeColumnView will fetch its own data.
-                // The fetchData() call after save will ensure this component re-renders,
-                // and if ThreeColumnView has its own useEffect for fetching, it might re-fetch.
-                // For a more direct refresh, pass a 'key' prop to ThreeColumnView that changes on save.
-                key={standards.length + requirements.length + masterTasks.length} // Simple key to force re-render/re-fetch
-                showPageHeader={false}
-                onAddStandardClick={() => handleOpenPanel('add', 'standard')}
-                standardActions={(std) => (
-                    <Button className='nopadding text-warning' variant="transparent" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'standard', std); }} title="Edit Standard">
-                        <FaEdit />
-                    </Button>
-                )}
-                onAddRequirementClick={(standardId) => handleOpenPanel('add', 'requirement', null, standardId)}
-                requirementActions={(req) => (
-                    <Button className='nopadding text-warning' variant="transparent" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'requirement', req); }} title="Edit Requirement">
-                        <FaEdit />
-                    </Button>
-                )}
-                onAddTaskClick={(requirementId) => handleOpenPanel('add', 'task', null, requirementId)}
-                taskActions={(task) => (
-                    <Button className='nopadding text-warning' variant="transparent" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'task', task); }} title="Edit Task">
-                        <FaEdit />
-                    </Button>
-                )}
-            />
+            <Tabs
+                activeKey={activeTab}
+                onSelect={(k) => setActiveTab(k)}
+                className="mb-3"
+                variant='underline'
+            >
+                <Tab eventKey="dashboard" title={<><FaChartLine className="me-1" />Dashboard</>}>
+                    {renderDashboard()}
+                </Tab>
+                <Tab eventKey="library" title={<><FaBook className="me-1" />Library</>}>
+                    <ThreeColumnView
+                        key={standards.length + requirements.length + masterTasks.length}
+                        showPageHeader={false}
+                        onAddStandardClick={() => handleOpenPanel('add', 'standard')}
+                        standardActions={(std) => (
+                            <Button className='nopadding text-warning' variant="transparent" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'standard', std); }} title="Edit Standard">
+                                <FaEdit />
+                            </Button>
+                        )}
+                        onAddRequirementClick={(standardId) => handleOpenPanel('add', 'requirement', null, standardId)}
+                        requirementActions={(req) => (
+                            <Button className='nopadding text-warning' variant="transparent" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'requirement', req); }} title="Edit Requirement">
+                                <FaEdit />
+                            </Button>
+                        )}
+                        onAddTaskClick={(requirementId) => handleOpenPanel('add', 'task', null, requirementId)}
+                        taskActions={(task) => (
+                            <Button className='nopadding text-warning' variant="transparent" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenPanel('edit', 'task', task); }} title="Edit Task">
+                                <FaEdit />
+                            </Button>
+                        )}
+                    />
+                </Tab>
+            </Tabs>
 
             <EntityFormPanel
                 show={showPanel}
@@ -154,10 +272,8 @@ function LibraryManagementPage() {
                 parentId={panelParentId}
                 onSave={handleSaveEntity}
                 onClose={handleClosePanel}
-                // Pass lists for dropdowns
                 allStandards={standards}
                 allRequirements={requirements}
-                // allUsers={users} // Pass if TaskForm needs users for assignment (not typical for master tasks)
                 allConnectedSystems={connectedSystems}
                 allDocuments={documents}
             />

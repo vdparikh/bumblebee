@@ -92,7 +92,7 @@ function SystemIntegrations() {
     const fetchSystems = useCallback(async () => {
         try {
             const response = await getConnectedSystems();
-            setSystems(response.data);
+            setSystems(response.data || []);
             setError('');
         } catch (err) {
             setError('Failed to fetch systems. ' + (err.response?.data?.error || err.message));

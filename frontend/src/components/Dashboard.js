@@ -334,7 +334,7 @@ function Dashboard() {
                     <Card className='mt-3'>
                         <Card.Header as="h5"><FaComment className="me-2"/>Recent Activity</Card.Header>
                         {userFeed.length > 0 ? (
-                            <ListGroup variant="flush" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                            <ListGroup variant="flush" style={{  }}>
                                 {userFeed.map(item => (
                                     <ListGroup.Item key={item.id} className="py-2 px-3">
                                         <div className="d-flex w-100 justify-content-between">

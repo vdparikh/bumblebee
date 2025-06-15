@@ -324,8 +324,8 @@ func (h *CampaignHandler) UpdateCampaignHandler(c *gin.Context) {
 	}
 
 	if len(auditChanges) > 0 {
-		if errLog := utils.RecordAuditLog(h.Store, actorUserIDStrPtr, "update_campaign", "campaign", campaignID, auditChanges); errLog != nil {
-			log.Printf("Error recording audit log for update campaign %s: %v", campaignID, errLog)
+		if err := utils.RecordAuditLog(h.Store, actorUserIDStrPtr, "update_campaign", "campaign", campaignID, auditChanges); err != nil {
+			log.Printf("Error recording audit log for update campaign %s: %v", campaignID, err)
 		}
 	}
 
@@ -952,12 +952,28 @@ func (h *CampaignHandler) ExecuteCampaignTaskInstanceHandler(c *gin.Context) {
 		return
 	}
 
+	// Parse parameters from request body
+	var requestBody struct {
+		Parameters map[string]interface{} `json:"parameters"`
+	}
+	if err := c.ShouldBindJSON(&requestBody); err != nil {
+		sendError(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	fmt.Println("requestBody", requestBody)
+	// Use provided parameters if available, otherwise use task instance parameters
+	parameters := taskInstance.Parameters
+	if requestBody.Parameters != nil {
+		parameters = requestBody.Parameters
+	}
+
 	// Create a task execution request
 	request := &queue.TaskExecutionRequest{
 		ID:             uuid.New(),
 		TaskInstanceID: uuid.MustParse(instanceID),
 		TaskType:       *taskInstance.CheckType,
-		Parameters:     taskInstance.Parameters,
+		Parameters:     parameters,
 		SystemConfig:   map[string]interface{}{"configuration": systemConfig},
 		CreatedAt:      time.Now(),
 		Status:         "pending",

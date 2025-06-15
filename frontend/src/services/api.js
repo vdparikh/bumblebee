@@ -258,8 +258,8 @@ export const getUserCampaignTasks = async (userId, userField, campaignStatus) =>
        }
    };
    
-export const executeCampaignTaskInstance = async (instanceId) => {
-    const response = await apiClient.post(`/campaign-task-instances/${instanceId}/execute`);
+export const executeCampaignTaskInstance = async (instanceId, parameters = {}) => {
+    const response = await apiClient.post(`/campaign-task-instances/${instanceId}/execute`, { parameters });
     return response;
 };
 export const getCampaignTaskInstanceResults = async (instanceId) => {

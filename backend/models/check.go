@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -12,6 +13,11 @@ type ComplianceStandard struct {
 	Version      *string `json:"version,omitempty" db:"version"`
 	IssuingBody  *string `json:"issuing_body,omitempty" db:"issuing_body"`
 	OfficialLink *string `json:"official_link,omitempty" db:"official_link"`
+	// EffectiveDate *CustomDate     `json:"effective_date,omitempty" db:"effective_date"`
+	// ExpiryDate    *CustomDate     `json:"expiry_date,omitempty" db:"expiry_date"`
+	Jurisdiction *string         `json:"jurisdiction,omitempty" db:"jurisdiction"`
+	Industry     *string         `json:"industry,omitempty" db:"industry"`
+	Tags         json.RawMessage `json:"tags,omitempty" db:"tags"`
 }
 
 type Task struct {
@@ -22,11 +28,20 @@ type Task struct {
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 
+	// TaskID  string `json:"taskId" db:"task_id"`
+	Version string `json:"version" db:"version"`
+	// EffectiveDate      *CustomDate     `json:"effectiveDate,omitempty" db:"effective_date"`
+	// ExpiryDate         *CustomDate     `json:"expiryDate,omitempty" db:"expiry_date"`
+	Priority           string          `json:"priority" db:"priority"`
+	Status             string          `json:"status" db:"status"`
+	Tags               json.RawMessage `json:"tags,omitempty" db:"tags"`
+	HighLevelCheckType *string         `json:"highLevelCheckType,omitempty" db:"high_level_check_type"`
+
 	CheckType  *string                `json:"checkType,omitempty"`
 	Target     *string                `json:"target,omitempty"`
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
 
-	LinkedDocumentIDs []string   `json:"linked_document_ids,omitempty"`
+	LinkedDocumentIDs []string   `json:"linkedDocumentIDs,omitempty"`
 	LinkedDocuments   []Document `json:"linked_documents,omitempty" db:"-"`
 
 	EvidenceTypesExpected []string `json:"evidenceTypesExpected,omitempty" db:"evidence_types_expected"`

@@ -116,6 +116,9 @@ func (s *IntegrationService) processTask(ctx context.Context, task *queue.TaskEx
 		Store:           s.store,
 	}
 
+	// Override task instance parameters with the ones from the execution request
+	taskInstance.Parameters = task.Parameters
+
 	// Execute the task
 	execResult, err := exec.Execute(checkCtx)
 	if err != nil {

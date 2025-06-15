@@ -21,80 +21,39 @@ func NewTaskHandler(s *store.DBStore) *TaskHandler {
 }
 
 func (h *TaskHandler) CreateTaskHandler(c *gin.Context) {
-	var payload struct {
-		Title                 string                 `json:"title" binding:"required"`
-		Description           string                 `json:"description"`
-		Category              string                 `json:"category"`
-		RequirementIDs        []string               `json:"requirementIds"`
-		CheckType             *string                `json:"checkType"`
-		Target                *string                `json:"target"`
-		Parameters            map[string]interface{} `json:"parameters"`
-		EvidenceTypesExpected []string               `json:"evidenceTypesExpected"`
-		DefaultPriority       *string                `json:"defaultPriority"`
-		LinkedDocumentIDs     []string               `json:"linked_document_ids"`
-	}
-
-	if err := c.ShouldBindJSON(&payload); err != nil {
-		sendError(c, http.StatusBadRequest, "Invalid request body for task", err)
+	var newTask models.Task
+	if err := c.ShouldBindJSON(&newTask); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
 		return
 	}
-
-	if payload.Title == "" {
-		sendError(c, http.StatusBadRequest, "Title is required for task", nil)
+	if newTask.Title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "title is required"})
 		return
 	}
-
-	task := models.Task{
-		Title:                 payload.Title,
-		Description:           payload.Description,
-		Category:              payload.Category,
-		RequirementIDs:        payload.RequirementIDs,
-		CheckType:             payload.CheckType,
-		Target:                payload.Target,
-		Parameters:            payload.Parameters,
-		EvidenceTypesExpected: payload.EvidenceTypesExpected,
-		DefaultPriority:       payload.DefaultPriority,
-		LinkedDocumentIDs:     payload.LinkedDocumentIDs,
+	if newTask.Version == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "version is required"})
+		return
 	}
-
-	taskID, err := h.Store.CreateTask(&task)
+	if newTask.Category == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "category is required"})
+		return
+	}
+	if newTask.DefaultPriority == nil || *newTask.DefaultPriority == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "defaultPriority is required"})
+		return
+	}
+	if newTask.Status == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status is required"})
+		return
+	}
+	// Create the task and handle requirementIds join table
+	taskID, err := h.Store.CreateTask(&newTask)
 	if err != nil {
-		sendError(c, http.StatusInternalServerError, "Failed to create task", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create task: " + err.Error()})
 		return
 	}
-	task.ID = taskID
-
-	// Audit log
-	userID, exists := c.Get("userID")
-	if !exists {
-		log.Printf("Error: UserID not found in context for audit logging create task")
-		// Decide if this is critical. For now, we'll proceed without user ID if not found.
-	}
-	var userIDStrPtr *string
-	if exists {
-		uid := userID.(string)
-		userIDStrPtr = &uid
-	}
-
-	auditChanges := map[string]interface{}{
-		"id":                      task.ID,
-		"title":                   task.Title,
-		"description":             task.Description,
-		"category":                task.Category,
-		"requirement_ids":         task.RequirementIDs,
-		"check_type":              task.CheckType,
-		"target":                  task.Target,
-		"parameters":              task.Parameters,
-		"evidence_types_expected": task.EvidenceTypesExpected,
-		"default_priority":        task.DefaultPriority,
-		"linked_document_ids":     task.LinkedDocumentIDs,
-	}
-	if err := utils.RecordAuditLog(h.Store, userIDStrPtr, "create_task", "task", task.ID, auditChanges); err != nil {
-		log.Printf("Error recording audit log for create task %s: %v", task.ID, err)
-		// Non-critical, so we don't fail the request
-	}
-
-	c.JSON(http.StatusCreated, task)
+	newTask.ID = taskID
+	c.JSON(http.StatusCreated, newTask)
 }
 
 func (h *TaskHandler) GetTasksHandler(c *gin.Context) {

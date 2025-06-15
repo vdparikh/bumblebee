@@ -295,6 +295,10 @@ function ThreeColumnView({
                                         className=""
                                     >
                                         <div>
+                                        {task.category && (
+                        <div style={{ fontSize: "0.7em"}} className="mb-1 fw-normal text-muted text-uppercase small">{task.category}</div>
+                    )}
+
                                                                                             <div className="fw-bold">{task.title}</div>
 
                                             <div className="d-flex justify-content-between align-items-center">
@@ -304,7 +308,8 @@ function ThreeColumnView({
 
                                             </div>
                                             <div className="mt-1">
-                                                {task.category && <Badge pill bg="light" text="dark" className="me-1 border"><FaTag className="me-1" />{task.category}</Badge>}
+                                                {/* {task.category && <Badge pill bg="light" text="dark" className="me-1 border"><FaTag className="me-1" />{task.category}</Badge>} */}
+                                               
                                                 {task.defaultPriority && (
                                                     <Badge pill bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">
                                                         <FaExclamationCircle className="me-1" />{task.defaultPriority}

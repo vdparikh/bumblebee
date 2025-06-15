@@ -80,3 +80,37 @@ func (j JSONB) Value() (driver.Value, error) {
 // 	}
 // 	return json.RawMessage(j).MarshalJSON()
 // }
+
+func (cd *CustomDate) Value() (driver.Value, error) {
+	if cd == nil || cd.Time.IsZero() {
+		return nil, nil
+	}
+	return cd.Time, nil
+}
+
+func (cd *CustomDate) Scan(value interface{}) error {
+	if value == nil {
+		*cd = CustomDate{}
+		return nil
+	}
+	switch v := value.(type) {
+	case time.Time:
+		cd.Time = v
+		return nil
+	case []byte:
+		t, err := time.Parse("2006-01-02", string(v))
+		if err != nil {
+			return err
+		}
+		cd.Time = t
+		return nil
+	case string:
+		t, err := time.Parse("2006-01-02", v)
+		if err != nil {
+			return err
+		}
+		cd.Time = t
+		return nil
+	}
+	return fmt.Errorf("cannot scan type %T into CustomDate", value)
+}

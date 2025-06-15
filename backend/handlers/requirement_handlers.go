@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -25,36 +26,14 @@ func (h *RequirementHandler) CreateRequirementHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
 		return
 	}
-
-	if newReq.StandardID == "" || newReq.RequirementText == "" || newReq.ControlIDReference == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "StandardID, RequirementText, and ControlIDReference are required"})
+	if newReq.StandardID == "" || newReq.ControlIDReference == "" || newReq.RequirementText == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "standardId, controlIdReference, and requirementText are required"})
 		return
 	}
-
 	if err := h.Store.CreateRequirement(&newReq); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create requirement: " + err.Error()})
 		return
 	}
-
-	// Audit log for requirement creation
-	actorUserID, exists := c.Get("userID")
-	var actorUserIDStrPtr *string
-	if exists {
-		uid := actorUserID.(string)
-		actorUserIDStrPtr = &uid
-	} else {
-		log.Printf("Warning: UserID not found in context for audit logging create requirement %s", newReq.ID)
-	}
-	auditChanges := map[string]interface{}{
-		"id":                   newReq.ID,
-		"standard_id":          newReq.StandardID,
-		"control_id_reference": newReq.ControlIDReference,
-		"requirement_text":     newReq.RequirementText,
-	}
-	if errLog := utils.RecordAuditLog(h.Store, actorUserIDStrPtr, "create_requirement", "requirement", newReq.ID, auditChanges); errLog != nil {
-		log.Printf("Error recording audit log for create requirement %s: %v", newReq.ID, errLog)
-	}
-
 	c.JSON(http.StatusCreated, newReq)
 }
 
@@ -104,6 +83,8 @@ func (h *RequirementHandler) UpdateRequirementHandler(c *gin.Context) {
 		log.Printf("Warning: Could not fetch old requirement %s for audit log: %v", requirementID, errGet)
 		// Proceed with update, but audit log might not have old values if this fails
 	}
+
+	fmt.Println(reqUpdates)
 
 	if err := h.Store.UpdateRequirement(&reqUpdates); err != nil {
 		log.Printf("Error updating requirement %s: %v", requirementID, err)

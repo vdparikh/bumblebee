@@ -9,12 +9,12 @@ import {
     addGenericEvidenceToCampaignTaskInstance,
     uploadEvidenceToCampaignTaskInstance,
     updateCampaignTaskInstance,
-    executeCampaignTaskInstance, copyEvidenceToCampaignTaskInstance,
+    executeCampaignTaskInstance,
+    copyEvidenceToCampaignTaskInstance,
     getCampaignTaskInstanceResults,
     getTaskInstancesByMasterTaskId,
     getTaskExecutionStatus,
-
-    reviewEvidence, // Assumed to be added in services/api.js
+    reviewEvidence,
 } from '../services/api';
 import Card from 'react-bootstrap/Card';
 import Alert from 'react-bootstrap/Alert';
@@ -27,54 +27,84 @@ import Popover from 'react-bootstrap/Popover';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import ListGroup from 'react-bootstrap/ListGroup';
+import ListGroupItem from 'react-bootstrap/ListGroupItem';
 import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Modal from 'react-bootstrap/Modal';
-
-import {
-    FaArrowLeft,
-    FaClipboardCheck,
+import { 
+    FaPlayCircle,
     FaInfoCircle,
+    FaFileAlt,
     FaLink,
+    FaFileUpload,
+    FaPlus,
+    FaFileMedicalAlt,
     FaAlignLeft,
+    FaThumbsUp,
+    FaThumbsDown,
+    FaHistory,
+    FaCogs,
+    FaTerminal,
+    FaExclamationCircle,
     FaTag,
     FaUserShield,
     FaUserCheck,
-    FaCalendarAlt,
-    FaClipboardList,
-    FaCogs,
-    FaSyncAlt,
-    FaFileUpload,
-    FaFileAlt,
-    FaCommentDots,
-    FaBullhorn,
-    FaPlayCircle,
-    FaPoll,
-    FaExclamationCircle,
-    FaFileMedicalAlt,
-    FaTerminal,
-    FaPlus,
-    FaBookOpen,
-    FaThumbsUp, // For Approve
-    FaUsers, // For Teams
-    FaThumbsDown,
-    FaHistory,
-    FaFileContract, // For Reject
+    FaUsers,
+    FaCalendarAlt
 } from 'react-icons/fa';
-import { ListGroupItem } from 'react-bootstrap';
-import { getStatusColor as getStatusColorUtil } from '../utils/displayUtils';
 import { useAuth } from '../contexts/AuthContext';
 import UserDisplay from './common/UserDisplay';
-import TeamDisplay from './common/TeamDisplay'; // Import TeamDisplay
+import TeamDisplay from './common/TeamDisplay';
 import CopyEvidenceModal from './modals/CopyEvidenceModal';
-
 import CommentSection from './common/CommentSection';
+
+// ParameterModal component
+const ParameterModal = React.memo(({ 
+    show, 
+    onHide, 
+    parameters, 
+    onParameterChange, 
+    onExecute 
+}) => (
+    <Modal 
+        show={show} 
+        onHide={onHide}
+        backdrop="static"
+        keyboard={false}
+    >
+        <Modal.Header closeButton>
+            <Modal.Title>Edit Task Parameters</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+            {Object.entries(parameters).map(([key, value]) => (
+                <Form.Group key={key} className="mb-3">
+                    <Form.Label>{key}</Form.Label>
+                    <Form.Control
+                        type="text"
+                        value={value}
+                        onChange={(e) => onParameterChange(key, e.target.value)}
+                    />
+                </Form.Group>
+            ))}
+        </Modal.Body>
+        <Modal.Footer>
+            <Button variant="secondary" onClick={onHide}>
+                Cancel
+            </Button>
+            <Button variant="primary" onClick={onExecute}>
+                Execute with Parameters
+            </Button>
+        </Modal.Footer>
+    </Modal>
+));
 
 function CampaignTaskInstanceDetail() {
     const { currentUser } = useAuth();
     const { instanceId } = useParams();
     const location = useLocation();
+    
+    // State management
     const [taskInstance, setTaskInstance] = useState(null);
     const [users, setUsers] = useState([]);
     const [comments, setComments] = useState([]);
@@ -86,17 +116,14 @@ function CampaignTaskInstanceDetail() {
     const [evidenceText, setEvidenceText] = useState('');
     const [evidenceDescription, setEvidenceDescription] = useState('');
     const [showCopyEvidenceModal, setShowCopyEvidenceModal] = useState(false);
-    const [historicalTasks, setHistoricalTasks] = useState([]); // New state for historical tasks
-
+    const [historicalTasks, setHistoricalTasks] = useState([]);
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [evidenceToReview, setEvidenceToReview] = useState(null);
     const [reviewComment, setReviewComment] = useState('');
     const [reviewError, setReviewError] = useState('');
-
     const [executionResults, setExecutionResults] = useState([]);
     const [executionStatus, setExecutionStatus] = useState(null);
     const [pollingInterval, setPollingInterval] = useState(null);
-
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [commentError, setCommentError] = useState('');
@@ -107,6 +134,9 @@ function CampaignTaskInstanceDetail() {
     const [executionSuccess, setExecutionSuccess] = useState('');
     const [lastExecutionAttempt, setLastExecutionAttempt] = useState(null);
     const [loadingResults, setLoadingResults] = useState(false);
+    const [showParameterModal, setShowParameterModal] = useState(false);
+    const [taskParameters, setTaskParameters] = useState({});
+    const [editedParameters, setEditedParameters] = useState({});
 
     const canUpdateTaskStatus = useMemo(() => {
         if (!currentUser || !taskInstance) return false;
@@ -117,7 +147,7 @@ function CampaignTaskInstanceDetail() {
 
     const canReviewEvidence = useMemo(() => {
         if (!currentUser) return false;
-        return currentUser.role === 'admin' || currentUser.role === 'auditor'; // Or task owners, etc.
+        return currentUser.role === 'admin' || currentUser.role === 'auditor';
     }, [currentUser, taskInstance]);
 
     const canManageEvidenceAndExecution = useMemo(() => {
@@ -136,12 +166,12 @@ function CampaignTaskInstanceDetail() {
             case 'failed': return 'danger';
             case 'success': return 'success';
             case 'error': return 'danger';
-            case 'approved': return 'success'; // Review status
-            case 'rejected': return 'danger';  // Review status
-            case 'pending': return 'warning'; // Review status
-            case 'queued': return 'info';     // Execution status
-            case 'completed': return 'success'; // Execution status
-            case 'running': return 'info';    // Execution status
+            case 'approved': return 'success';
+            case 'rejected': return 'danger';
+            case 'pending': return 'warning';
+            case 'queued': return 'info';
+            case 'completed': return 'success';
+            case 'running': return 'info';
             default: return 'secondary';
         }
     };
@@ -179,14 +209,12 @@ function CampaignTaskInstanceDetail() {
         const evidencePayload = {
             description: "<pre>" + result.output + "</pre>",
             file_name: `Execution Result - ${result.status} - ${new Date(result.timestamp).toISOString()}`,
-            mime_type: "text/plain", // Store as plain text
-            // review_status: "Pending", // Ideally set by backend on creation
-            file_path: null, // No file path for text evidence
+            mime_type: "text/plain",
+            file_path: null,
         };
 
         try {
             await addGenericEvidenceToCampaignTaskInstance(instanceId, evidencePayload);
-            // Refresh the evidence list after adding
             const evidenceResponse = await getEvidenceByCampaignTaskInstanceId(instanceId);
             setEvidenceList(Array.isArray(evidenceResponse.data) ? evidenceResponse.data : []);
         } catch (err) {
@@ -210,13 +238,11 @@ function CampaignTaskInstanceDetail() {
         }
         try {
             await reviewEvidence(evidenceId, { review_status: status, review_comments: comment });
-            // After successful API call, refresh the evidence list to get the updated data
             const evidenceResponse = await getEvidenceByCampaignTaskInstanceId(instanceId);
             setEvidenceList(Array.isArray(evidenceResponse.data) ? evidenceResponse.data : []);
 
-            setShowRejectModal(false); // Close modal if it was open
+            setShowRejectModal(false);
             setEvidenceToReview(null);
-            // Optionally, show a success message
         } catch (err) {
             console.error("Error reviewing evidence:", err);
             setReviewError(`Failed to review evidence. ${err.response?.data?.error || 'Please try again.'}`);
@@ -228,17 +254,14 @@ function CampaignTaskInstanceDetail() {
         try {
             const response = await getTaskInstancesByMasterTaskId(masterTaskId);
             if (response.data) {
-                // Filter out the current instance from the historical list
                 setHistoricalTasks(Array.isArray(response.data) ? response.data.filter(t => t.id !== instanceId) : []);
             }
         } catch (err) {
             console.error("Error fetching historical tasks:", err);
-            // Optionally set an error state for historical tasks
             setHistoricalTasks([]);
         }
     }, [instanceId]);
 
-    // Fetch historical tasks when taskInstance (and thus master_task_id) is available
     useEffect(() => {
         if (taskInstance?.master_task_id) {
             fetchHistoricalTasks(taskInstance.master_task_id);
@@ -364,7 +387,6 @@ function CampaignTaskInstanceDetail() {
 
                 evidencePayload.description = evidenceText;
                 evidencePayload.mime_type = "text/plain";
-                // evidencePayload.review_status = "Pending"; // Ideally set by backend
                 response = await addGenericEvidenceToCampaignTaskInstance(instanceId, evidencePayload);
             }
             setEvidenceList(prevEvidence => [...prevEvidence, response.data]);
@@ -389,25 +411,45 @@ function CampaignTaskInstanceDetail() {
         }
     };
 
-    const handleExecuteInstance = async () => {
+    const handleModalClose = useCallback(() => {
+        setShowParameterModal(false);
+        setEditedParameters(taskInstance?.parameters || {});
+    }, [taskInstance?.parameters]);
+
+    const handleParameterChange = useCallback((key, value) => {
+        setEditedParameters(prev => ({
+            ...prev,
+            [key]: value
+        }));
+    }, []);
+
+    const handleOpenParameterModal = useCallback(() => {
+        setEditedParameters(taskInstance?.parameters || {});
+        setShowParameterModal(true);
+    }, [taskInstance?.parameters]);
+
+    const handleExecuteInstance = useCallback(async () => {
+        if (!canManageEvidenceAndExecution) {
+            setExecutionError("You don't have permission to execute this task.");
+            return;
+        }
+
         setExecutionError('');
         setExecutionSuccess('');
-        setLoadingResults(true);
-        setLastExecutionAttempt(null);
-        try {
-            const response = await executeCampaignTaskInstance(instanceId);
-            setExecutionSuccess(response.data.message || "Execution triggered successfully. Results will be available shortly.");
-            setLastExecutionAttempt({ output: response.data.output, status: response.data.status });
+        setLastExecutionAttempt(new Date());
 
-            await fetchInstanceResults();
+        try {
+            const response = await executeCampaignTaskInstance(instanceId, editedParameters);
+            setExecutionSuccess('Task execution started successfully.');
+            setShowParameterModal(false);
+            
+            const status = await getTaskExecutionStatus(instanceId);
+            setExecutionStatus(status);
         } catch (err) {
-            console.error("Error executing task instance:", err);
-            setExecutionError(`Failed to execute task. ${err.response?.data?.error || ''}`);
-            setLastExecutionAttempt(null);
-        } finally {
-            setLoadingResults(false);
+            console.error('Error executing task:', err);
+            setExecutionError(err.response?.data?.error || 'Failed to execute task. Please try again.');
         }
-    };
+    }, [instanceId, editedParameters, canManageEvidenceAndExecution]);
 
     const fetchInstanceResults = async () => {
         setExecutionError('');
@@ -426,7 +468,6 @@ function CampaignTaskInstanceDetail() {
 
     const formatJsonContent = (content) => {
         try {
-            // If content is already an object, stringify it
             const jsonContent = typeof content === 'string' ? JSON.parse(content) : content;
             return (
                 <pre className="bg-light p-2 rounded mt-1 mb-0" style={{ 
@@ -440,43 +481,48 @@ function CampaignTaskInstanceDetail() {
                 </pre>
             );
         } catch (error) {
-            // If parsing fails, return the original content
             return content;
         }
     };
 
     useEffect(() => {
-        // Start polling when execution is triggered
-        if (executionSuccess) {
-            const interval = setInterval(async () => {
-                try {
-                    const response = await getTaskExecutionStatus(instanceId);
-                    setExecutionStatus(response.execution_status);
-                    
-                    // If task is completed or failed, stop polling
-                    if (response.execution_status && 
-                        (response.execution_status.status === 'completed' || 
-                         response.execution_status.status === 'failed')) {
-                        clearInterval(interval);
-                        setPollingInterval(null);
-                        // Refresh the results
-                        await fetchInstanceResults();
-                    }
-                } catch (error) {
-                    console.error('Error polling task status:', error);
-                }
-            }, 2000); // Poll every 2 seconds
-            
-            setPollingInterval(interval);
-        }
+        let interval = null;
         
-        // Cleanup on unmount
+        if (executionStatus && (executionStatus === 'queued' || executionStatus === 'running')) {
+            interval = setInterval(async () => {
+                try {
+                    const newStatus = await getTaskExecutionStatus(instanceId);
+                    setExecutionStatus(newStatus);
+                    
+                    if (newStatus === 'completed' || newStatus === 'failed') {
+                        clearInterval(interval);
+                        fetchInstanceResults();
+                    }
+                } catch (err) {
+                    console.error('Error polling execution status:', err);
+                    clearInterval(interval);
+                }
+            }, 5000);
+        }
+
         return () => {
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
+            if (interval) {
+                clearInterval(interval);
             }
         };
-    }, [executionSuccess, instanceId]);
+    }, [executionStatus, instanceId]);
+
+    const renderExecuteButton = useCallback(() => (
+        <Button
+            variant="primary"
+            onClick={handleOpenParameterModal}
+            disabled={!canManageEvidenceAndExecution || taskInstance?.status === 'closed'}
+            className="me-2"
+        >
+            <FaPlayCircle className="me-2" />
+            Execute Task
+        </Button>
+    ), [canManageEvidenceAndExecution, taskInstance?.status, handleOpenParameterModal]);
 
     if (loading) return <div className="text-center mt-5"><Spinner animation="border" /><p>Loading task instance details...</p></div>;
     if (error) return <Alert variant="danger" className="mt-3">{error}</Alert>;
@@ -508,7 +554,6 @@ function CampaignTaskInstanceDetail() {
             default: return 'light';
         }
     };
-
 
     return (
         <div>
@@ -544,7 +589,6 @@ function CampaignTaskInstanceDetail() {
                     <Tabs defaultActiveKey="details" id="task-instance-detail-tabs" className="nav-line-tabs mb-3">
                         <Tab eventKey="details" title={<><FaInfoCircle className="me-1" />Details</>}>
                             <Card className="mb-3">
-                                {/* <Card.Header as="h5"><FaInfoCircle className="me-2 text-muted" />Task Details</Card.Header> */}
                                 <ListGroup variant='flush'>
                                     <ListGroupItem>
 
@@ -813,9 +857,7 @@ function CampaignTaskInstanceDetail() {
 
                                             <>
                                                 <p>This task instance is configured for automated execution.</p>
-                                                <Button className='rounded-pill small w-100' onClick={handleExecuteInstance} disabled={loadingResults}>
-                                                    Execute
-                                                </Button>
+                                                {renderExecuteButton()}
                                             </>
                                         ) : !canManageEvidenceAndExecution ? (
 
@@ -899,82 +941,73 @@ function CampaignTaskInstanceDetail() {
                     </Tabs>
                 </Col>
                 <Col md={4}>
-
                     <small className="text-muted d-block mb-3">
                         Created: {new Date(taskInstance.created_at).toLocaleString()}<br />
                         Last Updated: {new Date(taskInstance.updatedAt).toLocaleString()}
                     </small>
-
-
-                    <ListGroup >
-
-                        <ListGroupItem>
-                            <FaExclamationCircle className="me-2 text-muted" /><strong>Priority:</strong>
-                            {taskInstance.defaultPriority ? <Badge bg={getPriorityBadgeColor(taskInstance.defaultPriority)} className="ms-2">{taskInstance.defaultPriority}</Badge> : ' N/A'}
-                        </ListGroupItem>
-
-
-
-                        <ListGroupItem>
-                            <FaTag className="me-2 text-muted" /><strong>Category:</strong><br />
-
-                            {taskInstance.category && (
-                                <Badge pill bg="light" text="dark" className="fw-normal ms-2 border"><FaTag className="me-1" />{taskInstance.category}</Badge>
-                            )}
-                            {taskInstance.requirement_control_id_reference && (
-                                <Badge pill bg="light" text="dark" className="fw-normal border">Req: {taskInstance.requirement_control_id_reference}</Badge>
-                            )}
-
-                        </ListGroupItem>
-                        <ListGroupItem>
-                            <FaUserShield className="me-2 text-muted" /><strong className='me-2'>Owner(s):</strong><br />
-                            {taskInstance.owners && taskInstance.owners.length > 0 ?
-                                taskInstance.owners.map((owner, index) => (
-                                    <React.Fragment key={owner.id}>
-
-                                        <UserDisplay userId={owner.id} userName={owner.name} allUsers={users} />
-                                        {index < taskInstance.owners.length - 1 && ' '}
-                                    </React.Fragment>
-                                )) : ' N/A'}
-                        </ListGroupItem>
-                        <ListGroupItem><FaUserCheck className="me-2 text-muted" /><strong className="me-1">Assignee:</strong><br />
-
-                            <UserDisplay userId={taskInstance.assignee_user_id} userName={taskInstance.assignee_user_id} allUsers={users} />
-
-
-                        </ListGroupItem>
-                        {taskInstance.owner_team && taskInstance.owner_team.name && (
-                            <ListGroupItem>
-                                <FaUsers className="me-2 text-muted" /><strong>Owner Team:</strong>
-                                <TeamDisplay teamId={taskInstance.owner_team.id} teamName={taskInstance.owner_team.name} teamDescription={taskInstance.owner_team.description} teamMembers={taskInstance.owner_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} />
-                                {/* Note: allTeams prop might need adjustment based on how you fetch all teams globally or pass them down */}
-                            </ListGroupItem>
-                        )}
-                        {/* {taskInstance.assignee_team && taskInstance.assignee_team.name && (
-                                        <ListGroupItem>
-                                            <FaUsers className="me-2 text-muted" /><strong>Assignee Team:</strong>
-                                            <TeamDisplay teamId={taskInstance.assignee_team.id} teamName={taskInstance.assignee_team.name} teamDescription={taskInstance.assignee_team.description} teamMembers={taskInstance.assignee_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} />
-                                        </ListGroupItem>
-                                    )} */}
-                        <ListGroupItem>
-                            <FaFileMedicalAlt className="me-2 text-muted" /><strong>Expected Evidence:</strong><br />
-                            {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
-                                taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
-                                    <React.Fragment key={evidenceType}>
-
-                                        <Badge variant="secondary" className='bg-secondary me-1 ms-1'>{evidenceType}</Badge>
-
-                                    </React.Fragment>
-                                )) : ' N/A'}
-                        </ListGroupItem>
-                        <ListGroupItem><FaCalendarAlt className="me-2 text-muted" /><strong>Due Date:</strong><br />{taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</ListGroupItem>
-
-
-
-
-                    </ListGroup>
-
-
+                    <Card>
+                        <Card.Body className="p-2">
+                            <table className="table table-sm mb-0 align-middle">
+                                <tbody>
+                                    <tr>
+                                        <th className="w-40 align-middle"><FaExclamationCircle className="me-2 text-muted" />Priority:</th>
+                                        <td>{taskInstance.priority ? <Badge bg={getPriorityBadgeColor(taskInstance.priority)} className="ms-2">{taskInstance.priority}</Badge> : 'N/A'}</td>
+                                    </tr>
+                                    <tr>
+                                        <th className="align-middle"><FaTag className="me-2 text-muted" />Category:</th>
+                                        <td>
+                                            {taskInstance.category && (
+                                                <Badge pill bg="light" text="dark" className="fw-normal ms-2 border"><FaTag className="me-1" />{taskInstance.category}</Badge>
+                                            )}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th className="align-middle">Requirement:</th>
+                                        <td>
+                                            {taskInstance.requirement_control_id_reference && (
+                                                <Badge pill bg="light" text="dark" className="fw-normal border">Req: {taskInstance.requirement_control_id_reference}</Badge>
+                                            )}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th className="align-middle"><FaUserShield className="me-2 text-muted" />Owner(s):</th>
+                                        <td>
+                                            {taskInstance.owners && taskInstance.owners.length > 0 ?
+                                                taskInstance.owners.map((owner, index) => (
+                                                    <React.Fragment key={owner.id}>
+                                                        <UserDisplay userId={owner.id} userName={owner.name} allUsers={users} />
+                                                        {index < taskInstance.owners.length - 1 && ', '}
+                                                    </React.Fragment>
+                                                )) : 'N/A'}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th className="align-middle"><FaUserCheck className="me-2 text-muted" />Assignee:</th>
+                                        <td><UserDisplay userId={taskInstance.assignee_user_id} userName={taskInstance.assignee_user_id} allUsers={users} /></td>
+                                    </tr>
+                                    {taskInstance.owner_team && taskInstance.owner_team.name && (
+                                        <tr>
+                                            <th className="align-middle"><FaUsers className="me-2 text-muted" />Owner Team:</th>
+                                            <td><TeamDisplay teamId={taskInstance.owner_team.id} teamName={taskInstance.owner_team.name} teamDescription={taskInstance.owner_team.description} teamMembers={taskInstance.owner_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} /></td>
+                                        </tr>
+                                    )}
+                                    <tr>
+                                        <th className="align-middle"><FaFileMedicalAlt className="me-2 text-muted" />Expected Evidence:</th>
+                                        <td>
+                                            {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
+                                                taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
+                                                    <Badge variant="secondary" className='bg-secondary me-1 ms-1' key={evidenceType}>{evidenceType}</Badge>
+                                                )) : 'N/A'}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th className="align-middle"><FaCalendarAlt className="me-2 text-muted" />Due Date:</th>
+                                        <td>{taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </Card.Body>
+                    </Card>
                 </Col>
             </Row>
 
@@ -1010,9 +1043,17 @@ function CampaignTaskInstanceDetail() {
                 </Modal.Footer>
             </Modal>
 
+            <ParameterModal 
+                show={showParameterModal}
+                onHide={handleModalClose}
+                parameters={editedParameters}
+                onParameterChange={handleParameterChange}
+                onExecute={handleExecuteInstance}
+            />
+
         </div>
 
     );
 }
 
-export default CampaignTaskInstanceDetail;
+export default React.memo(CampaignTaskInstanceDetail);

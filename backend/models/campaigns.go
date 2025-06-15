@@ -71,18 +71,21 @@ type CampaignTaskInstance struct {
 	OwnerUserIDs                  []string               `json:"owner_user_ids,omitempty" db:"-"` // Not a direct DB column
 	Owners                        []UserBasicInfo        `json:"owners,omitempty" db:"-"`         // Populated by JOINs
 
+	Priority *string `json:"priority,omitempty" db:"priority"`
+
 	AssigneeUserID *string        `json:"assignee_user_id,omitempty" db:"assignee_user_id"`
 	AssigneeUser   *UserBasicInfo `json:"assignee_user,omitempty" db:"assigneeuser"` // For sqlx struct scan
 	Status         string         `json:"status" db:"status"`
 	DueDate        *time.Time     `json:"due_date,omitempty"  db:"due_date"`
 	CreatedAt      time.Time      `json:"created_at" db:"created_at"`
 
-	UpdatedAt       time.Time              `json:"updatedAt" db:"updated_at"`
-	CheckType       *string                `json:"check_type,omitempty" db:"check_type"`
-	Target          *string                `json:"target,omitempty" db:"target"`
-	Parameters      map[string]interface{} `json:"parameters,omitempty" db:"parameters"`
-	LastCheckedAt   *time.Time             `json:"lastCheckedAt,omitempty" db:"last_checked_at"`
-	LastCheckStatus *string                `json:"lastCheckStatus,omitempty" db:"last_check_status"`
+	UpdatedAt          time.Time              `json:"updatedAt" db:"updated_at"`
+	HighLevelCheckType *string                `json:"high_level_check_type,omitempty" db:"high_level_check_type"`
+	CheckType          *string                `json:"check_type,omitempty" db:"check_type"`
+	Target             *string                `json:"target,omitempty" db:"target"`
+	Parameters         map[string]interface{} `json:"parameters,omitempty" db:"parameters"`
+	LastCheckedAt      *time.Time             `json:"lastCheckedAt,omitempty" db:"last_checked_at"`
+	LastCheckStatus    *string                `json:"lastCheckStatus,omitempty" db:"last_check_status"`
 
 	OwnerUserName    *string `json:"owner_user_name,omitempty" db:"owner_user_name"`
 	AssigneeUserName *string `json:"assignee_user_name,omitempty" db:"assignee_user_name"`

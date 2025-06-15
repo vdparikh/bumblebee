@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Button, FloatingLabel, Row, Col, Accordion } from 'react-bootstrap';
+import { Form, Button, FloatingLabel, Row, Col, Accordion, Alert } from 'react-bootstrap';
 import {
     FaTasks, FaAlignLeft, FaTag, FaExclamationCircle, FaEdit, FaPlusCircle,
-    FaWindowClose, FaFileContract, FaCogs, FaBookOpen
+    FaWindowClose, FaFileContract, FaCogs, FaBookOpen, FaCalendarAlt, FaLink, FaExclamationTriangle, FaCheckCircle, FaTerminal, FaFileUpload, FaUserShield
 } from 'react-icons/fa';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
@@ -128,111 +128,167 @@ const taskCategories = [
 ];
 
 function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, connectedSystems, documents, parentId }) {
+    // Multi-select for requirements
     const [requirementIds, setRequirementIds] = useState([]);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [category, setCategory] = useState('');
-    const [defaultPriority, setDefaultPriority] = useState('');
-    const [checkType, setCheckType] = useState('');
-    const [checkTarget, setCheckTarget] = useState('');
-    const [checkParams, setCheckParams] = useState({});
+    const [version, setVersion] = useState('');
+    const [category, setCategory] = useState('Other');
+    const [defaultPriority, setDefaultPriority] = useState('medium');
+    const [status, setStatus] = useState('active');
+    const [tags, setTags] = useState([]);
+    const [highLevelCheckType, setHighLevelCheckType] = useState('automated');
+    const [checkType, setCheckType] = useState('automated');
+    const [target, setTarget] = useState('');
+    const [parameters, setParameters] = useState({});
     const [evidenceTypesExpected, setEvidenceTypesExpected] = useState([]);
     const [linkedDocumentIDs, setLinkedDocumentIDs] = useState([]);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (mode === 'edit' && initialData) {
-            setRequirementIds(initialData.requirementIds ? initialData.requirementIds.map(id => ({
-                value: id,
-                label: requirements.find(r => r.id === id)?.controlIdReference || id
-            })) : []);
+            setRequirementIds(
+                initialData.requirementIds
+                    ? initialData.requirementIds.map(id => {
+                        const req = requirements.find(r => r.id === id);
+                        let label = req?.name || req?.requirementText || req?.description || req?.requirement_id || id;
+                        return req ? { value: id, label } : { value: id, label: id };
+                    })
+                    : []
+            );
             setTitle(initialData.title || '');
             setDescription(initialData.description || '');
-            setCategory(initialData.category || '');
-            setDefaultPriority(initialData.defaultPriority || '');
-            setCheckType(initialData.checkType || '');
-            setCheckTarget(initialData.target || '');
-            setCheckParams(initialData.parameters || {});
-            setEvidenceTypesExpected(initialData.evidenceTypesExpected ? initialData.evidenceTypesExpected.map(et => ({ value: et, label: evidenceTypeOptions.find(opt => opt.value === et)?.label || et })) : []);
-            setLinkedDocumentIDs(initialData.linked_documents ? initialData.linked_documents.map(doc => ({ value: doc.id, label: doc.name })) : []);
-        } else {
-            if (parentId) {
-                const parentRequirement = requirements.find(r => r.id === parentId);
-                if (parentRequirement) {
-                    setRequirementIds([{ value: parentId, label: parentRequirement.controlIdReference }]);
-                }
+            setVersion(initialData.version || '');
+            setCategory(initialData.category || 'Other');
+            setDefaultPriority(initialData.defaultPriority || 'medium');
+            setStatus(initialData.status || 'active');
+            setTags(initialData.tags || []);
+            setHighLevelCheckType(initialData.highLevelCheckType || initialData.high_level_check_type || 'automated');
+            setCheckType(initialData.checkType || initialData.check_type || 'automated');
+            setTarget(initialData.target || '');
+            setParameters(initialData.parameters || {});
+            setEvidenceTypesExpected(
+                initialData.evidenceTypesExpected
+                    ? initialData.evidenceTypesExpected.map(et => evidenceTypeOptions.find(opt => opt.value === et) || { value: et, label: et })
+                    : []
+            );
+            if (Array.isArray(initialData.linkedDocumentIDs) && initialData.linkedDocumentIDs.length > 0) {
+                setLinkedDocumentIDs(initialData.linkedDocumentIDs.map(id => {
+                    const doc = (documents || []).find(d => d.id === id);
+                    return doc ? { value: id, label: doc.name } : { value: id, label: id };
+                }));
+            } else if (Array.isArray(initialData.linked_documents) && initialData.linked_documents.length > 0) {
+                setLinkedDocumentIDs(initialData.linked_documents.map(doc => ({ value: doc.id, label: doc.name })));
             } else {
-                setRequirementIds([]);
+                setLinkedDocumentIDs([]);
             }
+        } else {
+            setRequirementIds([]);
             setTitle('');
             setDescription('');
-            setCategory('');
-            setDefaultPriority('');
-            setCheckType('');
-            setCheckTarget('');
-            setCheckParams({});
+            setVersion('');
+            setCategory('Other');
+            setDefaultPriority('medium');
+            setStatus('active');
+            setTags([]);
+            setHighLevelCheckType('automated');
+            setCheckType('automated');
+            setTarget('');
+            setParameters({});
             setEvidenceTypesExpected([]);
             setLinkedDocumentIDs([]);
         }
-    }, [initialData, mode, parentId, requirements]);
+    }, [initialData, mode, requirements, documents]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        setError('');
+        if (!requirementIds.length) {
+            setError('Please select at least one compliance requirement');
+            return;
+        }
+        if (!title.trim()) {
+            setError('Task title is required');
+            return;
+        }
+        if (!version.trim()) {
+            setError('Version is required');
+            return;
+        }
+        if (!category.trim()) {
+            setError('Category is required');
+            return;
+        }
+        if (!defaultPriority.trim()) {
+            setError('Default Priority is required');
+            return;
+        }
+        if (!status.trim()) {
+            setError('Status is required');
+            return;
+        }
+        console.log('checkType', checkType);
+        if (highLevelCheckType === 'automated' && !target) {
+            setError('Target system is required for automated checks');
+            return;
+        }
         onSubmit({
-            requirementIds: requirementIds.map(option => option.value),
+            requirementIds: requirementIds.map(opt => opt.value),
             title,
             description,
+            version,
             category,
-            defaultPriority: defaultPriority || null,
-            checkType: checkType || null,
-            target: checkTarget || null,
-            parameters: Object.keys(checkParams).length > 0 ? checkParams : null,
-            evidenceTypesExpected: evidenceTypesExpected.map(option => option.value),
-            linked_document_ids: linkedDocumentIDs.map(option => option.value),
+            defaultPriority,
+            status,
+            tags,
+            highLevelCheckType,
+            checkType,
+            target,
+            parameters,
+            evidenceTypesExpected: evidenceTypesExpected.map(opt => opt.value),
+            linkedDocumentIDs: linkedDocumentIDs.map(opt => opt.value),
         });
     };
 
-    const priorityOptions = [
-        { value: 'Critical', label: 'Critical' },
-        { value: 'High', label: 'High' },
-        { value: 'Medium', label: 'Medium' },
-        { value: 'Low', label: 'Low' },
-    ];
-
-    const requirementOptions = requirements.map(req => ({
-        value: req.id,
-        label: `${req.controlIdReference} - ${req.requirementText.substring(0, 50)}...`
-    }));
-
     const handleParamChange = (paramName, value, paramDef) => {
-        setCheckParams(prevParams => ({
-            ...prevParams,
-            [paramName]: (() => {
-                if (paramDef.type === 'number') {
-                    if (value.trim() === '') return null;
-                    const num = parseInt(value, 10);
-                    return isNaN(num) ? null : num;
-                }
-                if (paramDef.name === 'script_args' && value) {
-                    if (typeof value === 'string' && value.trim() === '') return null;
-                    try {
-                        const parsed = JSON.parse(value);
-                        return (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) ? parsed : value;
-                    } catch (e) { return value; /* Keep as string if not valid JSON array */ }
-                }
-                return value;
-            })()
+        setParameters(prev => ({
+            ...prev,
+            [paramName]: paramDef.type === 'number' ? Number(value) : value
         }));
     };
-    const handleCheckTypeChangeInternal = (e) => {
-        setCheckType(e.target.value);
-        setCheckParams({});
-        setCheckTarget('');
-    };
+
+    const priorityOptions = [
+        { value: 'high', label: 'High', icon: <FaExclamationTriangle className="text-danger" /> },
+        { value: 'medium', label: 'Medium', icon: <FaExclamationTriangle className="text-warning" /> },
+        { value: 'low', label: 'Low', icon: <FaExclamationTriangle className="text-info" /> }
+    ];
+
+    const statusOptions = [
+        { value: 'active', label: 'Active', icon: <FaCheckCircle className="text-success" /> },
+        { value: 'deprecated', label: 'Deprecated', icon: <FaExclamationTriangle className="text-warning" /> },
+        { value: 'pending', label: 'Pending Review', icon: <FaExclamationTriangle className="text-info" /> }
+    ];
+
+    const checkTypeOptions = Object.entries(checkTypeConfigurations).map(([key, config]) => ({ value: key, label: config.label }));
+
+    // Requirement options for react-select
+    const requirementOptions = requirements.map(req => ({
+        value: req.id,
+        label: req.name || req.requirementText || req.description || req.requirement_id || req.id
+    }));
+
+    const highLevelCheckTypeOptions = [
+        { value: 'automated', label: 'Automated' },
+        { value: 'manual', label: 'Manual' },
+        { value: 'document', label: 'Document Upload' },
+        { value: 'interview', label: 'Interview' },
+    ];
 
     return (
         <Form onSubmit={handleSubmit}>
+            {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             <Form.Group className="mb-3" controlId="formTaskRequirements">
-                <Form.Label><><FaFileContract className="me-1" />Associated Requirements*</></Form.Label>
+                <Form.Label>Compliance Requirement*</Form.Label>
                 <Select
                     isMulti
                     options={requirementOptions}
@@ -240,50 +296,26 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
                     onChange={setRequirementIds}
                     placeholder="Select one or more requirements..."
                     isClearable
+                />
+            </Form.Group>
+            <FloatingLabel controlId="formTitle" label={<><FaTasks className="me-1" />Task Title*</>} className="mb-3">
+                <Form.Control
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Task Title"
                     required
                 />
-                <Form.Text muted>Select one or more requirements this task addresses.</Form.Text>
-            </Form.Group>
-
-            <FloatingLabel controlId="formTaskTitle" label={<><FaTasks className="me-1" />Task Title*</>} className="mb-3">
-                <Form.Control type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Task Title" required />
             </FloatingLabel>
-
-            <FloatingLabel controlId="formTaskDescription" label={<><FaAlignLeft className="me-1" />Description</>} className="mb-3">
-                <Form.Control as="textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" style={{ height: '100px' }} />
-            </FloatingLabel>
-
-            <FloatingLabel controlId="formTaskCategory" label={<><FaTag className="me-1" />Category</>} className="mb-3">
-                <Form.Select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Select task category">
-                    <option value="">Select Category</option>
-                    {taskCategories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                </Form.Select>
-            </FloatingLabel>
-
-            <FloatingLabel controlId="formTaskPriority" label={<><FaExclamationCircle className="me-1" />Default Priority</>} className="mb-3">
-                 <Form.Select value={defaultPriority} onChange={(e) => setDefaultPriority(e.target.value)}>
-                    <option value="">Select Priority</option>
-                    {priorityOptions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                </Form.Select>
-            </FloatingLabel>
-
-            <Form.Group className="mb-3" controlId="evidenceTypesExpected">
-                <Form.Label><FaBookOpen className="me-1" />Evidence Types Expected</Form.Label>
-                <CreatableSelect
-                    isMulti
-                    options={evidenceTypeOptions}
-                    value={evidenceTypesExpected}
-                    onChange={setEvidenceTypesExpected}
-                    placeholder="Select or type to add evidence types..."
-                    isClearable
+            <FloatingLabel controlId="formDescription" label={<><FaAlignLeft className="me-1" />Description</>} className="mb-3">
+                <Form.Control
+                    as="textarea"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Description"
+                    style={{ height: '100px' }}
                 />
-                <Form.Text muted>Specify the types of evidence typically required for this task.</Form.Text>
-            </Form.Group>
-
+            </FloatingLabel>
             <Form.Group className="mb-3" controlId="linkedDocuments">
                 <Form.Label><FaBookOpen className="me-1" />Link Documents</Form.Label>
                 <Select
@@ -296,58 +328,166 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
                 />
                 <Form.Text muted>Associate relevant policies, procedures, or regulatory documents.</Form.Text>
             </Form.Group>
-
-            <Accordion className="mb-3">
-                <Accordion.Item eventKey="0">
-                    <Accordion.Header><FaCogs className="me-2" />Optional: Automated Check Details</Accordion.Header>
-                    <Accordion.Body>
-                        <FloatingLabel controlId="formCheckType" label="Check Type" className="mb-3">
-                            <Form.Select value={checkType} onChange={handleCheckTypeChangeInternal}>
-                                <option value="">Select Check Type</option>
-                                {Object.entries(checkTypeConfigurations).map(([key, config]) => (
-                                    <option key={key} value={key}>{config.label}</option>
-                                ))}
-                            </Form.Select>
-                        </FloatingLabel>
-
-                        {checkType && checkTypeConfigurations[checkType] && (
-                            <>
-                                {checkTypeConfigurations[checkType].targetType === 'connected_system' && (
-                                    <div>
-                                    <FloatingLabel controlId="formCheckTargetSystem" label={checkTypeConfigurations[checkType].targetLabel || "Target Connected System"} className="mb-3">
-                                        <Form.Select value={checkTarget} onChange={(e) => setCheckTarget(e.target.value)} required={!!checkType}>
-                                            <option value="">Select Connected System</option>
-                                            {(connectedSystems || []).map(system => (
-                                                <option key={system.id} value={system.id}>{system.name} ({system.systemType})</option>
-                                            ))}
-                                        </Form.Select>
-                                        {checkTypeConfigurations[checkType].targetHelpText && <Form.Text muted>{checkTypeConfigurations[checkType].targetHelpText}</Form.Text>}
-                                    </FloatingLabel>
-
-                                    </div>
-                                )}
-
-                                {checkTypeConfigurations[checkType].parameters.map(paramDef => (
-                                    <FloatingLabel key={paramDef.name} controlId={`formParam-${paramDef.name}`} label={`${paramDef.label}${paramDef.required ? '*' : ''}`} className="mb-3">
-                                        {paramDef.type === 'select' ? (
-                                            <Form.Select value={checkParams[paramDef.name] || ''} onChange={(e) => handleParamChange(paramDef.name, e.target.value, paramDef)} required={paramDef.required}>
-                                                <option value="">Select {paramDef.label}</option>
-                                                {paramDef.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                            </Form.Select>
-                                        ) : paramDef.type === 'textarea' ? (
-                                            <Form.Control as="textarea" value={paramDef.name === 'script_args' && Array.isArray(checkParams[paramDef.name]) ? JSON.stringify(checkParams[paramDef.name]) : (checkParams[paramDef.name] || '')} onChange={(e) => handleParamChange(paramDef.name, e.target.value, paramDef)} placeholder={paramDef.placeholder} required={paramDef.required} style={{ height: '80px' }} />
-                                        ) : (
-                                            <Form.Control type={paramDef.type} value={checkParams[paramDef.name] || ''} onChange={(e) => handleParamChange(paramDef.name, e.target.value, paramDef)} placeholder={paramDef.placeholder} required={paramDef.required} />
-                                        )}
-                                        {paramDef.helpText && <Form.Text muted>{paramDef.helpText}</Form.Text>}
-                                    </FloatingLabel>
-                                ))}
-                            </>
-                        )}
-                    </Accordion.Body>
-                </Accordion.Item>
-            </Accordion>
-
+            
+            <Form.Group className="mb-3" controlId="formHighLevelCheckType">
+                <Form.Label>Check Type*</Form.Label>
+                <Form.Select
+                    value={highLevelCheckType}
+                    onChange={e => setHighLevelCheckType(e.target.value)}
+                    required
+                >
+                    {highLevelCheckTypeOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                </Form.Select>
+            </Form.Group>
+            {highLevelCheckType === 'automated' && (
+                <>
+                    <Row>
+                        <Col md={6}>
+                            <FloatingLabel controlId="formCheckType" label={<><FaCogs className="me-1" />Automated Check Type*</>} className="mb-3">
+                                <Form.Select
+                                    value={checkType}
+                                    onChange={e => {
+                                        setCheckType(e.target.value);
+                                        setParameters({});
+                                    }}
+                                    required
+                                >
+                                    <option value="">Select Check Type</option>
+                                    {checkTypeOptions.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </Form.Select>
+                            </FloatingLabel>
+                        </Col>
+                        <Col md={6}>
+                            {checkType && checkTypeConfigurations[checkType]?.targetType === 'connected_system' && (
+                                <FloatingLabel controlId="formTarget" label={checkTypeConfigurations[checkType].targetLabel || 'Target System'} className="mb-3">
+                                    <Form.Select
+                                        value={target}
+                                        onChange={e => setTarget(e.target.value)}
+                                        required
+                                    >
+                                        <option value="">Select Target System</option>
+                                        {connectedSystems.map(sys => (
+                                            <option key={sys.id} value={sys.id}>{sys.name} ({sys.systemType})</option>
+                                        ))}
+                                    </Form.Select>
+                                    {checkTypeConfigurations[checkType].targetHelpText && <Form.Text muted>{checkTypeConfigurations[checkType].targetHelpText}</Form.Text>}
+                                </FloatingLabel>
+                            )}
+                        </Col>
+                    </Row>
+                    {checkType && checkTypeConfigurations[checkType] && (
+                        <Accordion className="mb-3">
+                            <Accordion.Item eventKey="0">
+                                <Accordion.Header>Parameters for {checkTypeConfigurations[checkType].label}</Accordion.Header>
+                                <Accordion.Body>
+                                    {checkTypeConfigurations[checkType].parameters.map(paramDef => (
+                                        <FloatingLabel key={paramDef.name} controlId={`formParam-${paramDef.name}`} label={paramDef.label} className="mb-3">
+                                            {paramDef.type === 'select' ? (
+                                                <Form.Select
+                                                    value={parameters[paramDef.name] || ''}
+                                                    onChange={e => handleParamChange(paramDef.name, e.target.value, paramDef)}
+                                                    required={paramDef.required}
+                                                >
+                                                    <option value="">Select {paramDef.label}</option>
+                                                    {paramDef.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                </Form.Select>
+                                            ) : paramDef.type === 'textarea' ? (
+                                                <Form.Control
+                                                    as="textarea"
+                                                    value={parameters[paramDef.name] || ''}
+                                                    onChange={e => handleParamChange(paramDef.name, e.target.value, paramDef)}
+                                                    placeholder={paramDef.placeholder}
+                                                    required={paramDef.required}
+                                                    style={{ height: '80px' }}
+                                                />
+                                            ) : (
+                                                <Form.Control
+                                                    type={paramDef.type}
+                                                    value={parameters[paramDef.name] || ''}
+                                                    onChange={e => handleParamChange(paramDef.name, e.target.value, paramDef)}
+                                                    placeholder={paramDef.placeholder}
+                                                    required={paramDef.required}
+                                                />
+                                            )}
+                                            {paramDef.helpText && <Form.Text muted>{paramDef.helpText}</Form.Text>}
+                                        </FloatingLabel>
+                                    ))}
+                                </Accordion.Body>
+                            </Accordion.Item>
+                        </Accordion>
+                    )}
+                </>
+            )}
+            <Row>
+                <Col md={6}>
+                    <FloatingLabel controlId="formDefaultPriority" label="Default Priority" className="mb-3">
+                        <Form.Select
+                            value={defaultPriority}
+                            onChange={(e) => setDefaultPriority(e.target.value)}
+                            required
+                        >
+                            {priorityOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </Form.Select>
+                    </FloatingLabel>
+                </Col>
+                <Col md={6}>
+                    <FloatingLabel controlId="formStatus" label="Status" className="mb-3">
+                        <Form.Select
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
+                        >
+                            {statusOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </Form.Select>
+                    </FloatingLabel>
+                </Col>
+            </Row>
+            <Row>
+                <Col md={6}>
+                    <FloatingLabel controlId="formCategory" label="Category*" className="mb-3">
+                        <Form.Select
+                            value={category}
+                            onChange={e => setCategory(e.target.value)}
+                            required
+                        >
+                            <option value="">Select Category</option>
+                            {taskCategories.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                        </Form.Select>
+                    </FloatingLabel>
+                </Col>
+                <Col md={6}>
+                    <FloatingLabel controlId="formVersion" label={<><FaTag className="me-1" />Version*</>} className="mb-3">
+                        <Form.Control
+                            type="text"
+                            value={version}
+                            onChange={(e) => setVersion(e.target.value)}
+                            placeholder="e.g., v1.0"
+                            required
+                        />
+                    </FloatingLabel>
+                </Col>
+            </Row>
+            <Form.Group className="mb-3" controlId="evidenceTypesExpected">
+                <Form.Label>Evidence Types Needed</Form.Label>
+                <CreatableSelect
+                    isMulti
+                    options={evidenceTypeOptions}
+                    value={evidenceTypesExpected}
+                    onChange={setEvidenceTypesExpected}
+                    placeholder="Select or type to add evidence types..."
+                    isClearable
+                />
+                <Form.Text muted>Specify the types of evidence typically required for this task.</Form.Text>
+            </Form.Group>
             <div className="mt-3">
                 <Button variant="primary" type="submit" className="me-2">
                     {mode === 'edit' ? <><FaEdit className="me-1" />Update Task</> : <><FaPlusCircle className="me-1" />Add Task</>}

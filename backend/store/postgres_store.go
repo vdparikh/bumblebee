@@ -141,18 +141,45 @@ func (s *DBStore) CreateTask(task *models.Task) (string, error) {
 	}
 	defer tx.Rollback()
 
-	// Convert parameters to JSON
 	paramsJSON, err := json.Marshal(task.Parameters)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal task parameters: %w", err)
 	}
 
-	// Insert task
+	tagsJSON := task.Tags
+	if tagsJSON == nil {
+		tagsJSON = json.RawMessage([]byte("[]"))
+	}
+
+	linkedDocIDs := pq.Array(task.LinkedDocumentIDs)
+	evidenceTypesExpected := pq.Array(task.EvidenceTypesExpected)
+
 	query := `
-		INSERT INTO tasks (id, title, description, category, created_at, updated_at, check_type, target, parameters, evidence_types_expected, default_priority)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id
+		INSERT INTO tasks (
+			id, title, description, category, created_at, updated_at, version, priority, status, tags, high_level_check_type, check_type, target, parameters, linked_document_ids, evidence_types_expected, default_priority
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+		) RETURNING id
 	`
-	_, err = tx.Exec(query, task.ID, task.Title, task.Description, task.Category, task.CreatedAt, task.UpdatedAt, task.CheckType, task.Target, paramsJSON, pq.Array(task.EvidenceTypesExpected), task.DefaultPriority)
+	_, err = tx.Exec(query,
+		task.ID,
+		task.Title,
+		task.Description,
+		task.Category,
+		task.CreatedAt,
+		task.UpdatedAt,
+		task.Version,
+		task.Priority,
+		task.Status,
+		tagsJSON,
+		task.HighLevelCheckType,
+		task.CheckType,
+		task.Target,
+		paramsJSON,
+		linkedDocIDs,
+		evidenceTypesExpected,
+		task.DefaultPriority,
+	)
 	if err != nil {
 		return "", fmt.Errorf("failed to insert task: %w", err)
 	}
@@ -192,8 +219,8 @@ func (s *DBStore) CreateTask(task *models.Task) (string, error) {
 
 func (s *DBStore) GetTasks(userID, userField string) ([]models.Task, error) {
 	baseQuery := `
-		SELECT t.id, t.title, t.description, t.category, t.created_at, t.updated_at, 
-		       t.check_type, t.target, t.parameters, t.evidence_types_expected, t.default_priority,
+		SELECT t.id, t.title, t.description, t.category, t.created_at, t.updated_at,
+		       t.version, t.priority, t.status, t.tags, t.high_level_check_type, t.check_type, t.target, t.parameters, t.evidence_types_expected, t.default_priority,
 		       COALESCE(
 			   json_agg(
 				   json_build_object(
@@ -233,15 +260,24 @@ func (s *DBStore) GetTasks(userID, userField string) ([]models.Task, error) {
 		var t models.Task
 		var paramsJSON []byte
 		var requirementsJSON []byte
+		var tagsJSON []byte
 
 		err := rows.Scan(
 			&t.ID, &t.Title, &t.Description, &t.Category,
-			&t.CreatedAt, &t.UpdatedAt, &t.CheckType, &t.Target,
+			&t.CreatedAt, &t.UpdatedAt,
+			&t.Version, &t.Priority, &t.Status, &tagsJSON, &t.HighLevelCheckType, &t.CheckType, &t.Target,
 			&paramsJSON, pq.Array(&t.EvidenceTypesExpected), &t.DefaultPriority,
 			&requirementsJSON,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan task row: %w", err)
+		}
+
+		// Parse tags
+		if len(tagsJSON) > 0 && string(tagsJSON) != "null" {
+			t.Tags = tagsJSON
+		} else {
+			t.Tags = []byte("[]")
 		}
 
 		// Parse parameters
@@ -357,39 +393,38 @@ func (s *DBStore) UpdateTask(task *models.Task) error {
 	}
 	defer tx.Rollback()
 
-	// Convert parameters to JSON
 	paramsJSON, err := json.Marshal(task.Parameters)
 	if err != nil {
 		return fmt.Errorf("failed to marshal task parameters: %w", err)
 	}
 
-	// Update task details
+	tagsJSON := task.Tags
+	if tagsJSON == nil {
+		tagsJSON = json.RawMessage([]byte("[]"))
+	}
+
 	query := `
 		UPDATE tasks
-		SET title = $2, description = $3, category = $4, updated_at = $5, 
-		    check_type = $6, target = $7, parameters = $8, evidence_types_expected = $9, default_priority = $10
+		SET title = $2, description = $3, category = $4, updated_at = $5, version = $6, priority = $7, status = $8, tags = $9, high_level_check_type = $10, check_type = $11, target = $12, parameters = $13, evidence_types_expected = $14, default_priority = $15
 		WHERE id = $1
 	`
 	_, err = tx.Exec(query,
-		task.ID, task.Title, task.Description, task.Category, task.UpdatedAt,
-		task.CheckType, task.Target, paramsJSON, pq.Array(task.EvidenceTypesExpected), task.DefaultPriority,
+		task.ID, task.Title, task.Description, task.Category, task.UpdatedAt, task.Version, task.Priority, task.Status, tagsJSON, task.HighLevelCheckType, task.CheckType, task.Target, paramsJSON, pq.Array(task.EvidenceTypesExpected), task.DefaultPriority,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update task: %w", err)
 	}
 
 	// Update task-requirement associations
-	// First, delete existing associations
 	_, err = tx.Exec(`DELETE FROM task_requirements WHERE task_id = $1`, task.ID)
 	if err != nil {
 		return fmt.Errorf("failed to delete existing task-requirement associations: %w", err)
 	}
 
-	// Then, insert new associations
 	if len(task.RequirementIDs) > 0 {
 		stmt, err := tx.Preparex(`
 			INSERT INTO task_requirements (task_id, requirement_id)
-			VALUES ($1, $2)
+				VALUES ($1, $2)
 		`)
 		if err != nil {
 			return fmt.Errorf("failed to prepare task_requirements insert statement: %w", err)
@@ -404,7 +439,6 @@ func (s *DBStore) UpdateTask(task *models.Task) error {
 		}
 	}
 
-	// Update document links
 	if err := s.unlinkAllDocumentsFromTask(tx, task.ID); err != nil {
 		return fmt.Errorf("failed to clear existing document links: %w", err)
 	}
@@ -562,10 +596,25 @@ func (s *DBStore) CreateRequirement(req *models.Requirement) error {
 	req.ID = uuid.NewString()
 
 	query := `
-		INSERT INTO requirements (id, standard_id, control_id_reference, requirement_text)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO requirements (
+			id, standard_id, control_id_reference, requirement_text, version, official_link, priority, status, tags
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9
+		)
 	`
-	_, err := s.DB.Exec(query, req.ID, req.StandardID, req.ControlIDReference, req.RequirementText)
+	_, err := s.DB.Exec(query,
+		req.ID,
+		req.StandardID,
+		req.ControlIDReference,
+		req.RequirementText,
+		req.Version,
+		// req.EffectiveDate,
+		// req.ExpiryDate,
+		req.OfficialLink,
+		req.Priority,
+		req.Status,
+		req.Tags,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to insert requirement: %w", err)
 	}
@@ -573,10 +622,7 @@ func (s *DBStore) CreateRequirement(req *models.Requirement) error {
 }
 
 func (s *DBStore) GetRequirements() ([]models.Requirement, error) {
-	query := `
-		SELECT id, standard_id, control_id_reference, requirement_text
-		FROM requirements ORDER BY control_id_reference ASC
-	`
+	query := `SELECT id, standard_id, control_id_reference, requirement_text, version, effective_date, expiry_date, official_link, priority, status, tags, created_at, updated_at FROM requirements ORDER BY control_id_reference ASC`
 	rows, err := s.DB.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query requirements: %w", err)
@@ -586,8 +632,26 @@ func (s *DBStore) GetRequirements() ([]models.Requirement, error) {
 	var requirements []models.Requirement
 	for rows.Next() {
 		var r models.Requirement
-		if err := rows.Scan(&r.ID, &r.StandardID, &r.ControlIDReference, &r.RequirementText); err != nil {
+		var effectiveDateNull, expiryDateNull, tagsNull sql.NullString
+		if err := rows.Scan(&r.ID, &r.StandardID, &r.ControlIDReference, &r.RequirementText, &r.Version, &effectiveDateNull, &expiryDateNull, &r.OfficialLink, &r.Priority, &r.Status, &tagsNull, &r.CreatedAt, &r.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan requirement row: %w", err)
+		}
+		if effectiveDateNull.Valid {
+			r.EffectiveDate = &models.CustomDate{Time: time.Time{}}
+			if err := r.EffectiveDate.UnmarshalJSON([]byte(effectiveDateNull.String)); err != nil {
+				return nil, fmt.Errorf("failed to parse effective_date: %w", err)
+			}
+		}
+		if expiryDateNull.Valid {
+			r.ExpiryDate = &models.CustomDate{Time: time.Time{}}
+			if err := r.ExpiryDate.UnmarshalJSON([]byte(expiryDateNull.String)); err != nil {
+				return nil, fmt.Errorf("failed to parse expiry_date: %w", err)
+			}
+		}
+		if tagsNull.Valid {
+			r.Tags = json.RawMessage(tagsNull.String)
+		} else {
+			r.Tags = nil
 		}
 		requirements = append(requirements, r)
 	}
@@ -687,11 +751,26 @@ func (s *DBStore) CreateComplianceStandard(standard *models.ComplianceStandard) 
 	standard.ID = uuid.NewString()
 
 	query := `
-		INSERT INTO compliance_standards (id, name, short_name, description, version, issuing_body, official_link)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-
+		INSERT INTO compliance_standards (
+			id, name, short_name, description, version, issuing_body, official_link, jurisdiction, industry, tags
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+		)
 	`
-	_, err := s.DB.Exec(query, standard.ID, standard.Name, standard.ShortName, standard.Description, standard.Version, standard.IssuingBody, standard.OfficialLink)
+	_, err := s.DB.Exec(query,
+		standard.ID,
+		standard.Name,
+		standard.ShortName,
+		standard.Description,
+		standard.Version,
+		standard.IssuingBody,
+		standard.OfficialLink,
+		// standard.EffectiveDate,
+		// standard.ExpiryDate,
+		standard.Jurisdiction,
+		standard.Industry,
+		standard.Tags,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to insert compliance standard: %w", err)
 	}
@@ -699,10 +778,7 @@ func (s *DBStore) CreateComplianceStandard(standard *models.ComplianceStandard) 
 }
 
 func (s *DBStore) GetComplianceStandards() ([]models.ComplianceStandard, error) {
-	query := `
-		SELECT id, name, short_name, description, version, issuing_body, official_link
-		FROM compliance_standards ORDER BY name ASC
-	`
+	query := `SELECT id, name, short_name, description, version, issuing_body, official_link, jurisdiction, industry, tags FROM compliance_standards ORDER BY name ASC`
 	rows, err := s.DB.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query compliance standards: %w", err)
@@ -712,8 +788,14 @@ func (s *DBStore) GetComplianceStandards() ([]models.ComplianceStandard, error) 
 	var standards []models.ComplianceStandard
 	for rows.Next() {
 		var std models.ComplianceStandard
-		if err := rows.Scan(&std.ID, &std.Name, &std.ShortName, &std.Description, &std.Version, &std.IssuingBody, &std.OfficialLink); err != nil {
+		var tagsNull sql.NullString
+		if err := rows.Scan(&std.ID, &std.Name, &std.ShortName, &std.Description, &std.Version, &std.IssuingBody, &std.OfficialLink, &std.Jurisdiction, &std.Industry, &tagsNull); err != nil {
 			return nil, fmt.Errorf("failed to scan compliance standard row: %w", err)
+		}
+		if tagsNull.Valid {
+			std.Tags = json.RawMessage(tagsNull.String)
+		} else {
+			std.Tags = nil
 		}
 		standards = append(standards, std)
 	}
@@ -725,14 +807,22 @@ func (s *DBStore) GetComplianceStandards() ([]models.ComplianceStandard, error) 
 
 func (s *DBStore) GetRequirementByID(id string) (*models.Requirement, error) {
 	var requirement models.Requirement
-	query := `SELECT id, standard_id, control_id_reference, requirement_text 
-              FROM requirements WHERE id = $1`
+	query := `SELECT id, standard_id, control_id_reference, requirement_text, version, effective_date, expiry_date, official_link, priority, status, tags, created_at, updated_at FROM requirements WHERE id = $1`
 	row := s.DB.QueryRow(query, id)
 	err := row.Scan(
 		&requirement.ID,
 		&requirement.StandardID,
 		&requirement.ControlIDReference,
 		&requirement.RequirementText,
+		&requirement.Version,
+		&requirement.EffectiveDate,
+		&requirement.ExpiryDate,
+		&requirement.OfficialLink,
+		&requirement.Priority,
+		&requirement.Status,
+		&requirement.Tags,
+		&requirement.CreatedAt,
+		&requirement.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -863,9 +953,9 @@ func (s *DBStore) GetCampaignTaskInstanceEvidence(campaignTaskInstanceID string)
 func (s *DBStore) UpdateRequirement(req *models.Requirement) error {
 	query := `
 		UPDATE requirements
-		SET standard_id = $2, control_id_reference = $3, requirement_text = $4
+		SET standard_id = $2, control_id_reference = $3, requirement_text = $4, version = $5, effective_date = $6, expiry_date = $7, official_link = $8, priority = $9, status = $10, tags = $11, updated_at = $12
 		WHERE id = $1`
-	_, err := s.DB.Exec(query, req.ID, req.StandardID, req.ControlIDReference, req.RequirementText)
+	_, err := s.DB.Exec(query, req.ID, req.StandardID, req.ControlIDReference, req.RequirementText, req.Version, req.EffectiveDate, req.ExpiryDate, req.OfficialLink, req.Priority, req.Status, req.Tags, time.Now())
 	if err != nil {
 		return fmt.Errorf("failed to update requirement with id %s: %w", req.ID, err)
 	}
@@ -875,9 +965,9 @@ func (s *DBStore) UpdateRequirement(req *models.Requirement) error {
 func (s *DBStore) UpdateStandard(standard *models.ComplianceStandard) error {
 	query := `
 		UPDATE compliance_standards
-		SET name = $2, short_name = $3, description = $4, version = $5, issuing_body = $6, official_link = $7
+		SET name = $2, short_name = $3, description = $4, version = $5, issuing_body = $6, official_link = $7, jurisdiction = $8, industry = $9, tags = $10
 		WHERE id = $1`
-	_, err := s.DB.Exec(query, standard.ID, standard.Name, standard.ShortName, standard.Description, standard.Version, standard.IssuingBody, standard.OfficialLink)
+	_, err := s.DB.Exec(query, standard.ID, standard.Name, standard.ShortName, standard.Description, standard.Version, standard.IssuingBody, standard.OfficialLink, standard.Jurisdiction, standard.Industry, standard.Tags)
 	if err != nil {
 		return fmt.Errorf("failed to update compliance standard with id %s: %w", standard.ID, err)
 	}
@@ -939,7 +1029,9 @@ func (s *DBStore) CreateCampaign(campaign *models.Campaign, selectedReqs []model
 						CheckType:                     masterTask.CheckType,
 						Target:                        masterTask.Target,
 						Parameters:                    masterTask.Parameters,
+						Priority:                      masterTask.DefaultPriority,
 					}
+
 					if masterTask.Description == "" {
 						campaignTaskInstance.Description = nil
 					}
@@ -1124,6 +1216,7 @@ func (s *DBStore) UpdateCampaign(campaign *models.Campaign, newSelectedReqs []mo
 						CheckType:                     masterTask.CheckType,
 						Target:                        masterTask.Target,
 						Parameters:                    masterTask.Parameters,
+						Priority:                      masterTask.DefaultPriority,
 					}
 					if masterTask.Description == "" {
 						cti.Description = nil
@@ -1362,7 +1455,7 @@ func (s *DBStore) GetCampaignTaskInstances(campaignID string, userID string, use
 	baseQuery := `
 		SELECT 
 			cti.id, cti.campaign_id, cti.master_task_id, cti.campaign_selected_requirement_id, 
-			cti.title, cti.description, cti.category, cti.assignee_user_id, 
+			cti.title, cti.description, cti.category, cti.assignee_user_id, cti.priority,
 			cti.owner_team_id, cti.assignee_team_id, cti.status, cti.due_date, cti.created_at, cti.updated_at,
 			cti.check_type, cti.target,
 			assignee.name as assignee_user_name,
@@ -1430,11 +1523,11 @@ func (s *DBStore) GetCampaignTaskInstances(campaignID string, userID string, use
 }
 
 func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTaskInstance, error) {
-	query := `SELECT cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id,
+	query := `SELECT cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id, cti.priority,
 	cti.campaign_selected_requirement_id, cti.title, cti.description, cti.category, 
 	cti.assignee_user_id, cti.owner_team_id, cti.assignee_team_id, cti.last_checked_at, cti.last_check_status,
     cti.status, cti.due_date, cti.created_at, cti.updated_at,
-    mt.check_type, mt.target, mt.parameters,
+    mt.high_level_check_type, mt.check_type, mt.target, mt.parameters,
     assignee.name as assignee_user_name,
     req.control_id_reference as requirement_control_id_reference,
     req.requirement_text as requirement_text,
@@ -1465,11 +1558,11 @@ func (s *DBStore) GetCampaignTaskInstanceByID(ctiID string) (*models.CampaignTas
 
 	var paramsJSON []byte
 	if err := row.Scan(
-		&cti.ID, &cti.CampaignID, &cti.CampaignName, &cti.MasterTaskID, &cti.CampaignSelectedRequirementID,
+		&cti.ID, &cti.CampaignID, &cti.CampaignName, &cti.MasterTaskID, &cti.Priority, &cti.CampaignSelectedRequirementID,
 		&cti.Title, &cti.Description, &cti.Category, &cti.AssigneeUserID, &cti.OwnerTeamID, &cti.AssigneeTeamID,
 		&cti.LastCheckedAt, &cti.LastCheckStatus,
 		&cti.Status, &cti.DueDate, &cti.CreatedAt, &cti.UpdatedAt,
-		&cti.CheckType, &cti.Target, &paramsJSON,
+		&cti.HighLevelCheckType, &cti.CheckType, &cti.Target, &paramsJSON,
 		&cti.AssigneeUserName, &cti.RequirementControlIDReference, &cti.RequirementText, &cti.RequirementStandardName,
 		&cti.DefaultPriority, pq.Array(&cti.EvidenceTypesExpected), // pq.Array handles NULL arrays
 		&cti.OwnerTeam.ID, &cti.OwnerTeam.Name, // Scan into initialized struct fields

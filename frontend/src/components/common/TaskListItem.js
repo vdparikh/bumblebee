@@ -64,6 +64,11 @@ const TaskListItem = ({
                         <FaFlag className='me-1' />
                         {task.status}</Badge>
 
+ 
+                        <Badge bg={getPriorityBadgeColor(task.priority)} className="me-1 flex-shrink-0">
+                        <FaFlag className='me-1' />
+                        {task.priority}</Badge>                        
+
                     {dueDateStatus && <Badge  bg={dueDateStatus === 'Overdue' ? 'danger' : (dueDateStatus === 'Due Today' ? 'warning' : 'info')} className=" fw-normal">
                         <FaClock className='me-1' />
                         {dueDateStatus}</Badge>}
