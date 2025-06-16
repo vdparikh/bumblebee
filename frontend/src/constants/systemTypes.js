@@ -1,4 +1,9 @@
-import { 
+// This file is now largely superseded by data fetched from the backend API
+// `/api/system-type-definitions`.
+// The `systemTypeOptions` and `configurationSchemas` will be dynamically loaded.
+// You might keep this file for fallback data or remove it once the API is fully integrated.
+/*
+import {
     FaAws,
     FaDatabase,
     FaKey, 
@@ -303,4 +308,12 @@ export const configurationSchemas = {
         { name: 'username', label: 'Username', type: 'text', required: true },
         { name: 'password', label: 'Password', type: 'text', required: true }
     ]
-}; 
+};
+*/
+// The data previously here is now intended to be populated in the `system_type_definitions` table
+// and fetched via the `/api/system-type-definitions` endpoint.
+// The frontend components (SystemIntegrationForm.js, SystemIntegrations.js)
+// will be updated to use the fetched data.
+
+export const systemTypeOptions = []; // Will be populated from API
+export const configurationSchemas = {}; // Will be populated from API based on selected system type

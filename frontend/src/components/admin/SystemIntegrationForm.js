@@ -38,8 +38,8 @@ import {
     FaFileArchive
 } from 'react-icons/fa';
 
-import { createConnectedSystem, updateConnectedSystem, getConnectedSystemById } from '../../services/api';
-import { systemTypeOptions, configurationSchemas } from '../../constants/systemTypes';
+import { createConnectedSystem, updateConnectedSystem, getConnectedSystemById, getSystemTypeDefinitions } from '../../services/api';
+import { getSystemTypeIcon } from '../../utils/iconMap'; // Import the icon mapper
 
 const getIconForConfigField = (fieldName) => {
     if (fieldName.toLowerCase().includes('key') || fieldName.toLowerCase().includes('token') || fieldName.toLowerCase().includes('secret')) return <FaKey className="me-2 text-muted" />;
@@ -63,6 +63,9 @@ function SystemIntegrationForm() {
     const [dynamicConfigFields, setDynamicConfigFields] = useState({});
     const [isEnabled, setIsEnabled] = useState(true);
 
+    const [apiSystemTypes, setApiSystemTypes] = useState([]);
+    const [apiConfigSchemas, setApiConfigSchemas] = useState({});
+
     useEffect(() => {
         const fetchSystem = async () => {
             if (id) {
@@ -75,7 +78,8 @@ function SystemIntegrationForm() {
                     setDescription(system.description || '');
                     setIsEnabled(system.isEnabled);
 
-                    if (configurationSchemas[system.systemType] && typeof system.configuration === 'object') {
+                    const schemaForType = apiConfigSchemas[system.systemType];
+                    if (schemaForType && typeof system.configuration === 'object') {
                         setDynamicConfigFields(system.configuration);
                         setConfigurationString('{}');
                     } else {
@@ -91,7 +95,26 @@ function SystemIntegrationForm() {
         };
 
         fetchSystem();
-    }, [id]);
+    }, [id, apiConfigSchemas]); // Add apiConfigSchemas dependency
+
+    useEffect(() => {
+        const fetchDefinitions = async () => {
+            try {
+                const response = await getSystemTypeDefinitions();
+                const definitions = response.data || [];
+                setApiSystemTypes(definitions);
+                const schemas = definitions.reduce((acc, typeDef) => {
+                    acc[typeDef.value] = typeDef.configurationSchema || [];
+                    return acc;
+                }, {});
+                setApiConfigSchemas(schemas);
+            } catch (err) {
+                setError('Failed to load system type definitions. ' + (err.response?.data?.error || err.message));
+            }
+        };
+        fetchDefinitions();
+    }, []);
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -99,9 +122,10 @@ function SystemIntegrationForm() {
         setSuccess('');
 
         let finalConfiguration;
-        if (systemType && configurationSchemas[systemType]) {
+        const currentApiSchema = apiConfigSchemas[systemType];
+        if (systemType && currentApiSchema) {
             finalConfiguration = { ...dynamicConfigFields };
-            for (const field of configurationSchemas[systemType]) {
+            for (const field of currentApiSchema) {
                 if (field.required && (finalConfiguration[field.name] === undefined || finalConfiguration[field.name] === '')) {
                     setError(`${field.label} is required.`);
                     return;
@@ -142,12 +166,12 @@ function SystemIntegrationForm() {
         setDynamicConfigFields(prev => ({ ...prev, [fieldName]: value }));
     };
 
-    const currentSchema = systemType ? configurationSchemas[systemType] : null;
+    const currentSchema = systemType ? apiConfigSchemas[systemType] : null;
 
     const renderSystemTypeSelector = () => (
         <div className="mb-4">
-            <Form.Label className="mb-3">Select System Type</Form.Label>
-            {Object.entries(systemTypeOptions.reduce((acc, option) => {
+            <Form.Label className="mb-3">Select System Type*</Form.Label>
+            {Object.entries(apiSystemTypes.reduce((acc, option) => {
                 if (!acc[option.category]) acc[option.category] = [];
                 acc[option.category].push(option);
                 return acc;
@@ -177,7 +201,7 @@ function SystemIntegrationForm() {
                                                 height: '40px'
                                             }}
                                         >
-                                            {option.icon}
+                                            {getSystemTypeIcon(option.iconName, 30)}
                                         </div>
                                         <h6 className="mb-1">{option.label}</h6>
                                         <small className="text-muted d-block">{option.description}</small>
@@ -254,7 +278,7 @@ function SystemIntegrationForm() {
                                                     {(field.options || []).map(opt => (
                                                         <option key={opt.label} value={opt.value}>{opt.label}</option>
                                                     ))}
-                                                </Form.Select>
+                                                </Form.Select>                                               
                                             ) : (
                                                 <Form.Control
                                                     type={field.type || 'text'}

@@ -466,6 +466,7 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 		DueDate        *models.CustomDate     `json:"due_date"`
 		CheckType      *string                `json:"check_type"`
 		Target         *string                `json:"target"`
+		Priority       *string                `json:"priority"`
 		Parameters     map[string]interface{} `json:"parameters"`
 	}
 
@@ -509,6 +510,10 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 	}
 	if payload.Parameters != nil {
 		existingInstance.Parameters = payload.Parameters
+	}
+
+	if payload.Priority != nil {
+		existingInstance.Priority = payload.Priority
 	}
 
 	// Deep copy existingInstance to preserve the old state for audit logging
@@ -561,7 +566,10 @@ func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 	if payload.Parameters != nil {
 		existingInstance.Parameters = payload.Parameters // map is reference, careful if oldInstance.Parameters was not deep copied
 	}
-
+	fmt.Println(&payload.Priority)
+	if payload.Priority != nil {
+		existingInstance.Priority = payload.Priority
+	}
 	err = h.Store.UpdateCampaignTaskInstance(existingInstance) // existingInstance is now the new state
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "Failed to update campaign task instance", err)

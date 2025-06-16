@@ -9,8 +9,8 @@ import {
     FaCheckCircle, 
     FaTimesCircle
 } from 'react-icons/fa';
-import { getConnectedSystems, deleteConnectedSystem } from '../../services/api';
-import { systemTypeOptions } from '../../constants/systemTypes';
+import { getConnectedSystems, deleteConnectedSystem, getSystemTypeDefinitions } from '../../services/api';
+import { getSystemTypeIcon } from '../../utils/iconMap';
 
 import { 
     FaAws,
@@ -48,39 +48,39 @@ import {
 
 
 
-// Export the system type options and configuration schemas for use in SystemIntegrationForm
-export const configurationSchemas = {
-    aws: [
-        { name: 'accessKeyId', label: 'Access Key ID', type: 'text', placeholder: 'AKIAIOSFODNN7EXAMPLE', required: true, sensitive: false },
-        { name: 'secretAccessKey', label: 'Secret Access Key', type: 'password', placeholder: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', required: true, sensitive: true },
-        { name: 'defaultRegion', label: 'Default Region', type: 'text', placeholder: 'us-west-2', required: true, sensitive: false },
-    ],
-    azure: [
-        { name: 'subscriptionId', label: 'Subscription ID', type: 'text', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', required: true, sensitive: false },
-        { name: 'tenantId', label: 'Tenant ID', type: 'text', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', required: true, sensitive: false },
-        { name: 'clientId', label: 'Client ID (App ID)', type: 'text', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', required: true, sensitive: false },
-        { name: 'clientSecret', label: 'Client Secret', type: 'password', placeholder: 'YourAppClientSecret', required: true, sensitive: true },
-    ],
-    github: [
-        { name: 'personalAccessToken', label: 'Personal Access Token', type: 'password', placeholder: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, sensitive: true },
-        { name: 'organization', label: 'Organization (Optional)', type: 'text', placeholder: 'your-org-name', sensitive: false },
-    ],
-    generic_api: [
-        { name: 'baseUrl', label: 'Base URL', type: 'url', placeholder: 'https://api.example.com/v1', required: true, sensitive: false },
-        { name: 'apiKey', label: 'API Key (Optional)', type: 'password', placeholder: 'your_api_key', sensitive: true },
-        { name: 'authHeader', label: 'Auth Header Name (Optional)', type: 'text', placeholder: 'Authorization', helpText: "e.g., 'Authorization' or 'X-API-Key'", sensitive: false },
-        { name: 'authValuePrefix', label: 'Auth Value Prefix (Optional)', type: 'text', placeholder: 'Bearer ', helpText: "e.g., 'Bearer ' or 'Token '", sensitive: false },
-    ],
-    database: [
-        { name: 'dbType', label: 'Database Type', type: 'select', options: ['postgresql', 'mysql', 'sqlserver', 'oracle'], placeholder: 'postgresql', required: true, sensitive: false },
-        { name: 'host', label: 'Host', type: 'text', placeholder: 'localhost or db.example.com', required: true, sensitive: false },
-        { name: 'port', label: 'Port', type: 'number', placeholder: '5432', required: true, sensitive: false },
-        { name: 'databaseName', label: 'Database Name', type: 'text', placeholder: 'mydatabase', required: true, sensitive: false },
-        { name: 'username', label: 'Username', type: 'text', placeholder: 'db_user', required: true, sensitive: false },
-        { name: 'password', label: 'Password', type: 'password', placeholder: 'db_password', required: true, sensitive: true },
-    ],
-    // Add more schemas as needed
-};
+// // Export the system type options and configuration schemas for use in SystemIntegrationForm
+// export const configurationSchemas = {
+//     aws: [
+//         { name: 'accessKeyId', label: 'Access Key ID', type: 'text', placeholder: 'AKIAIOSFODNN7EXAMPLE', required: true, sensitive: false },
+//         { name: 'secretAccessKey', label: 'Secret Access Key', type: 'password', placeholder: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', required: true, sensitive: true },
+//         { name: 'defaultRegion', label: 'Default Region', type: 'text', placeholder: 'us-west-2', required: true, sensitive: false },
+//     ],
+//     azure: [
+//         { name: 'subscriptionId', label: 'Subscription ID', type: 'text', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', required: true, sensitive: false },
+//         { name: 'tenantId', label: 'Tenant ID', type: 'text', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', required: true, sensitive: false },
+//         { name: 'clientId', label: 'Client ID (App ID)', type: 'text', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', required: true, sensitive: false },
+//         { name: 'clientSecret', label: 'Client Secret', type: 'password', placeholder: 'YourAppClientSecret', required: true, sensitive: true },
+//     ],
+//     github: [
+//         { name: 'personalAccessToken', label: 'Personal Access Token', type: 'password', placeholder: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, sensitive: true },
+//         { name: 'organization', label: 'Organization (Optional)', type: 'text', placeholder: 'your-org-name', sensitive: false },
+//     ],
+//     generic_api: [
+//         { name: 'baseUrl', label: 'Base URL', type: 'url', placeholder: 'https://api.example.com/v1', required: true, sensitive: false },
+//         { name: 'apiKey', label: 'API Key (Optional)', type: 'password', placeholder: 'your_api_key', sensitive: true },
+//         { name: 'authHeader', label: 'Auth Header Name (Optional)', type: 'text', placeholder: 'Authorization', helpText: "e.g., 'Authorization' or 'X-API-Key'", sensitive: false },
+//         { name: 'authValuePrefix', label: 'Auth Value Prefix (Optional)', type: 'text', placeholder: 'Bearer ', helpText: "e.g., 'Bearer ' or 'Token '", sensitive: false },
+//     ],
+//     database: [
+//         { name: 'dbType', label: 'Database Type', type: 'select', options: ['postgresql', 'mysql', 'sqlserver', 'oracle'], placeholder: 'postgresql', required: true, sensitive: false },
+//         { name: 'host', label: 'Host', type: 'text', placeholder: 'localhost or db.example.com', required: true, sensitive: false },
+//         { name: 'port', label: 'Port', type: 'number', placeholder: '5432', required: true, sensitive: false },
+//         { name: 'databaseName', label: 'Database Name', type: 'text', placeholder: 'mydatabase', required: true, sensitive: false },
+//         { name: 'username', label: 'Username', type: 'text', placeholder: 'db_user', required: true, sensitive: false },
+//         { name: 'password', label: 'Password', type: 'password', placeholder: 'db_password', required: true, sensitive: true },
+//     ],
+//     // Add more schemas as needed
+// };
 
 function SystemIntegrations() {
     const navigate = useNavigate();
@@ -88,6 +88,7 @@ function SystemIntegrations() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [apiSystemTypes, setApiSystemTypes] = useState([]);
 
     const fetchSystems = useCallback(async () => {
         try {
@@ -102,7 +103,17 @@ function SystemIntegrations() {
     }, []);
 
     useEffect(() => {
+        const fetchDefinitions = async () => {
+            try {
+                const response = await getSystemTypeDefinitions();
+                setApiSystemTypes(response.data || []);
+            } catch (err) {
+                // Error fetching definitions is not critical for listing existing systems if type is stored
+                console.error('Failed to load system type definitions for display enhancement:', err);
+            }
+        };
         fetchSystems();
+        fetchDefinitions();
     }, [fetchSystems]);
 
     const handleDelete = async (systemId) => {
@@ -154,14 +165,14 @@ function SystemIntegrations() {
                 </thead>
                 <tbody>
                     {systems.map(system => {
-                        const systemType = systemTypeOptions.find(option => option.value === system.systemType);
+                        const systemTypeInfo = apiSystemTypes.find(option => option.value === system.systemType);
                         return (
                             <tr key={system.id}>
                                 <td>{system.name}</td>
                                 <td>
-                                    {systemType ? (
-                                        <span style={{ color: systemType.color }}>
-                                            {systemType.icon} {systemType.label}
+                                    {systemTypeInfo ? (
+                                        <span style={{ color: systemTypeInfo.color || 'inherit' }}>
+                                            {getSystemTypeIcon(systemTypeInfo.iconName, 20)} {systemTypeInfo.label}
                                         </span>
                                     ) : system.systemType}
                                 </td>

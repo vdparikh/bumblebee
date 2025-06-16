@@ -55,19 +55,21 @@ const TaskListItem = ({
                     <div className="d-flex justify-content-between align-items-start mb-2">
                         <div>
                     <span className="me-2" ><StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1.1em" /></span>
-                    {task.defaultPriority && (<Badge bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">
+                    {/* {task.defaultPriority && (<Badge bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">
                         {task.defaultPriority}
-                    </Badge>)}
+                    </Badge>)} */}
                     
-                    
+                     <Badge bg={getPriorityBadgeColor(task.priority)} className="me-1 flex-shrink-0">
+                        <FaFlag className='me-1' />
+                        {task.priority}</Badge>     
+
+                        
                     <Badge bg={getStatusColor(task.status)} className="me-1 flex-shrink-0">
                         <FaFlag className='me-1' />
                         {task.status}</Badge>
 
  
-                        <Badge bg={getPriorityBadgeColor(task.priority)} className="me-1 flex-shrink-0">
-                        <FaFlag className='me-1' />
-                        {task.priority}</Badge>                        
+                                          
 
                     {dueDateStatus && <Badge  bg={dueDateStatus === 'Overdue' ? 'danger' : (dueDateStatus === 'Due Today' ? 'warning' : 'info')} className=" fw-normal">
                         <FaClock className='me-1' />

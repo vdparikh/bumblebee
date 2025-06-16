@@ -8,20 +8,22 @@ import Image from 'react-bootstrap/Image';
 import Tooltip from 'react-bootstrap/Tooltip';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Button from 'react-bootstrap/Button';
-import { FaHourglassHalf,
+import {
+    FaHourglassHalf,
     FaTachometerAlt, FaUser, FaBullhorn, FaColumns, FaUsers,
     FaTasks, FaFileContract, FaShieldAlt, FaBookOpen, FaLayerGroup,
     FaQuestionCircle, FaRegQuestionCircle,
     FaCog,
     FaHistory,
-    FaPlug
+    FaPlug,
+    FaCogs
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext'; // Import useAuth
 import ThemeSwitcher from './ThemeSwitcher';
 
 function Sidebar({ /*currentUser,*/ logout, showDetailsPanel, setShowDetailsPanel }) { // currentUser prop can be removed if always using useAuth
     const { currentUser, startRoleSimulation, stopRoleSimulation } = useAuth(); // Get functions and currentUser from context
-    const location = useLocation();    
+    const location = useLocation();
     const userActionsHeight = '150px'; // Approximate height for user actions section
 
     const navItems = [
@@ -29,16 +31,24 @@ function Sidebar({ /*currentUser,*/ logout, showDetailsPanel, setShowDetailsPane
         { to: "/my-tasks", eventKey: "/my-tasks", icon: <FaTasks size="1.2em" />, label: "My Tasks", roles: ['admin', 'auditor', 'user'] },
         { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.2em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
         { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.2em" />, label: "Alternate View", roles: ['user'] },
-        (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management'},
+        (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management' },
         { to: "/pending-review", eventKey: "/pending-review", icon: <FaHourglassHalf size="1.2em" />, label: "Pending Review", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/pending-review') },
         { to: "/documents", eventKey: "/documents", icon: <FaBookOpen size="1.2em" />, label: "Documents", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/documents') },
         { to: "/library", eventKey: "/library", icon: <FaLayerGroup size="1.2em" />, label: "Manage Library", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/library') },
-        { to: "/admin/system-integrations", eventKey: "/admin/system-integrations", icon: <FaPlug size="1.2em" />, label: "System Integrations", roles: ['admin'], activeCheck: () => location.pathname.startsWith('/admin/system-integrations') },
-        { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Teams", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/teams') },
+        // { to: "/admin/system-integrations", eventKey: "/admin/system-integrations", icon: <FaPlug size="1.2em" />, label: "System Integrations", roles: ['admin'], activeCheck: () => location.pathname.startsWith('/admin/system-integrations') },
+        // { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Teams", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/teams') },
         { to: "/audit-logs", eventKey: "/audit-logs", icon: <FaHistory size="1.2em" />, label: "Audit Logs", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/audit-logs') },
 
         // { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Manage Teams", roles: ['admin', 'auditor'] }, // Can be moved to AdminSettings or kept separate
     ];
+
+    const navSettingsItems = [
+        { to: "/admin-settings", eventKey: "/settings", icon: <FaCog size="1.2em" />, label: "Settings", roles: ['admin'], activeCheck: () => location.pathname.startsWith('/admin-settings') },
+
+        { to: "/admin/system-integrations", eventKey: "/admin/system-integrations", icon: <FaPlug size="1.2em" />, label: "System Integrations", roles: ['admin'], activeCheck: () => location.pathname.startsWith('/admin/system-integrations') },
+        { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Teams", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/teams') },
+    ];
+
 
     // This check now uses currentUser from useAuth, which includes actualRole
     const canSimulate = currentUser && (currentUser.actualRole === 'admin' || currentUser.actualRole === 'auditor');
@@ -55,42 +65,42 @@ function Sidebar({ /*currentUser,*/ logout, showDetailsPanel, setShowDetailsPane
                 <div className="mt-1">
 
                     {/* <div className='' > */}
-                        <NavDropdown
-                            title={
-                                <OverlayTrigger placement="right" delay={{ show: 250, hide: 100 }} overlay={<Tooltip id="tooltip-user-actions">{currentUser?.name || 'User Menu'}</Tooltip>}>
-                                    <div style={{  height: "50px"}} className="d-flex justify-content-center align-items-center  border-0">
-                                        <FaUser className='text-white' size="1.2em" />
-                                    </div>
-                                </OverlayTrigger>
-                            }
-                            id="sidebar-user-actions-dropdown"
-                            drop="end"
-                            align={{ lg: 'start' }}
-                            className="sidebar-user-dropdown" // Added a class for potential specific styling
-                            popperConfig={{ strategy: 'fixed' }}
-                        >
-                            <NavDropdown.Header className="text-center small text-muted">{currentUser?.name || 'User'}</NavDropdown.Header>
-                            <NavDropdown.Item as={Link} to="/profile">Profile ({currentUser?.role})</NavDropdown.Item>
-                            {/* Role Simulation Options */}
-                            {canSimulate && (
-                                <>
-                                    <NavDropdown.Divider />
-                                    <NavDropdown.Header className="small text-muted">Role Simulation</NavDropdown.Header>
-                                    {currentUser.isSimulating && currentUser.role === 'user' ? (
-                                        <NavDropdown.Item onClick={() => { stopRoleSimulation(); window.location.reload(); }}>
-                                            Stop Simulating (Back to {currentUser.actualRole})
-                                        </NavDropdown.Item>
-                                    ) : (
-                                        <NavDropdown.Item onClick={() => { startRoleSimulation('user'); window.location.reload();}} disabled={currentUser.role === 'user' && !currentUser.isSimulating}>
-                                            Simulate User Role
-                                        </NavDropdown.Item>
-                                    )}
-                                    {/* Add more roles to simulate if needed, e.g., Simulate Auditor */}
-                                </>
-                            )}
-                            <NavDropdown.Divider className='' />
-                            <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
-                        </NavDropdown>
+                    <NavDropdown
+                        title={
+                            <OverlayTrigger placement="right" delay={{ show: 250, hide: 100 }} overlay={<Tooltip id="tooltip-user-actions">{currentUser?.name || 'User Menu'}</Tooltip>}>
+                                <div style={{ height: "50px" }} className="d-flex justify-content-center align-items-center  border-0">
+                                    <FaUser className='text-white' size="1.2em" />
+                                </div>
+                            </OverlayTrigger>
+                        }
+                        id="sidebar-user-actions-dropdown"
+                        drop="end"
+                        align={{ lg: 'start' }}
+                        className="sidebar-user-dropdown" // Added a class for potential specific styling
+                        popperConfig={{ strategy: 'fixed' }}
+                    >
+                        <NavDropdown.Header className="text-center small text-muted">{currentUser?.name || 'User'}</NavDropdown.Header>
+                        <NavDropdown.Item as={Link} to="/profile">Profile ({currentUser?.role})</NavDropdown.Item>
+                        {/* Role Simulation Options */}
+                        {canSimulate && (
+                            <>
+                                <NavDropdown.Divider />
+                                <NavDropdown.Header className="small text-muted">Role Simulation</NavDropdown.Header>
+                                {currentUser.isSimulating && currentUser.role === 'user' ? (
+                                    <NavDropdown.Item onClick={() => { stopRoleSimulation(); window.location.reload(); }}>
+                                        Stop Simulating (Back to {currentUser.actualRole})
+                                    </NavDropdown.Item>
+                                ) : (
+                                    <NavDropdown.Item onClick={() => { startRoleSimulation('user'); window.location.reload(); }} disabled={currentUser.role === 'user' && !currentUser.isSimulating}>
+                                        Simulate User Role
+                                    </NavDropdown.Item>
+                                )}
+                                {/* Add more roles to simulate if needed, e.g., Simulate Auditor */}
+                            </>
+                        )}
+                        <NavDropdown.Divider className='' />
+                        <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
+                    </NavDropdown>
                     {/* </div> */}
                     {navItems
                         .filter(Boolean)
@@ -132,15 +142,50 @@ function Sidebar({ /*currentUser,*/ logout, showDetailsPanel, setShowDetailsPane
                             );
                         })}
 
-                    {currentUser?.role === 'admin' && <Button as={NavLink}
+                    {/* {currentUser?.role === 'admin' && <Button as={NavLink}
                         className="d-flex justify-content-center align-items-center  p-3  border-0"
                         size='sm'
                         variant='transparent'
                         title="Settings"
                         to="/admin-settings"
                         isActive={location.pathname.startsWith('/settings') ? location.pathname.startsWith('/settings') : undefined}> <FaCog size="1.2em" />
-                    </Button>}
+                    </Button>} */}
 
+                    {currentUser?.role === 'admin' && (
+                        <NavDropdown
+                            title={
+                                <OverlayTrigger placement="right" delay={{ show: 250, hide: 100 }} overlay={<Tooltip id="tooltip-settings-menu">Settings</Tooltip>}>
+                                    <div style={{ height: "50px" }} className="d-flex justify-content-center align-items-center border-0">
+                                        <FaCog className='text-white' size="1.2em" />
+                                    </div>
+                                </OverlayTrigger>
+                            }
+                            id="sidebar-settings-actions-dropdown"
+                            drop="end"
+                            align={{ lg: 'start' }}
+                            className="sidebar-user-dropdown mt-1"
+                            popperConfig={{ strategy: 'fixed' }}
+                        >
+                            <NavDropdown.Header className="text-center small text-muted">Admin Settings</NavDropdown.Header>
+
+                            {navSettingsItems
+                                .filter(Boolean)
+                                .filter(item => item.roles && item.roles.includes(currentUser?.role)) // Ensure role check for settings items
+                                .map((item, index) => {
+                                    return (
+                                        <NavDropdown.Item
+                                            key={item.eventKey}
+                                            as={NavLink}
+                                            to={item.to}
+                                            eventKey={item.eventKey} // eventKey is useful for NavDropdown's internal state if needed
+                                            className={({ isActive }) => isActive || (item.activeCheck && item.activeCheck()) ? "dropdown-item active" : "dropdown-item"}
+                                        >
+                                            {item.icon} <span className="ms-2">{item.label}</span>
+                                        </NavDropdown.Item>
+                                    );
+                                })}
+                        </NavDropdown>
+                    )}
                 </div>
             </Nav>
 

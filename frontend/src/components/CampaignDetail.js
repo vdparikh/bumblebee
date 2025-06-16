@@ -104,6 +104,7 @@ function CampaignDetail() {
     const [selectedOwnerIDs, setSelectedOwnerIDs] = useState([]);
     const [selectedAssignee, setSelectedAssignee] = useState('');
     const [selectedDueDate, setSelectedDueDate] = useState('');
+    const [selectedPriority, setSelectedPriority] = useState(''); // New state for priority
     const [selectedOwnerTeam, setSelectedOwnerTeam] = useState(''); // State for selected owner team
     const [selectedAssigneeTeam, setSelectedAssigneeTeam] = useState(''); // State for selected assignee team
 
@@ -233,6 +234,7 @@ function CampaignDetail() {
 
 
         setSelectedDueDate(taskInstance.due_date ? new Date(taskInstance.due_date).toISOString().split('T')[0] : '');
+        setSelectedPriority(taskInstance.priority || ''); // Initialize priority
         setShowAssignModal(true);
     };
 
@@ -247,6 +249,7 @@ function CampaignDetail() {
             owner_team_id: selectedOwnerTeam || null,
             assignee_team_id: selectedAssigneeTeam || null,
 
+            priority: selectedPriority || null, // Add priority to payload
             due_date: selectedDueDate || null,
         };
 
@@ -256,6 +259,7 @@ function CampaignDetail() {
             fetchCampaignData();
             setSelectedOwnerTeam('');
             setSelectedAssigneeTeam('');
+            setSelectedPriority('');
 
         } catch (err) {
             console.error("Error assigning task:", err);
@@ -891,6 +895,19 @@ function CampaignDetail() {
                                 type="date"
                                 value={selectedDueDate} onChange={e => setSelectedDueDate(e.target.value)} />
                         </Form.Group>
+                        <Form.Group className="mt-3">
+                            <Form.Label>Priority</Form.Label>
+                            <Form.Select value={selectedPriority} onChange={e => setSelectedPriority(e.target.value)}>
+                                <option value="">Select Priority</option>
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                                <option value="Critical">Critical</option>
+                            </Form.Select>
+                        </Form.Group>
+
+
+
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>

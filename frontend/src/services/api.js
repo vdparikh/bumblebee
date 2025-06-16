@@ -31,6 +31,11 @@ export const fetchIntegrationCheckTypes = async () => {
     return response;
 };
 
+export const getSystemTypeDefinitions = async () => {
+    const response = await apiClient.get('/system-type-definitions');
+    return response;
+};
+
 
 export const getCampaigns = async (status, includeTaskSummary = false) => {
     let url = `/campaigns`;

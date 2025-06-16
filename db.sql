@@ -491,3 +491,26 @@ CREATE TRIGGER set_timestamp_on_registered_plugins
 BEFORE UPDATE ON registered_plugins
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
+
+BEFORE UPDATE ON registered_plugins
+FOR EACH ROW
+EXECUTE FUNCTION trigger_set_timestamp();
+
+
+-- Table for System Type Definitions (dynamic version of frontend/src/constants/systemTypes.js)
+CREATE TABLE IF NOT EXISTS system_type_definitions (
+    value TEXT PRIMARY KEY, -- e.g., 'aws', 'azure'
+    label TEXT NOT NULL,    -- e.g., 'AWS', 'Azure'
+    description TEXT,
+    icon_name TEXT,         -- Store the string name of the icon, e.g., 'FaAws'
+    color TEXT,             -- e.g., '#FF9900'
+    category TEXT,          -- e.g., 'Cloud', 'API'
+    configuration_schema JSONB, -- Stores the array of field definitions
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER set_timestamp_on_system_type_definitions
+BEFORE UPDATE ON system_type_definitions
+FOR EACH ROW
+EXECUTE FUNCTION trigger_set_timestamp(); -- Assuming trigger_set_timestamp function exists

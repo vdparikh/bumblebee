@@ -69,6 +69,11 @@ type Store interface {
 	GetAuditLogs(filters map[string]interface{}, page, limit int) ([]models.AuditLog, int, error)
 }
 
+// System Type Definition Store Methods interface (optional, for clarity)
+type SystemTypeDefinitionStore interface {
+	GetSystemTypeDefinitions() ([]models.SystemTypeDefinition, error)
+}
+
 var ErrNotFound = errors.New("record not found")
 
 type DBStore struct {
@@ -88,6 +93,70 @@ func NewDBStore(dataSourceName string) (*DBStore, error) {
 
 	log.Println("Successfully connected to the database!")
 	return &DBStore{DB: db}, nil
+}
+
+// --- System Type Definition Store Methods ---
+
+// GetSystemTypeDefinitions retrieves all system type definitions.
+func (s *DBStore) GetSystemTypeDefinitions() ([]models.SystemTypeDefinition, error) {
+	var definitions []models.SystemTypeDefinition
+	query := `SELECT value, label, description, icon_name, color, category, configuration_schema, created_at, updated_at FROM system_type_definitions ORDER BY category, label;`
+	err := s.DB.Select(&definitions, query) // sqlx handles JSONB to []byte, then Scan handles []byte to ConfigurationSchema
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch system type definitions: %w", err)
+	}
+	return definitions, nil
+}
+
+// CreateSystemTypeDefinition (Example for seeding or admin management)
+func (s *DBStore) CreateSystemTypeDefinition(def *models.SystemTypeDefinition) error {
+	query := `
+		INSERT INTO system_type_definitions (value, label, description, icon_name, color, category, configuration_schema)
+		VALUES (:value, :label, :description, :icon_name, :color, :category, :configuration_schema)
+		ON CONFLICT (value) DO UPDATE SET
+			label = EXCLUDED.label,
+			description = EXCLUDED.description,
+			icon_name = EXCLUDED.icon_name,
+			color = EXCLUDED.color,
+			category = EXCLUDED.category,
+			configuration_schema = EXCLUDED.configuration_schema,
+			updated_at = CURRENT_TIMESTAMP;
+	`
+	_, err := s.DB.NamedExec(query, def)
+	if err != nil {
+		return fmt.Errorf("failed to create/update system type definition %s: %w", def.Value, err)
+	}
+	return nil
+}
+
+// --- Plugin Registration Store Methods ---
+
+// GetActiveCheckTypeConfigurations retrieves and merges CheckTypeConfiguration maps
+// from all plugins marked as active in the database.
+func (s *DBStore) GetActiveCheckTypeConfigurations() (map[string]models.CheckTypeConfiguration, error) {
+	query := `SELECT check_type_configurations FROM registered_plugins WHERE is_active = TRUE;`
+	rows, err := s.DB.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query active plugin configurations: %w", err)
+	}
+	defer rows.Close()
+
+	mergedConfigs := make(map[string]models.CheckTypeConfiguration)
+	for rows.Next() {
+		var configsJSON json.RawMessage
+		if err := rows.Scan(&configsJSON); err != nil {
+			return nil, fmt.Errorf("failed to scan plugin configurations row: %w", err)
+		}
+
+		var pluginCheckConfigs map[string]models.CheckTypeConfiguration
+		if err := json.Unmarshal(configsJSON, &pluginCheckConfigs); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal check type configurations from DB: %w", err)
+		}
+		for key, config := range pluginCheckConfigs {
+			mergedConfigs[key] = config // Assumes check type keys are globally unique
+		}
+	}
+	return mergedConfigs, rows.Err()
 }
 
 var _ Store = (*DBStore)(nil) // Interface satisfaction check
@@ -1623,12 +1692,12 @@ func (s *DBStore) UpdateCampaignTaskInstance(cti *models.CampaignTaskInstance) e
 		UPDATE campaign_task_instances
 		SET title = $2, description = $3, category = $4, 
 		    assignee_user_id = $5, owner_team_id = $6, assignee_team_id = $7, status = $8, due_date = $9, updated_at = $10,
-		    check_type = $11, target = $12, parameters = $13
+		    check_type = $11, target = $12, parameters = $13, priority = $14
 		WHERE id = $1
 	`
 	_, err = tx.Exec(ctiQuery, cti.ID, cti.Title, cti.Description, cti.Category,
 		cti.AssigneeUserID, cti.OwnerTeamID, cti.AssigneeTeamID, cti.Status, cti.DueDate, cti.UpdatedAt,
-		cti.CheckType, cti.Target, paramsJSON)
+		cti.CheckType, cti.Target, paramsJSON, cti.Priority)
 
 	if err != nil {
 		return fmt.Errorf("failed to update campaign task instance %s: %w", cti.ID, err)
@@ -1689,7 +1758,7 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 
 	query := `
 		SELECT 
-			cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id, cti.campaign_selected_requirement_id, 
+			cti.priority, cti.id, cti.campaign_id, c.name as campaign_name, cti.master_task_id, cti.campaign_selected_requirement_id,  
 			cti.title, cti.description, cti.category, cti.assignee_user_id, cti.owner_team_id, cti.assignee_team_id,
 			cti.status, cti.due_date, cti.created_at, cti.updated_at, 
 			cti.check_type, cti.target, cti.parameters,
@@ -1758,7 +1827,7 @@ func (s *DBStore) GetCampaignTaskInstancesForUser(userID string, userField strin
 
 		var paramsJSON []byte
 		err := rows.Scan(
-			&i.ID, &i.CampaignID, &i.CampaignName, &i.MasterTaskID, &i.CampaignSelectedRequirementID,
+			&i.Priority, &i.ID, &i.CampaignID, &i.CampaignName, &i.MasterTaskID, &i.CampaignSelectedRequirementID,
 			&i.Title, &i.Description, &i.Category, &i.AssigneeUserID, &i.OwnerTeamID, &i.AssigneeTeamID,
 			&i.Status, &i.DueDate, &i.CreatedAt, &i.UpdatedAt,
 			&i.CheckType, &i.Target, &paramsJSON,
@@ -2265,70 +2334,4 @@ func (s *DBStore) GetAuditLogs(filters map[string]interface{}, page, limit int) 
 	}
 
 	return logs, total, nil
-}
-
-// Placeholder for other methods...
-// Ensure all existing methods from the original file are preserved below this line.
-// ... (rest of the file content from the read_files output)
-
-// CreateOrUpdateRegisteredPlugin inserts a new plugin or updates an existing one.
-// It stores the plugin's check type configurations as JSON.
-func (s *DBStore) CreateOrUpdateRegisteredPlugin(pluginID, pluginName string, checkConfigs map[string]models.CheckTypeConfiguration) error {
-	configsJSON, err := json.Marshal(checkConfigs)
-	if err != nil {
-		return fmt.Errorf("failed to marshal check type configurations for plugin %s: %w", pluginID, err)
-	}
-
-	query := `
-		INSERT INTO registered_plugins (id, name, check_type_configurations, is_active)
-		VALUES ($1, $2, $3, TRUE)
-		ON CONFLICT (id) DO UPDATE
-		SET name = EXCLUDED.name,
-			check_type_configurations = EXCLUDED.check_type_configurations,
-			is_active = TRUE, -- Ensure it's marked active on update/registration
-			updated_at = CURRENT_TIMESTAMP;
-	`
-	_, err = s.DB.Exec(query, pluginID, pluginName, configsJSON)
-	if err != nil {
-		return fmt.Errorf("failed to execute create/update for registered plugin %s: %w", pluginID, err)
-	}
-	return nil
-}
-
-// SetRegisteredPluginActiveStatus updates the is_active flag for a plugin.
-func (s *DBStore) SetRegisteredPluginActiveStatus(pluginID string, isActive bool) error {
-	query := `UPDATE registered_plugins SET is_active = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2;`
-	_, err := s.DB.Exec(query, isActive, pluginID)
-	if err != nil {
-		return fmt.Errorf("failed to set active status for plugin %s: %w", pluginID, err)
-	}
-	return nil
-}
-
-// GetActiveCheckTypeConfigurations retrieves and merges CheckTypeConfiguration maps
-// from all plugins marked as active in the database.
-func (s *DBStore) GetActiveCheckTypeConfigurations() (map[string]models.CheckTypeConfiguration, error) {
-	query := `SELECT check_type_configurations FROM registered_plugins WHERE is_active = TRUE;`
-	rows, err := s.DB.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query active plugin configurations: %w", err)
-	}
-	defer rows.Close()
-
-	mergedConfigs := make(map[string]models.CheckTypeConfiguration)
-	for rows.Next() {
-		var configsJSON json.RawMessage
-		if err := rows.Scan(&configsJSON); err != nil {
-			return nil, fmt.Errorf("failed to scan plugin configurations row: %w", err)
-		}
-
-		var pluginCheckConfigs map[string]models.CheckTypeConfiguration
-		if err := json.Unmarshal(configsJSON, &pluginCheckConfigs); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal check type configurations from DB: %w", err)
-		}
-		for key, config := range pluginCheckConfigs {
-			mergedConfigs[key] = config // Assumes check type keys are globally unique
-		}
-	}
-	return mergedConfigs, rows.Err()
 }
