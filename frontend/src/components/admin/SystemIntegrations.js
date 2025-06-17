@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Button, Spinner, Alert, Badge } from 'react-bootstrap';
+import { Card, Button, Spinner, Alert, Badge, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { 
     FaPlusCircle, 
@@ -154,59 +154,56 @@ function SystemIntegrations() {
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
 
-            <Table responsive hover>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Description</th>
-                        <th>Status</th>
-                        <th>Last Checked</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {systems.map(system => {
-                        const systemTypeInfo = apiSystemTypes.find(option => option.value === system.systemType);
-                        return (
-                            <tr key={system.id}>
-                                <td>{system.name}</td>
-                                <td>
-                                    {systemTypeInfo ? (
-                                        <span style={{ color: systemTypeInfo.color || 'inherit' }}>
-                                            {getSystemTypeIcon(systemTypeInfo.iconName, 20)} {systemTypeInfo.label}
-                                        </span>
-                                    ) : system.systemType}
-                                </td>
-                                <td>{system.description || '-'}</td>
-                                <td>
-                                    <Badge bg={system.isEnabled ? 'success' : 'secondary'}>
+            <Row xs={1} md={2} lg={3} className="g-4">
+                {systems.map(system => {
+                    const systemTypeInfo = apiSystemTypes.find(option => option.value === system.systemType);
+                    return (
+                        <Col key={system.id}>
+                            <Card className="h-100 shadow-sm">
+                                <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
+                                    <span>
+                                        {systemTypeInfo ? getSystemTypeIcon(systemTypeInfo.iconName, 22) : <FaPlug />}
+                                        <span className="ms-2">{system.name}</span>
+                                    </span>
+                                    <Badge bg={system.isEnabled ? 'success' : 'secondary'} pill>
                                         {system.isEnabled ? 'Active' : 'Disabled'}
                                     </Badge>
-                                </td>
-                                <td>{system.lastChecked ? new Date(system.lastChecked).toLocaleString() : 'Never'}</td>
-                                <td>
+                                </Card.Header>
+                                <Card.Body>
+                                    <Card.Subtitle className="mb-2 text-muted">
+                                        Type: {systemTypeInfo ? systemTypeInfo.label : system.systemType}
+                                    </Card.Subtitle>
+                                    <Card.Text style={{ minHeight: '60px' }}>
+                                        {system.description || 'No description provided.'}
+                                    </Card.Text>
+                                    <small className="text-muted">
+                                        Last Checked: {system.lastChecked ? new Date(system.lastChecked).toLocaleString() : 'Never'}
+                                    </small>
+                                </Card.Body>
+                                <Card.Footer className="text-end bg-light border-0">
                                     <Button
                                         variant="outline-primary"
                                         size="sm"
                                         className="me-2"
                                         onClick={() => navigate(`/admin/system-integrations/edit/${system.id}`)}
+                                        title="Edit System"
                                     >
-                                        <FaEdit />
+                                        <FaEdit /> Edit
                                     </Button>
                                     <Button
                                         variant="outline-danger"
                                         size="sm"
                                         onClick={() => handleDelete(system.id)}
+                                        title="Delete System"
                                     >
-                                        <FaTrash />
+                                        <FaTrash /> Delete
                                     </Button>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </Table>
+                                </Card.Footer>
+                            </Card>
+                        </Col>
+                    );
+                })}
+            </Row>
         </div>
     );
 }

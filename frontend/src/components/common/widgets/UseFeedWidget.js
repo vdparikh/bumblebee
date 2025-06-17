@@ -48,19 +48,23 @@ const UserFeedWidget = () => {
     if (error) return <Card><Card.Body><p className="text-danger">{error}</p></Card.Body></Card>;
 
     return (
-       <Card className='mt-3'>
-                        <Card.Header as="h5"><FaComment className="me-2"/>Recent Activity</Card.Header>
-                        {userFeed.length > 0 ? (
-                            <ListGroup variant="flush" style={{  }}>
-                                {userFeed.map(item => (
-                                    <ListGroup.Item key={item.id} className="py-2 px-3">
-                                        <div className="d-flex w-100 justify-content-between">
-                                            <small className="text-muted">
-                                                <UserDisplay userId={item.userId} userName={item.userName} allUsers={users} />
-                                                {item.campaignTaskInstanceId && item.taskTitle && (
-                                                    <> on task <Link to={`/campaign-task/${item.campaignTaskInstanceId}`}>{item.taskTitle.substring(0,30)}...</Link></>
-                                                )}
-                                            </small>
+        <Card className='mt-3 shadow-sm'>
+            <Card.Header as="h6" className="bg-light text-dark"><FaComment className="me-2" />Recent Activity</Card.Header>
+            {loading ? (
+                 <Card.Body className="text-center"><Spinner animation="border" size="sm" /></Card.Body>
+            ) : userFeed.length > 0 ? (
+                <ListGroup variant="flush">
+                    {userFeed.map(item => (
+                        <ListGroup.Item key={item.id} className="py-3 px-3">
+                            <div className="d-flex w-100 justify-content-between align-items-center mb-1">
+                                <div className="d-flex align-items-center">
+                                    <UserDisplay userId={item.userId} userName={item.userName} allUsers={users} />
+                                    {item.campaignTaskInstanceId && item.taskTitle && (
+                                        <small className="text-muted ms-2">
+                                            on task <Link to={`/campaign-task/${item.campaignTaskInstanceId}`} className="text-decoration-none">{item.taskTitle.substring(0, 30)}{item.taskTitle.length > 30 ? '...' : ''}</Link>
+                                        </small>
+                                    )}
+                                </div>
                                             <small className="text-muted">{new Date(item.createdAt).toLocaleString()}</small>
                                         </div>
                                         {/* <p className="mb-0 mt-1 small" style={{whiteSpace: "pre-wrap"}}>{item.text}</p> */}
@@ -68,11 +72,11 @@ const UserFeedWidget = () => {
                                     </ListGroup.Item>
                                 ))}
                             </ListGroup>
-                        ) : (
-                            <Card.Body><p className="text-muted">No recent activity to display.</p></Card.Body>
-                        )}
-                        
-                    </Card>
+            ) : (
+                <Card.Body><p className="text-muted">No recent activity to display.</p></Card.Body>
+            )}
+
+        </Card>
     );
 };
 

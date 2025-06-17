@@ -242,10 +242,13 @@ function Dashboard() {
             
             <Row className="mb-4">
                 <Col md={6} className="mb-4">
-                        <div className="d-flex justify-content-between  mb-1 p-2">
+                        <Card className=''>
+                            <Card.Header as="p">
+                                <div className="d-flex justify-content-between  mb-1 p-2">
                                                 <h6>My Recent Open Tasks</h6>
                                                 <span className='small'><Link to="/my-tasks">View All My Tasks</Link></span>
                                             </div>
+                            </Card.Header>
 
                         {dashboardStats.recentOpenTasks.length > 0 ? (
                             <div>
@@ -272,6 +275,8 @@ function Dashboard() {
                         ) : (
                             <Card.Body><p className="text-muted">No open tasks at the moment.</p></Card.Body>
                         )}
+                                                </Card>
+
                 </Col>
                 <Col md={6} className="mb-4">
 

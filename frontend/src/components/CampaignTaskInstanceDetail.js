@@ -32,7 +32,7 @@ import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Modal from 'react-bootstrap/Modal';
-import { 
+import {
     FaPlayCircle,
     FaInfoCircle,
     FaFileAlt,
@@ -52,24 +52,26 @@ import {
     FaUserCheck,
     FaUsers,
     FaCalendarAlt,
-    FaFileContract
+    FaFileContract,
+    FaTasks
 } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import UserDisplay from './common/UserDisplay';
 import TeamDisplay from './common/TeamDisplay';
 import CopyEvidenceModal from './modals/CopyEvidenceModal';
 import CommentSection from './common/CommentSection';
+import PageHeader from './common/PageHeader';
 
 // ParameterModal component
-const ParameterModal = React.memo(({ 
-    show, 
-    onHide, 
-    parameters, 
-    onParameterChange, 
-    onExecute 
+const ParameterModal = React.memo(({
+    show,
+    onHide,
+    parameters,
+    onParameterChange,
+    onExecute
 }) => (
-    <Modal 
-        show={show} 
+    <Modal
+        show={show}
         onHide={onHide}
         backdrop="static"
         keyboard={false}
@@ -104,7 +106,7 @@ function CampaignTaskInstanceDetail() {
     const { currentUser } = useAuth();
     const { instanceId } = useParams();
     const location = useLocation();
-    
+
     // State management
     const [taskInstance, setTaskInstance] = useState(null);
     const [users, setUsers] = useState([]);
@@ -443,7 +445,7 @@ function CampaignTaskInstanceDetail() {
             const response = await executeCampaignTaskInstance(instanceId, editedParameters);
             setExecutionSuccess('Task execution started successfully.');
             setShowParameterModal(false);
-            
+
             const status = await getTaskExecutionStatus(instanceId);
             setExecutionStatus(status);
         } catch (err) {
@@ -471,9 +473,9 @@ function CampaignTaskInstanceDetail() {
         try {
             const jsonContent = typeof content === 'string' ? JSON.parse(content) : content;
             return (
-                <pre className="bg-light p-2 rounded mt-1 mb-0" style={{ 
-                    whiteSpace: 'pre-wrap', 
-                    wordBreak: 'break-all', 
+                <pre className="bg-light p-2 rounded mt-1 mb-0" style={{
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-all',
                     fontSize: '0.9em',
                     maxHeight: '400px',
                     overflow: 'auto'
@@ -488,13 +490,13 @@ function CampaignTaskInstanceDetail() {
 
     useEffect(() => {
         let interval = null;
-        
+
         if (executionStatus && (executionStatus === 'queued' || executionStatus === 'running')) {
             interval = setInterval(async () => {
                 try {
                     const newStatus = await getTaskExecutionStatus(instanceId);
                     setExecutionStatus(newStatus);
-                    
+
                     if (newStatus === 'completed' || newStatus === 'failed') {
                         clearInterval(interval);
                         fetchInstanceResults();
@@ -560,15 +562,9 @@ function CampaignTaskInstanceDetail() {
         <div>
 
 
-            <Row>
-                <Col md={12} className='mb-3'>
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                        <h2 className="mb-0">
-                            {taskInstance.title}
-                            <div className='mb-1 small fs-6 fw-normal text-muted'>Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> / Req: {taskInstance.requirement_standard_name}</div>
-                        </h2>
-                        
-                        <div className="d-flex justify-content-between align-items-center mb-2">
+            <PageHeader icon={<FaTasks />} title= {taskInstance.title} 
+            subtitle={<div className='mb-1 small fs-6 fw-normal text-muted'>Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> / Req: {taskInstance.requirement_standard_name}</div>}
+            actions={<div className="d-flex justify-content-between align-items-center mb-2">
                             {isOverdue(taskInstance.due_date, taskInstance.status) && <span className="me-2 fs-6 bg-danger p-1 pt-2 pb-2 ps-3 pe-3 text-white rounded-2">Overdue</span>}
                             <Dropdown>
                                 <Dropdown.Toggle variant={getStatusColor(taskInstance.status)} id="dropdown-status" size="sm" className="rounded-pill p-1 pt-2 pb-2 ps-3 pe-3">
@@ -582,10 +578,11 @@ function CampaignTaskInstanceDetail() {
                                     <Dropdown.Item onClick={() => handleStatusUpdate('Failed')} active={taskInstance.status === 'Failed'}>Failed</Dropdown.Item>
                                 </Dropdown.Menu>
                             </Dropdown>
-                        </div>
-                    </div>
+                        </div>}
+            />
 
-                </Col>
+
+            <Row>
                 <Col md={8} className='border-end'>
                     <Tabs defaultActiveKey="details" id="task-instance-detail-tabs" className="nav-line-tabs mb-3">
                         <Tab eventKey="details" title={<><FaInfoCircle className="me-1" />Details</>}>
@@ -738,7 +735,7 @@ function CampaignTaskInstanceDetail() {
                                             icon = <FaAlignLeft className="me-2 text-info" />;
                                             mainDisplay = (
                                                 <div className="" style={{ fontSize: '0.9em' }}>
-                                                   {evidence.description || 'No text content'}
+                                                    {evidence.description || 'No text content'}
                                                 </div>
                                             );
                                             showSeparateDescription = false;
@@ -755,9 +752,9 @@ function CampaignTaskInstanceDetail() {
                                                 <Card.Body>
                                                     {showSeparateDescription && evidence.description && (
                                                         <div className="mb-0 mt-1">
-                                                            {typeof evidence.description === 'object' || 
-                                                             (typeof evidence.description === 'string' && 
-                                                              (evidence.description.trim().startsWith('{') || evidence.description.trim().startsWith('['))) 
+                                                            {typeof evidence.description === 'object' ||
+                                                                (typeof evidence.description === 'string' &&
+                                                                    (evidence.description.trim().startsWith('{') || evidence.description.trim().startsWith('[')))
                                                                 ? formatJsonContent(evidence.description)
                                                                 : <div dangerouslySetInnerHTML={{ __html: evidence.description }} />
                                                             }
@@ -808,32 +805,32 @@ function CampaignTaskInstanceDetail() {
                         <Tab eventKey="history" title={<><FaHistory className="me-1" />Related Instances ({historicalTasks.length})</>}>
                             <Card>
                                 <Card.Header as="h5">Other Instances of this Task</Card.Header>
-                                
-                                    {historicalTasks.length > 0 ? (
-                                        <ListGroup variant="flush">
-                                            {historicalTasks.map(histTask => (
-                                                <ListGroup.Item key={histTask.id} action as={Link} to={`/campaign-task/${histTask.id}`}>
-                                                    <div className="d-flex justify-content-between">
-                                                        <div>
-                                                            <strong>{histTask.title}</strong>
-                                                            <small className="d-block text-muted">
-                                                                Campaign: {histTask.campaign_name || 'N/A'}
-                                                            </small>
-                                                        </div>
-                                                        <div>
-                                                            <Badge bg={getStatusColor(histTask.status)}>{histTask.status}</Badge>
-                                                            {histTask.due_date && (
-                                                                <small className="ms-2 text-muted">
-                                                                    Due: {new Date(histTask.due_date).toLocaleDateString()}
-                                                                </small>
-                                                            )}
-                                                        </div>
+
+                                {historicalTasks.length > 0 ? (
+                                    <ListGroup variant="flush">
+                                        {historicalTasks.map(histTask => (
+                                            <ListGroup.Item key={histTask.id} action as={Link} to={`/campaign-task/${histTask.id}`}>
+                                                <div className="d-flex justify-content-between">
+                                                    <div>
+                                                        <strong>{histTask.title}</strong>
+                                                        <small className="d-block text-muted">
+                                                            Campaign: {histTask.campaign_name || 'N/A'}
+                                                        </small>
                                                     </div>
-                                                </ListGroup.Item>
-                                            ))}
-                                        </ListGroup>
-                                    ) : <Card.Body><p className="text-muted">No other instances of this master task found.</p></Card.Body>}
-                                
+                                                    <div>
+                                                        <Badge bg={getStatusColor(histTask.status)}>{histTask.status}</Badge>
+                                                        {histTask.due_date && (
+                                                            <small className="ms-2 text-muted">
+                                                                Due: {new Date(histTask.due_date).toLocaleDateString()}
+                                                            </small>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </ListGroup.Item>
+                                        ))}
+                                    </ListGroup>
+                                ) : <Card.Body><p className="text-muted">No other instances of this master task found.</p></Card.Body>}
+
                             </Card>
                         </Tab>
 
@@ -967,7 +964,7 @@ function CampaignTaskInstanceDetail() {
                                     <tr>
                                         <th className="align-middle"><FaFileContract className="me-2 text-muted" /></th>
                                         <th className="align-middle">Requirement:</th>
-                                        
+
                                         <td>
                                             {taskInstance.requirement_control_id_reference && (
                                                 <Badge pill bg="light" text="dark" className="fw-normal border">Req: {taskInstance.requirement_control_id_reference}</Badge>
@@ -1053,7 +1050,7 @@ function CampaignTaskInstanceDetail() {
                 </Modal.Footer>
             </Modal>
 
-            <ParameterModal 
+            <ParameterModal
                 show={showParameterModal}
                 onHide={handleModalClose}
                 parameters={editedParameters}

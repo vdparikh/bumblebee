@@ -100,8 +100,8 @@ function AuditorDashboard() {
             <Tabs defaultActiveKey="overview" id="auditor-dashboard-tabs" className="mb-3 nav-line-tabs">
                 <Tab eventKey="overview" title={<><FaTasks className="me-1" />Overview</>}>
                     <Row>
-                        <Col md={4}>
-                            <Row className="mb-4">
+                        <Col md={8}>
+                            {/* <Row className="mb-4">
                                 <Col md={6} className="mb-3">
                                     <KeyMetricsCard title="Pending Reviews" metrics={[
                                         { label: "Tasks Awaiting Review", value: dashboardStats.tasksPendingReview, variant: "warning" },
@@ -116,55 +116,21 @@ function AuditorDashboard() {
                                 <Alert variant="info">Auditor-specific charts and summaries will be displayed here.</Alert>
                                 </Col>
                             </Row>
+ */}
+
+                                    <div className=''>
+                                        <PendingReviewPage />
+                                    </div>
+                            
+                        </Col>
+                         <Col md={4}>
 
                                     <ActiveCampaignsWidget />
 
                             <UserFeedWidget />
                         </Col>
-                    
-                        <Col md={8}>
 
-                                    <div className=''>
-                                        <PendingReviewPage />
-                                    </div>
-                            {/* <Card>
-                                <Card.Header as="h6">Active Campaigns ({activeCampaigns.length})</Card.Header>
-                                {loading ? <Card.Body><Spinner animation="border" size="sm" /> Loading campaigns...</Card.Body> :
-                                    activeCampaigns.length > 0 ? (
-                                        <ListGroup variant="flush" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                                            {activeCampaigns.map(campaign => (
-                                                <ListGroup.Item key={campaign.id} action as={Link} to={`/campaigns/${campaign.id}`}>
-                                                    <div className="d-flex justify-content-between">
-                                                        <span>{campaign.name}</span>
-                                                        <Badge bg={getStatusColor(campaign.status)}>{campaign.status}</Badge>
-                                                    </div>
-                                                    {campaign.task_summary && campaign.task_summary.total_tasks > 0 && (
-                                                        <ProgressBar 
-                                                            now={((campaign.task_summary.closed || 0) / campaign.task_summary.total_tasks) * 100} 
-                                                            label={`${Math.round(((campaign.task_summary.closed || 0) / campaign.task_summary.total_tasks) * 100)}%`} 
-                                                            variant="success" 
-                                                            style={{height: '10px'}} 
-                                                            className="mt-1"
-                                                        />
-                                                    )}
-                                                    <small className="text-muted d-block">
-                                                        Standard: {campaign.standard_name || 'N/A'}
-                                                    </small>
-                                                </ListGroup.Item>
-                                            ))}
-                                        </ListGroup>
-                                    ) : (
-                                        <Card.Body><p className="text-muted">No active campaigns.</p></Card.Body>
-                                    )}
-                            </Card> */}
-                        </Col>
-                        <Col>
-                        </Col>
-
-                        <Col md={12} className='mt-2'>
                         
-                                            
-</Col>
                     </Row>
                     
                 </Tab>

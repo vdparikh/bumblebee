@@ -36,7 +36,7 @@
     -webkit-text-fill-color: transparent;
 }
 .page-header {
-      padding: 5px 10px;
+      padding: 5px 5px;
 }
 
 body {
@@ -480,12 +480,13 @@ form, select, input, .form-control, .form-select {
   --bs-link-color: var(--bs-primary) !important;
   --bs-body-color: #fff!important;
   --bs-link-color: #fd8925!important;
-  --bs-link-hover-color: #ff0c00!important
+  --bs-link-hover-color: #ff0c00!important;
+  --bs-accordion-active-bg: var(--bs-primary)!important;
+  --bs-accordion-active-color: #fd8925!important;
 }
 
 
 [data-bs-theme="dark"] {
-  
   body {
     background-color: rgba(14, 9, 24, 1); /* Darker background for dark theme (Flexy style) */
     color: var(--bs-body-color); 
@@ -543,7 +544,8 @@ form, select, input, .form-control, .form-select {
     color: #eee!important;
   }
   .sidebar {
-    background-color: #090f207f!important;
+    /* background-color: #090f207f!important; */
+    background-color: var(--bs-body-bg)!important;
   }
   .sidebar .nav-pills .btn {
     color: #A6B7D4; /* Consistent with light mode inactive */

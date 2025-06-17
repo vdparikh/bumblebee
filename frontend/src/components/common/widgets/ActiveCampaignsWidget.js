@@ -36,7 +36,7 @@ const ActiveCampaignsWidget = () => {
 
     return (
         <Card>
-            <Card.Header as="h6">
+            <Card.Header as="p">
 
                 <div className="d-flex justify-content-between align-items-center  mb-1 p-2">
                     <h6 className="mb-0">Active Campaigns ({activeCampaigns.length})</h6>

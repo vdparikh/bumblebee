@@ -295,7 +295,7 @@ function PendingReviewPage() {
 <Card.Body>
      {allTasks.length > 0 && !loading && (
                 <Row className="mb-4">
-                    <Col md={8} style={{ minHeight: "200px" }}>
+                    <Col md={6} style={{ minHeight: "200px" }}>
                         <BarChartCard
                             title="Tasks by Category"
                             chartRef={categoryChartRef}
@@ -318,9 +318,14 @@ function PendingReviewPage() {
                             }}
                         />
                     </Col>
-                    <Col md={4}>
+                    <Col md={3}>
                         <KeyMetricsCard title="Key Metrics" metrics={[
                             { label: "Total Tasks Pending Review", value: taskStats.totalTasks, variant: "warning" },
+                        ]} />
+                    </Col>
+                     <Col md={3}>
+                        <KeyMetricsCard title="Campaign Snapshot" metrics={[
+                            { label: "Active Campaigns", value: allCampaigns.length, variant: "warning" },
                         ]} />
                     </Col>
                 </Row>

@@ -4,9 +4,9 @@ import {
     createCampaign,
     getComplianceStandards,
     getRequirements,
-    
-} from '../services/api'; 
-import { Link, useLocation } from 'react-router-dom'; 
+
+} from '../services/api';
+import { Link, useLocation } from 'react-router-dom';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import FloatingLabel from 'react-bootstrap/FloatingLabel';
@@ -18,14 +18,14 @@ import Tab from 'react-bootstrap/Tab';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Badge from 'react-bootstrap/Badge';
-import Modal from 'react-bootstrap/Modal'; 
+import Modal from 'react-bootstrap/Modal';
 import { useAuth } from '../contexts/AuthContext';
 
 import {
-    FaBullhorn, 
+    FaBullhorn,
     FaPlusCircle,
     FaListUl,
-    FaEdit, 
+    FaEdit,
     FaShieldAlt,
     FaFileContract,
     FaTasks as FaTasksIcon,
@@ -35,15 +35,15 @@ import PageHeader from './common/PageHeader';
 import { ProgressBar, Spinner } from 'react-bootstrap';
 
 function Campaigns() {
-   const { currentUser } = useAuth();
+    const { currentUser } = useAuth();
 
-    const location = useLocation(); 
+    const location = useLocation();
     const [campaigns, setCampaigns] = useState([]);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [activeTabKey, setActiveTabKey] = useState('existing');
 
-    
+
     const [newCampaignName, setNewCampaignName] = useState('');
     const [newCampaignDescription, setNewCampaignDescription] = useState('');
     const [selectedStandard, setSelectedStandard] = useState('');
@@ -51,17 +51,17 @@ function Campaigns() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
-    
+
     const [showRequirementsModal, setShowRequirementsModal] = useState(false);
     const [availableRequirements, setAvailableRequirements] = useState([]);
-    const [selectedRequirementsForCampaign, setSelectedRequirementsForCampaign] = useState([]); 
+    const [selectedRequirementsForCampaign, setSelectedRequirementsForCampaign] = useState([]);
 
-        const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+    const [loadingCampaigns, setLoadingCampaigns] = useState(true);
 
     const fetchCampaigns = useCallback(async () => {
         try {
             // const response = await getCampaigns();
-                        setLoadingCampaigns(true);
+            setLoadingCampaigns(true);
             // Request task summaries when fetching campaigns for the "existing" tab
             const response = await getCampaigns(null, true); // Pass true to include summaries
 
@@ -79,8 +79,8 @@ function Campaigns() {
             const standardsRes = await getComplianceStandards();
             setAllStandards(Array.isArray(standardsRes.data) ? standardsRes.data : []);
         } catch (err) {
-            console.error("Error fetching standards:", err); 
-            
+            console.error("Error fetching standards:", err);
+
         }
     }, []);
 
@@ -89,8 +89,8 @@ function Campaigns() {
         fetchFormData();
         if (location.state?.successMessage) {
             setSuccess(location.state.successMessage);
-            
-            window.history.replaceState({}, document.title) 
+
+            window.history.replaceState({}, document.title)
         }
     }, [fetchCampaigns, fetchFormData, location.state]);
 
@@ -98,11 +98,11 @@ function Campaigns() {
         setSelectedStandard(standardId);
         if (standardId) {
             try {
-                
-                const reqRes = await getRequirements(); 
+
+                const reqRes = await getRequirements();
                 const filteredReqs = Array.isArray(reqRes.data) ? reqRes.data.filter(r => r.standardId === standardId) : [];
-                setAvailableRequirements(filteredReqs); 
-                setSelectedRequirementsForCampaign([]); 
+                setAvailableRequirements(filteredReqs);
+                setSelectedRequirementsForCampaign([]);
             } catch (err) {
                 console.error("Error fetching requirements for modal:", err);
                 setAvailableRequirements([]);
@@ -112,7 +112,7 @@ function Campaigns() {
             setSelectedRequirementsForCampaign([]);
         }
     };
-    
+
     const handleRequirementSelectionChange = (reqId, controlIdRef) => {
         setSelectedRequirementsForCampaign(prev => {
             const existing = prev.find(r => r.requirement_id === reqId);
@@ -125,12 +125,12 @@ function Campaigns() {
     };
 
     const handleApplicabilityChange = (reqId, isApplicable) => {
-        setSelectedRequirementsForCampaign(prev => prev.map(r => 
+        setSelectedRequirementsForCampaign(prev => prev.map(r =>
             r.requirement_id === reqId ? { ...r, is_applicable: isApplicable } : r
         ));
     };
 
-const getStatusColor = (status) => {
+    const getStatusColor = (status) => {
         switch (status) {
             case 'Closed': return 'success';
             case 'Completed': return 'success';
@@ -151,11 +151,11 @@ const getStatusColor = (status) => {
         const { open = 0, in_progress = 0, pending_review = 0, closed = 0, failed = 0, total_tasks = 0 } = taskSummary;
         return (
             <ProgressBar style={{ height: '20px', fontSize: '0.75rem' }}>
-                <ProgressBar  variant="success" now={(closed / total_tasks) * 100} key={1} label={`${closed} Closed`} />
-                <ProgressBar  variant="warning" now={(pending_review / total_tasks) * 100} key={2} label={`${pending_review} Review`} />
-                <ProgressBar  variant="info" now={(in_progress / total_tasks) * 100} key={3} label={`${in_progress} Active`} />
-                <ProgressBar  variant="secondary" now={(open / total_tasks) * 100} key={4} label={`${open} Open`} />
-                <ProgressBar  variant="danger" now={(failed / total_tasks) * 100} key={5} label={`${failed} Failed`} />
+                <ProgressBar variant="success" now={(closed / total_tasks) * 100} key={1} label={`${closed} Closed`} />
+                <ProgressBar variant="warning" now={(pending_review / total_tasks) * 100} key={2} label={`${pending_review} Review`} />
+                <ProgressBar variant="info" now={(in_progress / total_tasks) * 100} key={3} label={`${in_progress} Active`} />
+                <ProgressBar variant="secondary" now={(open / total_tasks) * 100} key={4} label={`${open} Open`} />
+                <ProgressBar variant="danger" now={(failed / total_tasks) * 100} key={5} label={`${failed} Failed`} />
             </ProgressBar>
         );
     };
@@ -174,7 +174,7 @@ const getStatusColor = (status) => {
             standard_id: selectedStandard,
             start_date: startDate || null,
             end_date: endDate || null,
-            
+
             selected_requirements: selectedRequirementsForCampaign.map(({ requirement_id, is_applicable }) => ({ requirement_id, is_applicable })),
         };
 
@@ -188,7 +188,7 @@ const getStatusColor = (status) => {
             setStartDate('');
             setEndDate('');
             setSelectedRequirementsForCampaign([]);
-            setAvailableRequirements([]); 
+            setAvailableRequirements([]);
             fetchCampaigns();
             setActiveTabKey('existing');
         } catch (err) {
@@ -197,7 +197,7 @@ const getStatusColor = (status) => {
             setSuccess('');
         }
     };
-    
+
     const getStandardName = (standardId) => {
         const standard = allStandards.find(s => s.id === standardId);
         return standard ? standard.name : 'N/A';
@@ -206,15 +206,15 @@ const getStatusColor = (status) => {
 
     return (
         <div>
-            
+
             <PageHeader icon={<FaBullhorn />} title="Audit Campaigns" subtitle="Overview of compliance review activities and evidence management." />
 
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
 
             <Tabs activeKey={activeTabKey} onSelect={(k) => setActiveTabKey(k)} id="campaigns-tabs" className="mb-3 nav-line-tabs">
-              
-                <Tab eventKey="existing" title={<><FaListUl className="me-1"/>Existing Campaigns</>}>
+
+                <Tab eventKey="existing" title={<><FaListUl className="me-1" />Existing Campaigns</>}>
                     {campaigns.length === 0 && <Alert variant="info">No campaigns found.</Alert>}
                     {/* <ListGroup variant="flush">
                         {campaigns.map(camp => (
@@ -238,7 +238,7 @@ const getStatusColor = (status) => {
                         ))}
                     </ListGroup> */}
 
-                                        {loadingCampaigns ? (
+                    {loadingCampaigns ? (
                         <div className="text-center mt-5"><Spinner animation="border" /> Loading campaigns...</div>
                     ) : campaigns.length === 0 ? (
                         <Alert variant="info">No campaigns found.</Alert>
@@ -285,7 +285,7 @@ const getStatusColor = (status) => {
 
                 </Tab>
 
-                  <Tab eventKey="create" title={<><FaPlusCircle className="me-1"/>Create New Campaign</>}>
+                <Tab eventKey="create" title={<><FaPlusCircle className="me-1" />Create New Campaign</>}>
                     <Card>
                         <Card.Body>
                             <Form onSubmit={handleSubmitCampaign}>
@@ -298,7 +298,7 @@ const getStatusColor = (status) => {
                                 </FloatingLabel>
 
                                 <Row className="mb-3">
-                                    <Col md={12}> 
+                                    <Col md={12}>
                                         <FloatingLabel controlId="campaignStandard" label="Primary Standard*">
                                             <Form.Select value={selectedStandard} onChange={e => handleStandardChangeForModal(e.target.value)} required>
                                                 <option value="">Select a Standard</option>
@@ -325,15 +325,15 @@ const getStatusColor = (status) => {
                                 <Button variant="secondary" onClick={() => setShowRequirementsModal(true)} disabled={!selectedStandard} className="mb-3">
                                     Select Requirements ({selectedRequirementsForCampaign.length})
                                 </Button>
-                                
+
                                 {selectedRequirementsForCampaign.length > 0 && (
-                                    <div className="mb-3 p-2 border rounded" style={{maxHeight: '200px', overflowY: 'auto'}}>
+                                    <div className="mb-3 p-2 border rounded" style={{ maxHeight: '200px', overflowY: 'auto' }}>
                                         <h6>Selected Requirements:</h6>
                                         <ListGroup variant="flush">
                                             {selectedRequirementsForCampaign.map(sr => (
                                                 <ListGroup.Item key={sr.requirement_id} className="d-flex justify-content-between align-items-center ps-0 pe-0 pt-1 pb-1">
-                                                    <small>{sr.controlIdReference || sr.requirement_id.substring(0,8)}</small>
-                                                    <Form.Check 
+                                                    <small>{sr.controlIdReference || sr.requirement_id.substring(0, 8)}</small>
+                                                    <Form.Check
                                                         type="switch"
                                                         id={`switch-req-${sr.requirement_id}`}
                                                         label={sr.is_applicable ? "Applicable" : "Not Applicable"}
@@ -346,7 +346,7 @@ const getStatusColor = (status) => {
                                         </ListGroup>
                                     </div>
                                 )}
-                                <hr/>
+                                <hr />
                                 <Button variant="primary" type="submit">Create Campaign</Button>
                             </Form>
                         </Card.Body>
@@ -358,18 +358,18 @@ const getStatusColor = (status) => {
                 <Modal.Header closeButton>
                     <Modal.Title>Select Requirements for Standard: {getStandardName(selectedStandard)}</Modal.Title>
                 </Modal.Header>
-                <Modal.Body style={{maxHeight: '60vh', overflowY: 'auto'}}>
+                <Modal.Body style={{ maxHeight: '60vh', overflowY: 'auto' }}>
                     {availableRequirements.length === 0 && <p>No requirements found for this standard, or standard not selected.</p>}
                     <ListGroup>
                         {availableRequirements.map(req => (
-                            <ListGroup.Item 
-                                key={req.id} 
-                                action 
-                                onClick={() => handleRequirementSelectionChange(req.id, req.controlIdReference)} 
+                            <ListGroup.Item
+                                key={req.id}
+                                action
+                                onClick={() => handleRequirementSelectionChange(req.id, req.controlIdReference)}
                                 active={selectedRequirementsForCampaign.some(sr => sr.requirement_id === req.id)}
                                 className="d-flex justify-content-between align-items-center"
                             >
-                                <span><strong>{req.controlIdReference}</strong>: {req.requirementText.substring(0,100)}...</span>
+                                <span><strong>{req.controlIdReference}</strong>: {req.requirementText.substring(0, 100)}...</span>
                                 {selectedRequirementsForCampaign.some(sr => sr.requirement_id === req.id) && <Badge pill bg="success">Selected</Badge>}
                             </ListGroup.Item>
                         ))}
