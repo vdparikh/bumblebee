@@ -51,7 +51,8 @@ import {
     FaUserShield,
     FaUserCheck,
     FaUsers,
-    FaCalendarAlt
+    FaCalendarAlt,
+    FaFileContract
 } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import UserDisplay from './common/UserDisplay';
@@ -563,10 +564,10 @@ function CampaignTaskInstanceDetail() {
                 <Col md={12} className='mb-3'>
                     <div className="d-flex justify-content-between align-items-center mb-2">
                         <h2 className="mb-0">
-                            <div className='mb-1 small fs-6 fw-normal text-muted'>Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> / Req: {taskInstance.requirement_standard_name}</div>
-
                             {taskInstance.title}
+                            <div className='mb-1 small fs-6 fw-normal text-muted'>Campaign: <Link to={`/campaigns/${taskInstance.campaign_id}`}>{taskInstance.campaign_name || taskInstance.campaign_id}</Link> / Req: {taskInstance.requirement_standard_name}</div>
                         </h2>
+                        
                         <div className="d-flex justify-content-between align-items-center mb-2">
                             {isOverdue(taskInstance.due_date, taskInstance.status) && <span className="me-2 fs-6 bg-danger p-1 pt-2 pb-2 ps-3 pe-3 text-white rounded-2">Overdue</span>}
                             <Dropdown>
@@ -807,7 +808,7 @@ function CampaignTaskInstanceDetail() {
                         <Tab eventKey="history" title={<><FaHistory className="me-1" />Related Instances ({historicalTasks.length})</>}>
                             <Card>
                                 <Card.Header as="h5">Other Instances of this Task</Card.Header>
-                                <Card.Body>
+                                
                                     {historicalTasks.length > 0 ? (
                                         <ListGroup variant="flush">
                                             {historicalTasks.map(histTask => (
@@ -831,8 +832,8 @@ function CampaignTaskInstanceDetail() {
                                                 </ListGroup.Item>
                                             ))}
                                         </ListGroup>
-                                    ) : <p className="text-muted">No other instances of this master task found.</p>}
-                                </Card.Body>
+                                    ) : <Card.Body><p className="text-muted">No other instances of this master task found.</p></Card.Body>}
+                                
                             </Card>
                         </Tab>
 
@@ -950,19 +951,23 @@ function CampaignTaskInstanceDetail() {
                             <table className="table table-sm mb-0 align-middle">
                                 <tbody>
                                     <tr>
-                                        <th className="w-40 align-middle"><FaExclamationCircle className="me-2 text-muted" />Priority:</th>
-                                        <td>{taskInstance.priority ? <Badge bg={getPriorityBadgeColor(taskInstance.priority)} className="ms-2">{taskInstance.priority}</Badge> : 'N/A'}</td>
+                                        <th className="align-middle"><FaExclamationCircle className="me-2 text-muted" /></th>
+                                        <th className="w-40 align-middle">Priority:</th>
+                                        <td>{taskInstance.priority ? <Badge bg={getPriorityBadgeColor(taskInstance.priority)} className="">{taskInstance.priority}</Badge> : 'N/A'}</td>
                                     </tr>
                                     <tr>
-                                        <th className="align-middle"><FaTag className="me-2 text-muted" />Category:</th>
+                                        <th className="align-middle"><FaTag className="me-2 text-muted" /></th>
+                                        <th className="align-middle">Category:</th>
                                         <td>
                                             {taskInstance.category && (
-                                                <Badge pill bg="light" text="dark" className="fw-normal ms-2 border"><FaTag className="me-1" />{taskInstance.category}</Badge>
+                                                <Badge pill bg="light" text="dark" className="fw-normal border"><FaTag className="me-1" />{taskInstance.category}</Badge>
                                             )}
                                         </td>
                                     </tr>
                                     <tr>
+                                        <th className="align-middle"><FaFileContract className="me-2 text-muted" /></th>
                                         <th className="align-middle">Requirement:</th>
+                                        
                                         <td>
                                             {taskInstance.requirement_control_id_reference && (
                                                 <Badge pill bg="light" text="dark" className="fw-normal border">Req: {taskInstance.requirement_control_id_reference}</Badge>
@@ -970,7 +975,8 @@ function CampaignTaskInstanceDetail() {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th className="align-middle"><FaUserShield className="me-2 text-muted" />Owner(s):</th>
+                                        <th className="align-middle"><FaUserShield className="me-2 text-muted" /></th>
+                                        <th className="align-middle">Owner(s):</th>
                                         <td>
                                             {taskInstance.owners && taskInstance.owners.length > 0 ?
                                                 taskInstance.owners.map((owner, index) => (
@@ -982,26 +988,30 @@ function CampaignTaskInstanceDetail() {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th className="align-middle"><FaUserCheck className="me-2 text-muted" />Assignee:</th>
+                                        <th className="align-middle"><FaUserCheck className="me-2 text-muted" /></th>
+                                        <th className="align-middle">Assignee:</th>
                                         <td><UserDisplay userId={taskInstance.assignee_user_id} userName={taskInstance.assignee_user_id} allUsers={users} /></td>
                                     </tr>
                                     {taskInstance.owner_team && taskInstance.owner_team.name && (
                                         <tr>
-                                            <th className="align-middle"><FaUsers className="me-2 text-muted" />Owner Team:</th>
+                                            <th className="align-middle"><FaUsers className="me-2 text-muted" /></th>
+                                            <th className="align-middle">Owner Team:</th>
                                             <td><TeamDisplay teamId={taskInstance.owner_team.id} teamName={taskInstance.owner_team.name} teamDescription={taskInstance.owner_team.description} teamMembers={taskInstance.owner_team.members} allTeams={users.map(u => u.teams).flat().filter(Boolean)} /></td>
                                         </tr>
                                     )}
                                     <tr>
-                                        <th className="align-middle"><FaFileMedicalAlt className="me-2 text-muted" />Expected Evidence:</th>
+                                        <th className="align-middle"><FaFileMedicalAlt className="me-2 text-muted" /></th>
+                                        <th className="align-middle">Expected Evidence:</th>
                                         <td>
                                             {taskInstance.evidenceTypesExpected && taskInstance.evidenceTypesExpected.length > 0 ?
                                                 taskInstance.evidenceTypesExpected.map((evidenceType, index) => (
-                                                    <Badge variant="secondary" className='bg-secondary me-1 ms-1' key={evidenceType}>{evidenceType}</Badge>
+                                                    <Badge variant="secondary" className='bg-secondary me-1 ' key={evidenceType}>{evidenceType}</Badge>
                                                 )) : 'N/A'}
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th className="align-middle"><FaCalendarAlt className="me-2 text-muted" />Due Date:</th>
+                                        <th className="align-middle"><FaCalendarAlt className="me-2 text-muted" /></th>
+                                        <th className="align-middle">Due Date:</th>
                                         <td>{taskInstance.due_date ? new Date(taskInstance.due_date).toLocaleDateString() : 'N/A'}</td>
                                     </tr>
                                 </tbody>

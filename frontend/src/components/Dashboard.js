@@ -212,7 +212,7 @@ function Dashboard() {
                 </Col>
                 <Col xl={3} md={6} className="mb-3"> 
                     <Card className="h-100">
-                        <Card.Header as="h6">Task Progress by Category</Card.Header>
+                        <Card.Header as="h6" className='text-center'>Task Progress by Category</Card.Header>
                         <Card.Body style={{ maxHeight: '250px', overflowY: 'auto' }}>
                             {Object.keys(dashboardStats.categoryProgressStats).length > 0 ? (
                                 Object.entries(dashboardStats.categoryProgressStats).map(([category, data]) => {
@@ -240,9 +240,9 @@ function Dashboard() {
             
             <Row className="mb-4">
                 <Col md={6} className="mb-4">
-                        <div className="d-flex justify-content-between small mb-1 p-2">
+                        <div className="d-flex justify-content-between  mb-1 p-2">
                                                 <h6>My Recent Open Tasks</h6>
-                                                <span><Link to="/my-tasks">View All My Tasks</Link></span>
+                                                <span className='small'><Link to="/my-tasks">View All My Tasks</Link></span>
                                             </div>
 
                         {dashboardStats.recentOpenTasks.length > 0 ? (

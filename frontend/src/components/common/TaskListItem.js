@@ -52,7 +52,7 @@ const TaskListItem = ({
     return (
         <Card className={`mb-3 shadow-sm ${className}`}>
             <Card.Header as="h6">
-                    <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
                         <div>
                     <span className="me-2" ><StatusIcon status={task.status} isOverdue={isOverdueFn(task.due_date, task.status)} size="1.1em" /></span>
                     {/* {task.defaultPriority && (<Badge bg={getPriorityBadgeColor(task.defaultPriority)} className="me-1">
@@ -64,13 +64,26 @@ const TaskListItem = ({
                         {task.priority}</Badge>     
 
                         
-                    <Badge bg={getStatusColor(task.status)} className="me-1 flex-shrink-0">
-                        <FaFlag className='me-1' />
-                        {task.status}</Badge>
-
- 
+                    <span className='float-end ms-1'>
+                        <Badge 
+                        bg="white" 
+                        text="dark" 
+                        className="me-1 flex-shrink-0 border" 
+                        style={{ display: 'inline-flex', alignItems: 'center' }}
+                    >
+                        <span 
+                            style={{
+                                height: '10px',
+                                width: '10px',
+                                backgroundColor: getStatusColor(task.status, true), // Pass true for direct color value
+                                borderRadius: '50%',
+                                display: 'inline-block',
+                                marginRight: '0.5em'
+                            }}></span>
+                        {task.status}
+                    </Badge>
+                    </span>
                                           
-
                     {dueDateStatus && <Badge  bg={dueDateStatus === 'Overdue' ? 'danger' : (dueDateStatus === 'Due Today' ? 'warning' : 'info')} className=" fw-normal">
                         <FaClock className='me-1' />
                         {dueDateStatus}</Badge>}

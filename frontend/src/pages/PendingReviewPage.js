@@ -40,7 +40,7 @@ import { getStatusColor } from '../utils/displayUtils';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 function PendingReviewPage() {
-    defaults.font.family = 'Lato';
+    defaults.font.family = 'Geomanist';
 
     const { currentUser } = useAuth();
     const loggedInUserId = currentUser?.id;
@@ -65,10 +65,10 @@ function PendingReviewPage() {
             setLoading(false);
             return;
         }
-    setLoading(true); // Moved setLoading and setError inside the try block for consistency
-    setError(''); //
-    try {
-        const tasksPromise = getCampaignTasksByStatus("Active", "Pending Review");
+        setLoading(true); // Moved setLoading and setError inside the try block for consistency
+        setError(''); //
+        try {
+            const tasksPromise = getCampaignTasksByStatus("Active", "Pending Review");
             const usersPromise = getUsers();
             const campaignsPromise = getCampaigns("Active");
 
@@ -79,8 +79,8 @@ function PendingReviewPage() {
 
             console.log(tasksResponse)
             if (tasksResponse.status === 'fulfilled' && tasksResponse.value?.data) {
-            // No client-side filtering needed if API returns tasks already filtered by status
-            setAllTasks(Array.isArray(tasksResponse.value.data) ? tasksResponse.value.data : []);
+                // No client-side filtering needed if API returns tasks already filtered by status
+                setAllTasks(Array.isArray(tasksResponse.value.data) ? tasksResponse.value.data : []);
             } else {
                 console.error("Failed to fetch or process tasks:", tasksResponse.status === 'rejected' ? tasksResponse.reason : "No data in tasks response");
                 currentErrors.push("Failed to fetch tasks.");
@@ -93,8 +93,8 @@ function PendingReviewPage() {
                 console.warn("No data in users response or response format unexpected", usersResponse.value);
                 setUsers([]);
             } else {
-                 console.error("Failed to fetch users:", usersResponse.reason);
-                 currentErrors.push("Failed to fetch user data.");
+                console.error("Failed to fetch users:", usersResponse.reason);
+                currentErrors.push("Failed to fetch user data.");
                 setUsers([]);
             }
 
@@ -263,30 +263,39 @@ function PendingReviewPage() {
     }
 
     return (
-        <div>
-            <PageHeader
-                icon={<FaHourglassHalf />}
-                title="Pending Review Queue"
-                actions={
-                    <ButtonGroup>
-                        <Button variant={viewMode === 'list' ? "primary" : "outline-secondary"} onClick={() => setViewMode('list')} title="List View" className='border-0'>
-                            <FaListUl />
-                        </Button>
-                        <Button variant={viewMode === 'board' ? "primary" : "outline-secondary"} onClick={() => setViewMode('board')} title="Board View" className='border-0'>
+        <Card>
+
+
+            <Card.Header>
+                <Row className="mb- mb-md-4 align-items-center">
+                    <Col>
+                        <h6 className="mb-0">Pending Review Queue</h6>
+                    </Col>
+
+                    <Col xs="auto">
+                        <ButtonGroup>
+                            <Button variant={viewMode === 'list' ? "primary" : "outline-secondary"} onClick={() => setViewMode('list')} title="List View" className='border-0'>
+                                <FaListUl />
+                            </Button>
+                            {/* <Button variant={viewMode === 'board' ? "primary" : "outline-secondary"} onClick={() => setViewMode('board')} title="Board View" className='border-0'>
                             <FaThLarge />
-                        </Button>
-                        <Button variant={viewMode === 'table' ? "primary" : "outline-secondary"} onClick={() => setViewMode('table')} title="Table View" className='border-0'>
-                            <FaTable />
-                        </Button>
-                    </ButtonGroup>
-                }
-            />
+                        </Button> */}
+                            <Button variant={viewMode === 'table' ? "primary" : "outline-secondary"} onClick={() => setViewMode('table')} title="Table View" className='border-0'>
+                                <FaTable />
+                            </Button>
+                        </ButtonGroup>
+                    </Col>
+
+                </Row>
+            </Card.Header>
+
 
             {error && <Alert variant="danger">{error}</Alert>}
 
-            {allTasks.length > 0 && !loading && (
+<Card.Body>
+     {allTasks.length > 0 && !loading && (
                 <Row className="mb-4">
-                    <Col md={8}>
+                    <Col md={8} style={{ minHeight: "200px" }}>
                         <BarChartCard
                             title="Tasks by Category"
                             chartRef={categoryChartRef}
@@ -317,6 +326,8 @@ function PendingReviewPage() {
                 </Row>
             )}
 
+
+           
             <Row className="mb-4 gx-2">
                 <Col md={12}>
                     <div className='bg-white rounded-pill p-3'>
@@ -376,10 +387,12 @@ function PendingReviewPage() {
                         <Alert variant="warning">No tasks match the current filter criteria.</Alert>
                     }
 
-                    {viewMode === 'board' && (
+
+
+                    {/* {viewMode === 'board' && (
                         <Row className="kanban-board gx-3">
                             {kanbanColumns.map(column => (
-                                <Col key={column.id} md={12} className="kanban-column mb-3"> {/* Only one column for Pending Review */}
+                                <Col key={column.id} md={12} className="kanban-column mb-3">
                                     <div>
                                         <div className="fw-bold text-center" style={{ backgroundColor: getStatusColor(column.id) + '33' }}>
                                             {column.title} ({tasksByStatus[column.id]?.length || 0})
@@ -410,7 +423,7 @@ function PendingReviewPage() {
                                 </Col>
                             ))}
                         </Row>
-                    )}
+                    )} */}
                     {viewMode === 'list' && (
                         <div>
                             {filteredTasks.map(task => (
@@ -474,9 +487,15 @@ function PendingReviewPage() {
                             <Alert variant="info" className="mt-3">There are currently no tasks pending review.</Alert>
                         </div>
                     )}
+
+
+
+
+
                 </Col>
             </Row>
-        </div>
+            </Card.Body>
+        </Card>
     );
 }
 

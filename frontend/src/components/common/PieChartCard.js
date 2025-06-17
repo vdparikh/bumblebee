@@ -14,13 +14,13 @@ const PieChartCard = ({ title, chartRef, chartData, onClickHandler, options, sty
         },
     };
 
-    defaults.font.family = 'Lato';
+    defaults.font.family = 'Geomanist';
 
     const mergedOptions = { ...defaultOptions, ...options };
 
     return (
         <Card className="h-100">
-            <Card.Header  as="h5">{title}</Card.Header>
+            <Card.Header  as="h5" className='text-center'>{title}</Card.Header>
             <Card.Body style={style || { maxHeight: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 {chartData && chartData.labels && chartData.labels.length > 0 ? (
                     <Pie ref={chartRef} data={chartData} options={mergedOptions} onClick={onClickHandler} />

@@ -15,6 +15,7 @@ import {
 import UserManagement from '../components/admin/UserManagement';
 import SystemIntegrations from '../components/admin/SystemIntegrations';
 import TeamsPage from '../components/TeamsPage';
+import PageHeader from '../components/common/PageHeader';
 
 function AdminSettingsPage() {
     const [activeSetting, setActiveSetting] = useState('userManagement');
@@ -147,17 +148,17 @@ function AdminSettingsPage() {
     };
 
     return (
-        <Container fluid className="p-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 className="mb-1">Admin Settings</h2>
-                    <p className="text-muted mb-0">Manage system configuration and settings</p>
-                </div>
-                <div>
-                    <Badge bg="primary" className="me-2">Admin Only</Badge>
-                    <Badge bg="info">System Settings</Badge>
-                </div>
-            </div>
+        <div>
+             <PageHeader
+                icon={<FaPlug />}
+                title="Admin Settings"
+                actions={
+                    <div><Badge bg="primary" className="me-2">Admin Only</Badge>
+                    <Badge bg="info">System Settings</Badge></div>
+                }
+            />
+
+
 
             <Row>
                 <Col md={3}>
@@ -203,7 +204,7 @@ function AdminSettingsPage() {
                     </Card>
                 </Col>
             </Row>
-        </Container>
+        </div>
     );
 }
 

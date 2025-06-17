@@ -658,7 +658,7 @@ function CampaignDetail() {
 
     return (
         <Container fluid>
-            <div className='mb-2'><Badge className="small mb-1">{campaign.standard_name || 'N/A'}</Badge></div>
+            <div className=''><Badge className="small mb-1">{campaign.standard_name || 'N/A'}</Badge></div>
 
             <PageHeader
                 icon={<FaBullhorn />}

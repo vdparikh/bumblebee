@@ -15,7 +15,8 @@ import {
     FaQuestionCircle, FaRegQuestionCircle,
     FaCog,
     FaHistory,
-    FaPlug,
+    FaPlug, 
+    FaUserShield, // Added for Auditor Dashboard
     FaCogs
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext'; // Import useAuth
@@ -31,8 +32,9 @@ function Sidebar({ /*currentUser,*/ logout, showDetailsPanel, setShowDetailsPane
         { to: "/my-tasks", eventKey: "/my-tasks", icon: <FaTasks size="1.2em" />, label: "My Tasks", roles: ['admin', 'auditor', 'user'] },
         { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.2em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
         { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.2em" />, label: "Alternate View", roles: ['user'] },
+        { to: "/auditor-dashboard", eventKey: "/auditor-dashboard", icon: <FaUserShield size="1.2em" />, label: "Auditor Dashboard", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/auditor-dashboard') },
         (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management' },
-        { to: "/pending-review", eventKey: "/pending-review", icon: <FaHourglassHalf size="1.2em" />, label: "Pending Review", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/pending-review') },
+        // { to: "/pending-review", eventKey: "/pending-review", icon: <FaHourglassHalf size="1.2em" />, label: "Pending Review", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/pending-review') },
         { to: "/documents", eventKey: "/documents", icon: <FaBookOpen size="1.2em" />, label: "Documents", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/documents') },
         { to: "/library", eventKey: "/library", icon: <FaLayerGroup size="1.2em" />, label: "Manage Library", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/library') },
         // { to: "/admin/system-integrations", eventKey: "/admin/system-integrations", icon: <FaPlug size="1.2em" />, label: "System Integrations", roles: ['admin'], activeCheck: () => location.pathname.startsWith('/admin/system-integrations') },

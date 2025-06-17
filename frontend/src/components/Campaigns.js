@@ -207,79 +207,13 @@ const getStatusColor = (status) => {
     return (
         <div>
             
-            <PageHeader icon={<FaBullhorn />} title="Audit Campaigns" />
+            <PageHeader icon={<FaBullhorn />} title="Audit Campaigns" subtitle="Overview of compliance review activities and evidence management." />
 
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
 
             <Tabs activeKey={activeTabKey} onSelect={(k) => setActiveTabKey(k)} id="campaigns-tabs" className="mb-3 nav-line-tabs">
-                <Tab eventKey="create" title={<><FaPlusCircle className="me-1"/>Create New Campaign</>}>
-                    <Card>
-                        <Card.Body>
-                            <Form onSubmit={handleSubmitCampaign}>
-                                <FloatingLabel controlId="campaignName" label="Campaign Name*" className="mb-3">
-                                    <Form.Control type="text" value={newCampaignName} onChange={e => setNewCampaignName(e.target.value)} placeholder="e.g., PCI ROC Q1 2025" required />
-                                </FloatingLabel>
-
-                                <FloatingLabel controlId="campaignDescription" label="Description" className="mb-3">
-                                    <Form.Control as="textarea" value={newCampaignDescription} onChange={e => setNewCampaignDescription(e.target.value)} placeholder="Brief description of the campaign" style={{ height: '100px' }} />
-                                </FloatingLabel>
-
-                                <Row className="mb-3">
-                                    <Col md={12}> 
-                                        <FloatingLabel controlId="campaignStandard" label="Primary Standard*">
-                                            <Form.Select value={selectedStandard} onChange={e => handleStandardChangeForModal(e.target.value)} required>
-                                                <option value="">Select a Standard</option>
-                                                {allStandards.map(std => (
-                                                    <option key={std.id} value={std.id}>{std.name} ({std.shortName})</option>
-                                                ))}
-                                            </Form.Select>
-                                        </FloatingLabel>
-                                    </Col>
-                                </Row>
-                                <Row className="mb-3">
-                                    <Col md={6}>
-                                        <FloatingLabel controlId="campaignStartDate" label="Start Date">
-                                            <Form.Control type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-                                        </FloatingLabel>
-                                    </Col>
-                                    <Col md={6}>
-                                        <FloatingLabel controlId="campaignEndDate" label="End Date">
-                                            <Form.Control type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-                                        </FloatingLabel>
-                                    </Col>
-                                </Row>
-
-                                <Button variant="secondary" onClick={() => setShowRequirementsModal(true)} disabled={!selectedStandard} className="mb-3">
-                                    Select Requirements ({selectedRequirementsForCampaign.length})
-                                </Button>
-                                
-                                {selectedRequirementsForCampaign.length > 0 && (
-                                    <div className="mb-3 p-2 border rounded" style={{maxHeight: '200px', overflowY: 'auto'}}>
-                                        <h6>Selected Requirements:</h6>
-                                        <ListGroup variant="flush">
-                                            {selectedRequirementsForCampaign.map(sr => (
-                                                <ListGroup.Item key={sr.requirement_id} className="d-flex justify-content-between align-items-center ps-0 pe-0 pt-1 pb-1">
-                                                    <small>{sr.controlIdReference || sr.requirement_id.substring(0,8)}</small>
-                                                    <Form.Check 
-                                                        type="switch"
-                                                        id={`switch-req-${sr.requirement_id}`}
-                                                        label={sr.is_applicable ? "Applicable" : "Not Applicable"}
-                                                        checked={sr.is_applicable}
-                                                        onChange={(e) => handleApplicabilityChange(sr.requirement_id, e.target.checked)}
-                                                        size="sm"
-                                                    />
-                                                </ListGroup.Item>
-                                            ))}
-                                        </ListGroup>
-                                    </div>
-                                )}
-                                <hr/>
-                                <Button variant="primary" type="submit">Create Campaign</Button>
-                            </Form>
-                        </Card.Body>
-                    </Card>
-                </Tab>
+              
                 <Tab eventKey="existing" title={<><FaListUl className="me-1"/>Existing Campaigns</>}>
                     {campaigns.length === 0 && <Alert variant="info">No campaigns found.</Alert>}
                     {/* <ListGroup variant="flush">
@@ -349,6 +283,74 @@ const getStatusColor = (status) => {
                         </Row>
                     )}
 
+                </Tab>
+
+                  <Tab eventKey="create" title={<><FaPlusCircle className="me-1"/>Create New Campaign</>}>
+                    <Card>
+                        <Card.Body>
+                            <Form onSubmit={handleSubmitCampaign}>
+                                <FloatingLabel controlId="campaignName" label="Campaign Name*" className="mb-3">
+                                    <Form.Control type="text" value={newCampaignName} onChange={e => setNewCampaignName(e.target.value)} placeholder="e.g., PCI ROC Q1 2025" required />
+                                </FloatingLabel>
+
+                                <FloatingLabel controlId="campaignDescription" label="Description" className="mb-3">
+                                    <Form.Control as="textarea" value={newCampaignDescription} onChange={e => setNewCampaignDescription(e.target.value)} placeholder="Brief description of the campaign" style={{ height: '100px' }} />
+                                </FloatingLabel>
+
+                                <Row className="mb-3">
+                                    <Col md={12}> 
+                                        <FloatingLabel controlId="campaignStandard" label="Primary Standard*">
+                                            <Form.Select value={selectedStandard} onChange={e => handleStandardChangeForModal(e.target.value)} required>
+                                                <option value="">Select a Standard</option>
+                                                {allStandards.map(std => (
+                                                    <option key={std.id} value={std.id}>{std.name} ({std.shortName})</option>
+                                                ))}
+                                            </Form.Select>
+                                        </FloatingLabel>
+                                    </Col>
+                                </Row>
+                                <Row className="mb-3">
+                                    <Col md={6}>
+                                        <FloatingLabel controlId="campaignStartDate" label="Start Date">
+                                            <Form.Control type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                                        </FloatingLabel>
+                                    </Col>
+                                    <Col md={6}>
+                                        <FloatingLabel controlId="campaignEndDate" label="End Date">
+                                            <Form.Control type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                                        </FloatingLabel>
+                                    </Col>
+                                </Row>
+
+                                <Button variant="secondary" onClick={() => setShowRequirementsModal(true)} disabled={!selectedStandard} className="mb-3">
+                                    Select Requirements ({selectedRequirementsForCampaign.length})
+                                </Button>
+                                
+                                {selectedRequirementsForCampaign.length > 0 && (
+                                    <div className="mb-3 p-2 border rounded" style={{maxHeight: '200px', overflowY: 'auto'}}>
+                                        <h6>Selected Requirements:</h6>
+                                        <ListGroup variant="flush">
+                                            {selectedRequirementsForCampaign.map(sr => (
+                                                <ListGroup.Item key={sr.requirement_id} className="d-flex justify-content-between align-items-center ps-0 pe-0 pt-1 pb-1">
+                                                    <small>{sr.controlIdReference || sr.requirement_id.substring(0,8)}</small>
+                                                    <Form.Check 
+                                                        type="switch"
+                                                        id={`switch-req-${sr.requirement_id}`}
+                                                        label={sr.is_applicable ? "Applicable" : "Not Applicable"}
+                                                        checked={sr.is_applicable}
+                                                        onChange={(e) => handleApplicabilityChange(sr.requirement_id, e.target.checked)}
+                                                        size="sm"
+                                                    />
+                                                </ListGroup.Item>
+                                            ))}
+                                        </ListGroup>
+                                    </div>
+                                )}
+                                <hr/>
+                                <Button variant="primary" type="submit">Create Campaign</Button>
+                            </Form>
+                        </Card.Body>
+                    </Card>
                 </Tab>
             </Tabs>
 

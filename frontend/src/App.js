@@ -27,6 +27,7 @@ import ThreeColumnView from './components/views/ThreeColumnView';
 import UserProfilePage from './components/auth/UserProfilePage'; 
 import AdminSettingsPage from './pages/AdminSettingsPage'; 
 
+import AuditorDashboard from './pages/AuditorDashboard'; // Import AuditorDashboard
 import LibraryManagementPage from './pages/LibraryManagementPage'; // Import the new page
 import PendingReviewPage from './pages/PendingReviewPage'; // Import PendingReviewPage
 import Sidebar from './components/common/Sidebar'; 
@@ -136,6 +137,7 @@ function Layout() {
                           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                           <Route path="/tasks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Tasks /></ProtectedRoute>} />
                           <Route path="/pending-review" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><PendingReviewPage /></ProtectedRoute>} />
+                          <Route path="/auditor-dashboard" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><AuditorDashboard /></ProtectedRoute>} /> 
                           <Route path="/library" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><LibraryManagementPage /></ProtectedRoute>} />
                           <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
                           <Route path="/documents" element={<ProtectedRoute roles={['admin', 'auditor']}><Documents /></ProtectedRoute>} />
@@ -207,6 +209,7 @@ function AppRoutes() {
         <Route path="help" element={<HelpPage />} />
         <Route path="library" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><LibraryManagementPage /></ProtectedRoute>} />
         <Route path="documents" element={<ProtectedRoute roles={['admin', 'auditor']}><Documents /></ProtectedRoute>} />
+        <Route path="auditor-dashboard" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><AuditorDashboard /></ProtectedRoute>} />
         <Route path="profile" element={<UserProfilePage />} />
         <Route path="admin-settings" element={<ProtectedRoute requiredRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
         <Route path="audit-logs" element={<ProtectedRoute roles={['admin', 'auditor']}><AuditLogsPage /></ProtectedRoute>} />

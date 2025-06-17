@@ -45,6 +45,7 @@ import {
     FaFilePdf,
     FaFileArchive
 } from 'react-icons/fa';
+import PageHeader from '../common/PageHeader';
 
 
 
@@ -137,17 +138,18 @@ function SystemIntegrations() {
     }
 
     return (
-        <div className="container py-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2>
-                    <FaPlug className="me-2" />
-                    System Integrations
-                </h2>
-                <Button variant="primary" onClick={() => navigate('/admin/system-integrations/new')}>
+        <div className="">
+
+             <PageHeader
+                icon={<FaPlug />}
+                title="System Integrations"
+                actions={
+                    <Button variant="primary" onClick={() => navigate('/admin/system-integrations/new')}>
                     <FaPlusCircle className="me-2" />
                     Add New System
                 </Button>
-            </div>
+                }
+            />
 
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
