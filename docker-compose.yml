@@ -10,7 +10,8 @@ services:
       POSTGRES_PASSWORD: compliance_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db.sql:/docker-entrypoint-initdb.d/init.sql # Mounts your db.sql to be run on init
+      - ./db.sql:/docker-entrypoint-initdb.d/01-schema.sql # Renamed for ordering
+      - ./sample_data.sql:/docker-entrypoint-initdb.d/02-sample-data.sql # Added sample data
     ports:
       - "5432:5432"
     healthcheck:
