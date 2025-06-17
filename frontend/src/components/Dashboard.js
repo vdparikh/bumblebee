@@ -13,6 +13,8 @@ import UserDisplay from './common/UserDisplay';
 import { useAuth } from '../contexts/AuthContext';
 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
+import ActiveCampaignsWidget from './common/widgets/ActiveCampaignsWidget';
+import UserFeedWidget from './common/widgets/UseFeedWidget';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 function Dashboard() {
@@ -273,11 +275,12 @@ function Dashboard() {
                 </Col>
                 <Col md={6} className="mb-4">
 
-                    <div className="d-flex justify-content-between align-items-center  mb-1 p-2">
+                    {/* <div className="d-flex justify-content-between align-items-center  mb-1 p-2">
                         <h6 className="mb-0">Active Campaigns</h6>
                         <Link to="/campaigns" className="small">View All Campaigns</Link>
-                    </div>
-                        {dashboardStats.recentActiveCampaigns.length > 0 ? (
+                    </div> */}
+                        <ActiveCampaignsWidget />
+                        {/* {dashboardStats.recentActiveCampaigns.length > 0 ? (
                         <div style={{ maxHeight: '450px', overflowY: 'auto' }}>
                             {dashboardStats.recentActiveCampaigns.map(campaign => (
                                 <Card key={campaign.id} className="mb-3 shadow-sm">
@@ -305,12 +308,12 @@ function Dashboard() {
                                         <ProgressBar now={campaign.percentageComplete} variant="success" style={{height: '8px'}} className="mt-1"/>
                                     </Card.Footer>
                                 </Card>
-                            ))}
+                            ))} */}
                         
-                        </div>
-                        ) : (
+                        {/* </div> */}
+                        {/* ) : (
                              <Card className="shadow-sm"><Card.Body><p className="text-muted">No active campaigns.</p></Card.Body></Card>
-                        )}
+                        )} */}
 
                     {/* <Card>
                         <Card.Header as="h5"><FaBullhorn className="me-2"/>Active Campaigns</Card.Header>
@@ -331,31 +334,7 @@ function Dashboard() {
                         </Card.Footer>
                     </Card> */}
 
-                    <Card className='mt-3'>
-                        <Card.Header as="h5"><FaComment className="me-2"/>Recent Activity</Card.Header>
-                        {userFeed.length > 0 ? (
-                            <ListGroup variant="flush" style={{  }}>
-                                {userFeed.map(item => (
-                                    <ListGroup.Item key={item.id} className="py-2 px-3">
-                                        <div className="d-flex w-100 justify-content-between">
-                                            <small className="text-muted">
-                                                <UserDisplay userId={item.userId} userName={item.userName} allUsers={users} />
-                                                {item.campaignTaskInstanceId && item.taskTitle && (
-                                                    <> on task <Link to={`/campaign-task/${item.campaignTaskInstanceId}`}>{item.taskTitle.substring(0,30)}...</Link></>
-                                                )}
-                                            </small>
-                                            <small className="text-muted">{new Date(item.createdAt).toLocaleString()}</small>
-                                        </div>
-                                        {/* <p className="mb-0 mt-1 small" style={{whiteSpace: "pre-wrap"}}>{item.text}</p> */}
-                                        <div className="mb-0 mt-1  small" dangerouslySetInnerHTML={{ __html: item.text }} />
-                                    </ListGroup.Item>
-                                ))}
-                            </ListGroup>
-                        ) : (
-                            <Card.Body><p className="text-muted">No recent activity to display.</p></Card.Body>
-                        )}
-                        
-                    </Card>
+                    <UserFeedWidget />
 
                 </Col>
             </Row>

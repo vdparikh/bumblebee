@@ -123,3 +123,4 @@ For setting up the Bumblebee environment, please refer to the technical setup gu
     *   Run `npm install` (or `yarn install`).
     *   Run `npm start` (or `yarn start`).
 
+postgres://postgres:mysecretpassword@localhost:5432/compliance?sslmode=disable

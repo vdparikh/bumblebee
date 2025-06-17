@@ -23,41 +23,48 @@ const (
 )
 
 func main() {
-	dbUser := os.Getenv("DB_USER")
-	if dbUser == "" {
-		dbUser = defaultDBUser
-	}
-	dbPassword := os.Getenv("DB_PASSWORD")
-	if dbPassword == "" {
-		log.Fatal("DB_PASSWORD environment variable not set")
-	}
-	dbName := "compliance"
-	dbHost := "localhost"
-	dbPort := "5432"
-	dbNameEnv := os.Getenv("DB_NAME")
-	if dbNameEnv != "" {
-		dbName = dbNameEnv
-	} else {
-		dbName = defaultDBName
+
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		panic("No $DATABASE_URL set in environment")
 	}
 
-	dbHostEnv := os.Getenv("DB_HOST")
-	if dbHostEnv != "" {
-		dbHost = dbHostEnv
-	} else {
-		dbHost = defaultDBHost
-	}
+	// dbUser := os.Getenv("DB_USER")
+	// if dbUser == "" {
+	// 	dbUser = defaultDBUser
+	// }
+	// dbPassword := os.Getenv("DB_PASSWORD")
+	// if dbPassword == "" {
+	// 	log.Fatal("DB_PASSWORD environment variable not set")
+	// }
+	// dbName := "compliance"
+	// dbHost := "localhost"
+	// dbPort := "5432"
+	// dbNameEnv := os.Getenv("DB_NAME")
+	// if dbNameEnv != "" {
+	// 	dbName = dbNameEnv
+	// } else {
+	// 	dbName = defaultDBName
+	// }
 
-	dbPortEnv := os.Getenv("DB_PORT")
-	if dbPortEnv != "" {
-		dbPort = dbPortEnv
-	} else {
-		dbPort = defaultDBPort
-	}
+	// dbHostEnv := os.Getenv("DB_HOST")
+	// if dbHostEnv != "" {
+	// 	dbHost = dbHostEnv
+	// } else {
+	// 	dbHost = defaultDBHost
+	// }
 
-	dataSourceName := "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=disable"
+	// dbPortEnv := os.Getenv("DB_PORT")
+	// if dbPortEnv != "" {
+	// 	dbPort = dbPortEnv
+	// } else {
+	// 	dbPort = defaultDBPort
+	// }
 
-	dbStore, err := store.NewDBStore(dataSourceName)
+	// postgres://postgres:mysecretpassword@localhost:5432/compliance?sslmode=disable
+	// dataSourceName := "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=disable"
+
+	dbStore, err := store.NewDBStore(dbURL)
 	if err != nil {
 		log.Fatalf("Could not connect to the database: %v", err)
 	}
@@ -65,7 +72,7 @@ func main() {
 
 	// Initialize the queue
 	queueConfig := map[string]interface{}{
-		"connection_string": os.Getenv("DATABASE_URL"),
+		"connection_string": dbURL,
 	}
 	q, err := queue.NewQueue(queueConfig)
 	if err != nil {
@@ -105,6 +112,10 @@ func main() {
 	api := apiV1.Group("")
 	api.Use(middleware.AuthMiddleware())
 	{
+
+		api.POST("/users", userHandler.CreateUserHandler)
+		api.GET("/users", userHandler.GetUsersHandler)
+
 		api.GET("/auth/me", authAPI.GetCurrentUser)
 
 		// Endpoint for fetching dynamic check type configurations for the frontend
@@ -126,9 +137,6 @@ func main() {
 		api.GET("/standards", standardHandler.GetStandardsHandler)
 		api.PUT("/standards/:id", standardHandler.UpdateStandardHandler)
 
-		api.POST("/users", userHandler.CreateUserHandler)
-		api.GET("/users", userHandler.GetUsersHandler)
-
 		api.POST("/campaigns", campaignHandler.CreateCampaignHandler)
 		api.GET("/campaigns", campaignHandler.GetCampaignsHandler)
 		api.GET("/campaigns/:id", campaignHandler.GetCampaignByIDHandler)
@@ -137,25 +145,22 @@ func main() {
 		api.GET("/campaigns/:id/requirements", campaignHandler.GetCampaignSelectedRequirementsHandler)
 		api.GET("/campaigns/:id/task-instances", campaignHandler.GetCampaignTaskInstancesHandler)
 
+		api.GET("/user-campaign-tasks", campaignHandler.GetUserCampaignTaskInstancesHandler)
+		api.GET("/campaign-tasks-by-status", campaignHandler.GetCampaignTaskInstancesByStatusHandler)
+		api.GET("/master-tasks/:masterTaskId/instances", campaignHandler.GetTaskInstancesByMasterTaskIDHandler)
+
 		api.PUT("/campaign-task-instances/:id", campaignHandler.UpdateCampaignTaskInstanceHandler)
 		api.GET("/campaign-task-instances/:id", campaignHandler.GetCampaignTaskInstanceByIDHandler)
 		api.GET("/campaign-task-instances/:id/execution-status", campaignHandler.GetTaskExecutionStatusHandler)
-		api.GET("/user-campaign-tasks", campaignHandler.GetUserCampaignTaskInstancesHandler)
-		api.GET("/campaign-tasks-by-status", campaignHandler.GetCampaignTaskInstancesByStatusHandler) // New Route
-		api.GET("/master-tasks/:masterTaskId/instances", campaignHandler.GetTaskInstancesByMasterTaskIDHandler)
-
 		api.POST("/campaign-task-instances/:id/comments", campaignHandler.AddCampaignTaskInstanceCommentHandler)
 		api.GET("/campaign-task-instances/:id/comments", campaignHandler.GetCampaignTaskInstanceCommentsHandler)
 		api.POST("/campaign-task-instances/:id/evidence", campaignHandler.UploadCampaignTaskInstanceEvidenceHandler)
 		api.GET("/campaign-task-instances/:id/evidence", campaignHandler.GetCampaignTaskInstanceEvidenceHandler)
 		api.POST("/campaign-task-instances/:id/copy-evidence", campaignHandler.CopyEvidenceHandler)
-
-		api.PUT("/evidence/:evidenceId/review", handlers.HandleReviewEvidence(dbStore))
-
 		api.POST("/campaign-task-instances/:id/execute", campaignHandler.ExecuteCampaignTaskInstanceHandler)
 		api.GET("/campaign-task-instances/:id/results", campaignHandler.GetCampaignTaskInstanceResultsHandler)
 
-		api.GET("/user-feed", handlers.GetUserFeedHandler(dbStore))
+		api.PUT("/evidence/:evidenceId/review", handlers.HandleReviewEvidence(dbStore))
 
 		systemRoutes := api.Group("/systems")
 		systemRoutes.POST("", systemIntegrationHandler.CreateConnectedSystemHandler)
@@ -164,23 +169,26 @@ func main() {
 		systemRoutes.PUT("/:id", systemIntegrationHandler.UpdateConnectedSystemHandler)
 		systemRoutes.DELETE("/:id", systemIntegrationHandler.DeleteConnectedSystemHandler)
 
+		// Document Routes
 		documents := api.Group("/documents")
-
 		documents.POST("", documentHandler.CreateDocumentHandler)
 		documents.GET("", documentHandler.GetDocumentsHandler)
 		documents.GET("/:id", documentHandler.GetDocumentByIDHandler)
 		documents.PUT("/:id", documentHandler.UpdateDocumentHandler)
 		documents.DELETE("/:id", documentHandler.DeleteDocumentHandler)
 
-		// Team Routes (Protected by authMiddleware)
-		api.POST("/teams", teamHandler.CreateTeamHandler)                               // Create a new team
-		api.GET("/teams", teamHandler.GetTeamsHandler)                                  // Get all teams
-		api.GET("/teams/:id", teamHandler.GetTeamByIDHandler)                           // Get a specific team by ID
-		api.PUT("/teams/:id", teamHandler.UpdateTeamHandler)                            // Update a team
-		api.DELETE("/teams/:id", teamHandler.DeleteTeamHandler)                         // Delete a team
-		api.POST("/teams/:id/members", teamHandler.AddUserToTeamHandler)                // Add a user to a team
-		api.DELETE("/teams/:id/members/:userId", teamHandler.RemoveUserFromTeamHandler) // Remove a user from a team
-		api.GET("/teams/:id/members", teamHandler.GetTeamMembersHandler)                // Get members of a team
+		// Team Routes
+		teams := api.Group("/teams")
+		teams.POST("", teamHandler.CreateTeamHandler)
+		teams.GET("", teamHandler.GetTeamsHandler)
+		teams.GET("/:id", teamHandler.GetTeamByIDHandler)
+		teams.PUT("/:id", teamHandler.UpdateTeamHandler)
+		teams.DELETE("/:id", teamHandler.DeleteTeamHandler)
+		teams.POST("/:id/members", teamHandler.AddUserToTeamHandler)
+		teams.DELETE("/:id/members/:userId", teamHandler.RemoveUserFromTeamHandler)
+		teams.GET("/:id/members", teamHandler.GetTeamMembersHandler)
+
+		api.GET("/user-feed", handlers.GetUserFeedHandler(dbStore))
 
 		// Audit Log Route
 		api.GET("/audit-logs", auditLogHandler.GetAuditLogsHandler)

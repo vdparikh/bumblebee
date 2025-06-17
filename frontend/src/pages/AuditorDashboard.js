@@ -8,7 +8,9 @@ import KeyMetricsCard from '../components/common/KeyMetricsCard';
 import { getCampaigns } from '../services/api'; // Import getCampaigns
 import { getStatusColor } from '../utils/displayUtils'; // For campaign status badge
 import AuditLogsPage from './AuditLogsPage';
- 
+import ActiveCampaignsWidget from '../components/common/widgets/ActiveCampaignsWidget'; // Import the new widget
+import UserFeedWidget from '../components/common/widgets/UseFeedWidget';
+
 // Placeholder for EvidenceLibrary component
 const EvidenceLibrary = () => {
     return (
@@ -25,7 +27,7 @@ const EvidenceLibrary = () => {
 
 function AuditorDashboard() {
     const [loading, setLoading] = useState(true);
-    const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+    // const [loadingCampaigns, setLoadingCampaigns] = useState(false);
     const [error, setError] = useState('');
     const [dashboardStats, setDashboardStats] = useState({
         tasksPendingReview: 0,
@@ -33,7 +35,7 @@ function AuditorDashboard() {
         recentlyApprovedEvidence: 0,
         // Add more relevant stats for auditors
     });
-    const [activeCampaigns, setActiveCampaigns] = useState([]);
+    // const [activeCampaigns, setActiveCampaigns] = useState([]);
 
     const fetchAuditorData = useCallback(async () => {
         setLoading(true);
@@ -45,20 +47,20 @@ function AuditorDashboard() {
             // setDashboardStats(statsResponse.data);
 
             // Simulate fetching data
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+            // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
             setDashboardStats({
                 tasksPendingReview: 15, // Example data
                 campaignsNeedingAttention: 3, // Example data
                 recentlyApprovedEvidence: 25, // Example data
             });
             
-            // setLoadingCampaigns(true);
-            const campaignsResponse = await getCampaigns("Active");
-            if (campaignsResponse.data) {
-                setActiveCampaigns(Array.isArray(campaignsResponse.data) ? campaignsResponse.data : []);
-            } else {
-                setActiveCampaigns([]);
-            }
+            // // setLoadingCampaigns(true);
+            // const campaignsResponse = await getCampaigns("Active");
+            // if (campaignsResponse.data) {
+            //     setActiveCampaigns(Array.isArray(campaignsResponse.data) ? campaignsResponse.data : []);
+            // } else {
+            //     setActiveCampaigns([]);
+            // }
 
         } catch (err) {
             console.error("Error fetching auditor dashboard data:", err);
@@ -73,7 +75,7 @@ function AuditorDashboard() {
         fetchAuditorData();
     }, [fetchAuditorData]);
 
-    if (loading && loadingCampaigns) {
+    if (loading) {
         return (
             <Container className="text-center mt-5">
                 <Spinner animation="border" />
@@ -107,17 +109,25 @@ function AuditorDashboard() {
                                 </Col>
                                 <Col md={6} className="mb-3">
                                     <KeyMetricsCard title="Campaigns" metrics={[
-                                        { label: "Active Campaigns", value: activeCampaigns.length, variant: "info" },
+                                        { label: "Active Campaigns", value: dashboardStats.campaignsNeedingAttention, variant: "info" },
                                     ]} />
                                 </Col>
                                 <Col>
                                 <Alert variant="info">Auditor-specific charts and summaries will be displayed here.</Alert>
                                 </Col>
                             </Row>
+
+                                    <ActiveCampaignsWidget />
+
+                            <UserFeedWidget />
                         </Col>
                     
                         <Col md={8}>
-                            <Card>
+
+                                    <div className=''>
+                                        <PendingReviewPage />
+                                    </div>
+                            {/* <Card>
                                 <Card.Header as="h6">Active Campaigns ({activeCampaigns.length})</Card.Header>
                                 {loading ? <Card.Body><Spinner animation="border" size="sm" /> Loading campaigns...</Card.Body> :
                                     activeCampaigns.length > 0 ? (
@@ -146,14 +156,14 @@ function AuditorDashboard() {
                                     ) : (
                                         <Card.Body><p className="text-muted">No active campaigns.</p></Card.Body>
                                     )}
-                            </Card>
+                            </Card> */}
                         </Col>
                         <Col>
                         </Col>
 
                         <Col md={12} className='mt-2'>
                         
-                                            <PendingReviewPage />
+                                            
 </Col>
                     </Row>
                     

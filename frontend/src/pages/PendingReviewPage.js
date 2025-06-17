@@ -263,7 +263,7 @@ function PendingReviewPage() {
     }
 
     return (
-        <Card>
+        <div className=''>
 
 
             <Card.Header>
@@ -495,7 +495,7 @@ function PendingReviewPage() {
                 </Col>
             </Row>
             </Card.Body>
-        </Card>
+        </div>
     );
 }
 
