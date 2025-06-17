@@ -67,6 +67,11 @@ type Store interface {
 	// Audit Log
 	InsertAuditLog(log *models.AuditLog) error
 	GetAuditLogs(filters map[string]interface{}, page, limit int) ([]models.AuditLog, int, error)
+
+	// Plugin Registration
+	CreateOrUpdateRegisteredPlugin(pluginID string, pluginName string, checkConfigs map[string]models.CheckTypeConfiguration) error
+	SetRegisteredPluginActiveStatus(pluginID string, isActive bool) error
+	// GetActiveCheckTypeConfigurations() (map[string]models.CheckTypeConfiguration, error) // Already exists
 }
 
 // System Type Definition Store Methods interface (optional, for clarity)
@@ -157,6 +162,39 @@ func (s *DBStore) GetActiveCheckTypeConfigurations() (map[string]models.CheckTyp
 		}
 	}
 	return mergedConfigs, rows.Err()
+}
+
+// CreateOrUpdateRegisteredPlugin persists or updates a plugin's registration details.
+func (s *DBStore) CreateOrUpdateRegisteredPlugin(pluginID string, pluginName string, checkConfigs map[string]models.CheckTypeConfiguration) error {
+	configsJSON, err := json.Marshal(checkConfigs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal check type configurations for plugin %s: %w", pluginID, err)
+	}
+
+	query := `
+		INSERT INTO registered_plugins (id, name, check_type_configurations, is_active, created_at, updated_at)
+		VALUES ($1, $2, $3, TRUE, NOW(), NOW())
+		ON CONFLICT (id) DO UPDATE SET
+			name = EXCLUDED.name,
+			check_type_configurations = EXCLUDED.check_type_configurations,
+			is_active = TRUE, -- Ensure it's marked active on update/re-registration
+			updated_at = NOW();
+	`
+	_, err = s.DB.Exec(query, pluginID, pluginName, configsJSON)
+	if err != nil {
+		return fmt.Errorf("failed to create or update registered plugin %s: %w", pluginID, err)
+	}
+	return nil
+}
+
+// SetRegisteredPluginActiveStatus updates the active status of a plugin.
+func (s *DBStore) SetRegisteredPluginActiveStatus(pluginID string, isActive bool) error {
+	query := `UPDATE registered_plugins SET is_active = $1, updated_at = NOW() WHERE id = $2;`
+	_, err := s.DB.Exec(query, isActive, pluginID)
+	if err != nil {
+		return fmt.Errorf("failed to set active status for plugin %s: %w", pluginID, err)
+	}
+	return nil
 }
 
 var _ Store = (*DBStore)(nil) // Interface satisfaction check

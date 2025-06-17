@@ -124,3 +124,21 @@ For setting up the Bumblebee environment, please refer to the technical setup gu
     *   Run `npm start` (or `yarn start`).
 
 postgres://postgres:mysecretpassword@localhost:5432/compliance?sslmode=disable
+
+
+# Running Makefile
+- `make build-ui` (or make build-all which includes it) to build your frontend.
+- `make docker-build` (or make build-all) to build the backend Docker images.
+- make up to start all services.
+- Access your app at http://localhost:8080.
+- `make logs` to view logs.
+- `make down` to stop services.
+- `make clean` to stop services and remove the database volume (data will be lost).
+- `make fresh-start` for a complete reset and restart.
+
+
+### Getting into Docker DB
+```sh
+docker exec -it compliance_postgres sh
+psql -U compliance_user -d compliance_db
+```

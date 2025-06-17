@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gin-contrib/static"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/vdparikh/compliance-automation/backend/handlers"
@@ -200,6 +202,14 @@ func main() {
 		log.Fatalf("Could not get absolute path for uploads directory: %v", err)
 	}
 	router.StaticFS("/uploads", http.Dir(absUploadsDir))
+
+	// Serve static files from the React build
+	frontendDir := os.Getenv("FRONTEND_DIR")
+	if frontendDir == "" {
+		frontendDir = "./frontend/build" // Default for local development if not in Docker
+	}
+	// The 'true' parameter enables SPA mode (serves index.html for unmatched routes if file not found)
+	router.Use(static.Serve("/", static.LocalFile(frontendDir, true)))
 
 	log.Printf("Starting server on %s...", defaultServerPort)
 	if err = router.Run(defaultServerPort); err != nil {

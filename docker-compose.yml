@@ -2,59 +2,72 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15-alpine
-    container_name: compliance_postgres_db
-    restart: unless-stopped
+    image: postgres:13-alpine
+    container_name: compliance_postgres
     environment:
-      POSTGRES_USER: compliance
-      POSTGRES_PASSWORD: compliance
-      POSTGRES_DB: compliance
-    ports:
-      - "5432:5432" # Map host port 5432 to container port 5432
+      POSTGRES_DB: compliance_db
+      POSTGRES_USER: compliance_user
+      POSTGRES_PASSWORD: compliance_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: compliance_backend
-    restart: unless-stopped
+      - ./db.sql:/docker-entrypoint-initdb.d/init.sql # Mounts your db.sql to be run on init
     ports:
-      - "8080:8080"
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U compliance_user -d compliance_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app:
+    build:
+      context: ./backend # Context is the backend directory
+      dockerfile: Dockerfile # Use the generic Go Dockerfile
+      args:
+        MAIN_PACKAGE_PATH: ./cmd/app # Specify the main package for the app
+    container_name: compliance_app
+    ports:
+      - "8080:8080" # Exposes port 8080 from the container to the host
     environment:
-      DATABASE_URL: postgres://compliance:compliance@postgres:5432/compliance?sslmode=disable
-    depends_on:
-      - postgres
+      GIN_MODE: release # Or 'debug' for development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: compliance_user
+      DB_PASSWORD: compliance_password
+      DB_NAME: compliance_db
+      DB_SSLMODE: disable # Common for local Docker setups
+      DATABASE_URL: postgresql://compliance_user:compliance_password@postgres:5432/compliance_db?sslmode=disable
+      JWT_SECRET: "your_very_secret_jwt_key_here" # CHANGE THIS!
+      FRONTEND_DIR: /app/ui_build # Path inside the container where UI files will be
+      PORT: 8080 # Port the Go app will listen on inside the container
     volumes:
-      - ./backend/uploads:/app/uploads # Persist uploads, ensure /app/uploads is where backend saves them
-      # If your backend executable is in /root/ as per Dockerfile, and uploads are relative to executable:
-      # - ./backend/uploads:/root/uploads
+      - ./frontend/build:/app/ui_build # Mount the built UI from host to container
+    depends_on:
+      postgres:
+        condition: service_healthy # Wait for postgres to be healthy
+    restart: unless-stopped
 
   integrations:
     build:
-      context: ./backend
-      dockerfile: cmd/integrations/Dockerfile
+      context: ./backend # Context is the backend directory
+      dockerfile: Dockerfile # Use the generic Go Dockerfile
+      args:
+        MAIN_PACKAGE_PATH: ./cmd/integrations # Specify the main package for integrations
+    container_name: compliance_integrations
     environment:
-      DATABASE_URL: postgres://compliance:compliance@postgres:5432/compliance?sslmode=disable
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: compliance_user
+      DB_PASSWORD: compliance_password
+      DB_NAME: compliance_db
+      DB_SSLMODE: disable
+      DATABASE_URL: postgresql://compliance_user:compliance_password@postgres:5432/compliance_db?sslmode=disable
+      # Add other environment variables specific to the integrations service
     depends_on:
-      - postgres
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: compliance_frontend
+      postgres:
+        condition: service_healthy # Wait for postgres to be healthy
     restart: unless-stopped
-    ports:
-      - "3000:3000" # Nginx in the frontend Dockerfile is set to expose 3000
-    depends_on:
-      - backend # Optional, but good for startup order visibility
 
 volumes:
-  postgres_data: # Persists PostgreSQL data
-
-# Note: For the backend volume for uploads, ensure the path inside the container
-# matches where your Go application expects to read/write files.
-# If your Go app uses "./uploads", and WORKDIR is /app, then /app/uploads is correct.
-# If WORKDIR is /root/, then /root/uploads.
+  postgres_data: # Defines the named volume for PostgreSQL data persistence
