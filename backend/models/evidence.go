@@ -13,7 +13,7 @@ type Evidence struct {
 	UploadedByUserID       string    `json:"uploaderUserId" db:"uploaded_by_user_id"`
 	FileName               string    `json:"fileName" db:"file_name"`
 	FilePath               string    `json:"filePath" db:"file_path"`
-	MimeType               string    `json:"mimeType" db:"mime_type"`
+	MimeType               string    `json:"mime_type" db:"mime_type"`
 	FileSize               int64     `json:"fileSize" db:"file_size"`
 	Description            *string   `json:"description,omitempty" db:"description"`
 	UploadedAt             time.Time `json:"uploadedAt" db:"uploaded_at"`

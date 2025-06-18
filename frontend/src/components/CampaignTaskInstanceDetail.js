@@ -55,6 +55,7 @@ import {
     FaFileContract,
     FaTasks
 } from 'react-icons/fa';
+import { Table } from 'react-bootstrap'; // Import Table
 import { useAuth } from '../contexts/AuthContext';
 import UserDisplay from './common/UserDisplay';
 import TeamDisplay from './common/TeamDisplay';
@@ -209,10 +210,13 @@ function CampaignTaskInstanceDetail() {
         }
         setAddEvidenceError('');
 
+        // const jsonContent = typeof content === 'string' ? JSON.parse(result.output) : result.output;
+        // const description =  renderOutput(result.output)
+
         const evidencePayload = {
-            description: "<pre>" + result.output + "</pre>",
+            description: result.output,
             file_name: `Execution Result - ${result.status} - ${new Date(result.timestamp).toISOString()}`,
-            mime_type: "text/plain",
+            mime_type: "application/json",
             file_path: null,
         };
 
@@ -488,6 +492,75 @@ function CampaignTaskInstanceDetail() {
         }
     };
 
+    const renderOutputValue = (value) => {
+        if (typeof value === 'object' && value !== null) {
+            // For nested objects/arrays, pretty-print them within the cell
+            return <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0, fontSize: '0.9em' }}>{JSON.stringify(value, null, 2)}</pre>;
+        }
+        if (typeof value === 'boolean') return value.toString();
+        if (value === null) return <em className="text-muted">null</em>;
+        return String(value);
+    };
+
+    const renderOutput = (outputString) => {
+        try {
+            const parsedOutput = JSON.parse(outputString);
+
+            if (Array.isArray(parsedOutput)) {
+                if (parsedOutput.length === 0) {
+                    return <p className="text-muted my-1">Empty array</p>;
+                }
+                // Check if it's an array of objects (and all objects have similar structure for table headers)
+                if (parsedOutput.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) {
+                    const headers = Object.keys(parsedOutput[0] || {});
+                    return (
+                        <Table striped bordered hover size="sm" variant="dark" responsive className="output-table mt-1 mb-0">
+                            <thead>
+                                <tr>
+                                    {headers.map(header => <th key={header}>{header}</th>)}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {parsedOutput.map((row, rowIndex) => (
+                                    <tr key={rowIndex}>
+                                        {headers.map(header => <td key={`${rowIndex}-${header}`}>{renderOutputValue(row[header])}</td>)}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </Table>
+                    );
+                } else { // Array of primitives or mixed types
+                    return (
+                        <ul className="list-unstyled mb-0">
+                            {parsedOutput.map((item, index) => (
+                                <li key={index} className="border-bottom py-1">{renderOutputValue(item)}</li>
+                            ))}
+                        </ul>
+                    );
+                }
+            } else if (typeof parsedOutput === 'object' && parsedOutput !== null) { // Simple object
+                return (
+                    <Table striped bordered hover size="sm" variant="dark" responsive className="output-table mt-1 mb-0">
+                        <tbody>
+                            {Object.entries(parsedOutput).map(([key, value]) => (
+                                <tr key={key}>
+                                    <td style={{ width: '30%', wordBreak: 'break-all' }}><strong>{key}</strong></td>
+                                    <td>{renderOutputValue(value)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                );
+            } else { // Primitive value (string, number, boolean)
+                return <pre className="mb-0" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{String(parsedOutput)}</pre>;
+            }
+        } catch (e) {
+            // If parsing fails, it's likely not JSON or malformed, so return as is in a pre tag
+            return <pre className="mb-0" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{outputString}</pre>;
+        }
+    };
+
+
     useEffect(() => {
         let interval = null;
 
@@ -751,13 +824,16 @@ function CampaignTaskInstanceDetail() {
                                                 </Card.Header>
                                                 <Card.Body>
                                                     {showSeparateDescription && evidence.description && (
-                                                        <div className="mb-0 mt-1">
-                                                            {typeof evidence.description === 'object' ||
+                                                        <div className="bg-dark text-light p-2 rounded mt-1" style={{ fontSize: '0.8em', overflowX: 'auto' }}>
+
+                                                            {renderOutput(evidence.description)}
+                                                            {/* <pre dangerouslySetInnerHTML={{ __html: evidence.description }} /> */}
+                                                            {/* {typeof evidence.description === 'object' ||
                                                                 (typeof evidence.description === 'string' &&
                                                                     (evidence.description.trim().startsWith('{') || evidence.description.trim().startsWith('[')))
                                                                 ? formatJsonContent(evidence.description)
                                                                 : <div dangerouslySetInnerHTML={{ __html: evidence.description }} />
-                                                            }
+                                                            } */}
                                                         </div>
                                                     )}
                                                     {evidence.review_status && evidence.review_status !== "Pending" && (
@@ -772,6 +848,7 @@ function CampaignTaskInstanceDetail() {
                                                 </Card.Body>
                                                 <Card.Footer>
                                                     <div className="d-flex justify-content-between align-items-center">
+                                                        <Badge>{evidence.mime_type}</Badge>
                                                         <small className="text-muted">Uploaded: {evidence.uploadedAt ? new Date(evidence.uploadedAt).toLocaleString() : 'N/A'}</small>
                                                         {canReviewEvidence && evidenceReviewStatus === "Pending" && (
                                                             <div>
@@ -906,9 +983,9 @@ function CampaignTaskInstanceDetail() {
                                                             </div>
                                                         </div>
                                                         <small className="d-block mt-1"><strong>Output:</strong></small>
-                                                        <pre className="bg-dark text-light p-2 rounded mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '0.8em' }}>
-                                                            {res.output}
-                                                        </pre>
+                                                        <div className="bg-dark text-light p-2 rounded mt-1" style={{ fontSize: '0.8em', overflowX: 'auto' }}>
+                                                            {renderOutput(res.output)}
+                                                        </div>
                                                     </div>
                                                 </ListGroup.Item>
                                             ))}

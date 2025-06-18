@@ -442,8 +442,6 @@ func (h *CampaignHandler) GetTaskInstancesByMasterTaskIDHandler(c *gin.Context) 
 func (h *CampaignHandler) UpdateCampaignTaskInstanceHandler(c *gin.Context) {
 	ctiID := c.Param("id")
 
-	fmt.Println(ctiID)
-
 	existingInstance, err := h.Store.GetCampaignTaskInstanceByID(ctiID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -868,9 +866,9 @@ func (h *CampaignHandler) UploadCampaignTaskInstanceEvidenceHandler(c *gin.Conte
 	}
 
 	commentText := fmt.Sprintf("%s uploaded evidence: %s", uploaderUserName, evidence.FileName)
-	if evidence.Description != nil && *evidence.Description != "" {
-		commentText = fmt.Sprintf("%s uploaded evidence '%s': %s", uploaderUserName, *evidence.Description, evidence.FileName)
-	}
+	// if evidence.Description != nil && *evidence.Description != "" {
+	// 	commentText = fmt.Sprintf("%s uploaded evidence '%s': %s", uploaderUserName, *evidence.Description, evidence.FileName)
+	// }
 
 	activityComment := models.Comment{
 		CampaignTaskInstanceID: &instanceID,

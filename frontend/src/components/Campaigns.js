@@ -215,29 +215,6 @@ function Campaigns() {
             <Tabs activeKey={activeTabKey} onSelect={(k) => setActiveTabKey(k)} id="campaigns-tabs" className="mb-3 nav-line-tabs">
 
                 <Tab eventKey="existing" title={<><FaListUl className="me-1" />Existing Campaigns</>}>
-                    {campaigns.length === 0 && <Alert variant="info">No campaigns found.</Alert>}
-                    {/* <ListGroup variant="flush">
-                        {campaigns.map(camp => (
-                            <ListGroup.Item key={camp.id} action as={Link} to={`/campaigns/${camp.id}`} className="p-3"> 
-                                <Row className="align-items-center">
-                                    <Col xs="auto"><FaBullhorn size="1.5em" className="text-dark"/></Col>
-                                    <Col>
-                                        <h6 className="m-0 p-0 mb-0"><Link to={`/campaigns/${camp.id}`}>{camp.name}</Link></h6>
-                                        <small className="text-muted">Standard: {camp.standard_name || getStandardName(camp.standard_id)}</small><br/>
-                                        <small className="text-muted">
-                                            Dates: {camp.start_date ? new Date(camp.start_date).toLocaleDateString() : 'N/A'} - {camp.end_date ? new Date(camp.end_date).toLocaleDateString() : 'N/A'}
-                                        </small>
-                                    </Col>
-                                    <Col xs="auto">
-                                        <Badge bg={camp.status === 'Active' || camp.status === 'In Progress' ? 'success' : camp.status === 'Completed' ? 'secondary' : 'warning'}>
-                                            {camp.status}
-                                        </Badge>
-                                    </Col>
-                                </Row>
-                            </ListGroup.Item>
-                        ))}
-                    </ListGroup> */}
-
                     {loadingCampaigns ? (
                         <div className="text-center mt-5"><Spinner animation="border" /> Loading campaigns...</div>
                     ) : campaigns.length === 0 ? (

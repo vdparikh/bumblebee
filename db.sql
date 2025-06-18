@@ -137,6 +137,8 @@ CREATE TABLE tasks ( -- Master Task Templates
     default_priority VARCHAR(50),   -- e.g., 'High', 'Medium', 'Low'
     priority VARCHAR(50),
     status VARCHAR(50),
+    linked_document_ids TEXT[],
+    
     default_owner_team_id UUID REFERENCES teams(id) ON DELETE SET NULL,
     default_assignee_team_id UUID REFERENCES teams(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,

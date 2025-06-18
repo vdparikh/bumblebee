@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/vdparikh/compliance-automation/backend/integrations"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/awschecker" // Import new AWS plugin
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/databasequerier"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/filechecker"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/httpchecker"
@@ -87,6 +88,11 @@ func main() {
 	fileExistsPlugin := filechecker.New()
 	if err := pluginRegistry.RegisterPlugin(fileExistsPlugin); err != nil {
 		log.Fatalf("Failed to register File Checker plugin: %v", err)
+	}
+
+	awsPlugin := awschecker.New()
+	if err := pluginRegistry.RegisterPlugin(awsPlugin); err != nil {
+		log.Fatalf("Failed to register AWS Checker plugin: %v", err)
 	}
 
 	// // Example: Print registered check types (optional)
