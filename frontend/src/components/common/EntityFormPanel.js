@@ -1,22 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { Offcanvas, Form, Button, Alert, Row, Col } from 'react-bootstrap';
-import Select from 'react-select'; // Import react-select
+import { Offcanvas, Form, Button, FloatingLabel, Row, Col, Alert } from 'react-bootstrap';
+import Select from 'react-select';
+import CreatableSelect from 'react-select/creatable';
+import StandardForm from '../forms/StandardForm'; // We'll create this
+import RequirementForm from '../forms/RequirementForm'; // We'll create this
+import TaskForm from '../forms/TaskForm'; // We'll create this
 
 function EntityFormPanel({
     show,
-    mode,
-    entityType,
+    mode, // 'add' or 'edit'
+    entityType, // 'standard', 'requirement', 'task'
     initialData,
-    parentId,
+    parentId, // e.g., standardId for new requirement, requirementId for new task
     onSave,
     onClose,
     allStandards,
     allRequirements,
+    allUsers,
     allConnectedSystems,
-    allUsers, // Added for Risk owner
-    allDocuments, // Added for Task linked documents
+    allDocuments
 }) {
-    const [formData, setFormData] = useState({});
+
+    const handleFormSubmit = async (formData) => {
+        setError('');
+        try {
+            // For 'add' mode, ensure parentId is included if necessary
+            let dataToSave = { ...formData };
+            if (mode === 'add') {
+                if (entityType === 'requirement' && parentId) {
+                    dataToSave.standardId = parentId;
+                } else if (entityType === 'task' && parentId) {
+                    // dataToSave.requirementId = parentId;
+                }
+            }
+            await onSave(entityType, dataToSave, initialData?.id);
+            // On success, onSave in LibraryManagementPage will close the panel
+        } catch (err) {
+            // Error is already set by onSave in LibraryManagementPage,
+            // but we can set a local one too if needed or reformat.
+            setError(err.message || `Failed to ${mode} ${entityType}.`);
+        }
+    };
+
+        const [formData, setFormData] = useState({});
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -94,122 +120,14 @@ function EntityFormPanel({
         }
     };
 
-    const renderFormFields = () => {
+
+    const renderForm = () => {
         switch (entityType) {
-            case 'standard':
+case 'risk':
                 return (
                     <>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Name*</Form.Label>
-                            <Form.Control type="text" name="name" value={formData.name || ''} onChange={handleChange} required />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Short Name*</Form.Label>
-                            <Form.Control type="text" name="shortName" value={formData.shortName || ''} onChange={handleChange} required />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Description</Form.Label>
-                            <Form.Control as="textarea" rows={3} name="description" value={formData.description || ''} onChange={handleChange} />
-                        </Form.Group>
-                        {/* Add other standard fields like version, issuingBody, etc. */}
-                    </>
-                );
-            case 'requirement':
-                return (
-                    <>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Standard*</Form.Label>
-                            <Form.Select name="standardId" value={formData.standardId || ''} onChange={handleChange} required disabled={mode === 'edit'}>
-                                <option value="">Select Standard...</option>
-                                {allStandards.map(std => (
-                                    <option key={std.id} value={std.id}>{std.name}</option>
-                                ))}
-                            </Form.Select>
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Control ID Reference*</Form.Label>
-                            <Form.Control type="text" name="controlIdReference" value={formData.controlIdReference || ''} onChange={handleChange} required />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Requirement Text*</Form.Label>
-                            <Form.Control as="textarea" rows={3} name="requirementText" value={formData.requirementText || ''} onChange={handleChange} required />
-                        </Form.Group>
-                        {/* Add other requirement fields */}
-                    </>
-                );
-            case 'task':
-                return (
-                    <>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Title*</Form.Label>
-                            <Form.Control type="text" name="title" value={formData.title || ''} onChange={handleChange} required />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Description</Form.Label>
-                            <Form.Control as="textarea" rows={3} name="description" value={formData.description || ''} onChange={handleChange} />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Category</Form.Label>
-                            <Form.Control type="text" name="category" value={formData.category || ''} onChange={handleChange} />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Linked Requirements</Form.Label>
-                            <Select
-                                isMulti
-                                options={allRequirements.map(req => ({ value: req.id, label: `${req.controlIdReference} - ${req.requirementText.substring(0, 50)}...` }))}
-                                value={formData.requirementIds?.map(id => {
-                                    const req = allRequirements.find(r => r.id === id);
-                                    return req ? { value: req.id, label: `${req.controlIdReference} - ${req.requirementText.substring(0, 50)}...` } : null;
-                                }).filter(Boolean) || []}
-                                onChange={(selectedOptions) => handleMultiSelectChange('requirementIds', selectedOptions)}
-                                placeholder="Select requirements to link..."
-                                closeMenuOnSelect={false}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Linked Documents</Form.Label>
-                            <Select
-                                isMulti
-                                options={allDocuments.map(doc => ({ value: doc.id, label: doc.name }))}
-                                value={formData.linkedDocumentIDs?.map(id => {
-                                    const doc = allDocuments.find(d => d.id === id);
-                                    return doc ? { value: doc.id, label: doc.name } : null;
-                                }).filter(Boolean) || []}
-                                onChange={(selectedOptions) => handleMultiSelectChange('linkedDocumentIDs', selectedOptions)}
-                                placeholder="Select documents to link..."
-                                closeMenuOnSelect={false}
-                            />
-                        </Form.Group>
-                        {/* Add check_type, target, parameters fields */}
-                        <Form.Group className="mb-3">
-                            <Form.Label>Check Type</Form.Label>
-                            <Form.Control type="text" name="checkType" value={formData.checkType || ''} onChange={handleChange} />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Target</Form.Label>
-                            <Form.Control type="text" name="target" value={formData.target || ''} onChange={handleChange} />
-                        </Form.Group>
-                        {/* Dynamic parameters input - simplified for now */}
-                        {formData.parameters && Object.keys(formData.parameters).length > 0 && (
-                            <Form.Group className="mb-3">
-                                <Form.Label>Parameters (JSON)</Form.Label>
-                                {Object.entries(formData.parameters).map(([key, value]) => (
-                                    <Form.Control
-                                        key={key}
-                                        type="text"
-                                        placeholder={key}
-                                        value={value}
-                                        onChange={(e) => handleParameterChange(key, e.target.value)}
-                                        className="mb-2"
-                                    />
-                                ))}
-                            </Form.Group>
-                        )}
-                    </>
-                );
-            case 'risk':
-                return (
-                    <>
+                                    <Form onSubmit={handleSubmit}>
+
                         <Form.Group className="mb-3">
                             <Form.Label>Risk ID*</Form.Label>
                             <Form.Control
@@ -317,28 +235,8 @@ function EntityFormPanel({
                                 closeMenuOnSelect={false}
                             />
                         </Form.Group>
-                    </>
-                );
-            default:
-                return <Alert variant="warning">Invalid entity type selected.</Alert>;
-        }
-    };
 
-    const getTitle = () => {
-        const action = mode === 'add' ? 'Add New' : 'Edit';
-        const type = entityType.charAt(0).toUpperCase() + entityType.slice(1);
-        return `${action} ${type}`;
-    };
-
-    return (
-        <Offcanvas show={show} onHide={onClose} placement="end" backdrop="static">
-            <Offcanvas.Header closeButton>
-                <Offcanvas.Title>{getTitle()}</Offcanvas.Title>
-            </Offcanvas.Header>
-            <Offcanvas.Body>
-                {error && <Alert variant="danger">{error}</Alert>}
-                <Form onSubmit={handleSubmit}>
-                    {renderFormFields()}
+                         {error && <Alert variant="danger">{error}</Alert>}
                     <Button variant="primary" type="submit" disabled={loading}>
                         {loading ? 'Saving...' : 'Save'}
                     </Button>
@@ -346,6 +244,57 @@ function EntityFormPanel({
                         Cancel
                     </Button>
                 </Form>
+                    </>
+                );            
+            case 'standard':
+                return (
+                    <StandardForm
+                        initialData={initialData}
+                        onSubmit={handleFormSubmit}
+                        onCancel={onClose}
+                        mode={mode}
+                    />
+                );
+            case 'requirement':
+                return (
+                    <RequirementForm
+                        initialData={initialData}
+                        onSubmit={handleFormSubmit}
+                        onCancel={onClose}
+                        mode={mode}
+                        standards={allStandards} // Pass standards for dropdown
+                        parentId={parentId} // For pre-selecting standard in 'add' mode
+                    />
+                );
+            case 'task':
+                return (
+                    <TaskForm
+                        initialData={initialData}
+                        onSubmit={handleFormSubmit}
+                        onCancel={onClose}
+                        mode={mode}
+                        requirements={allRequirements} // Pass requirements for dropdown
+                        users={allUsers}
+                        connectedSystems={allConnectedSystems}
+                        documents={allDocuments}
+                        parentId={parentId} // For pre-selecting requirement in 'add' mode
+                    />
+                );
+            default:
+                return <p>Invalid entity type selected.</p>;
+        }
+    };
+
+    const title = `${mode === 'edit' ? 'Edit' : 'Add New'} ${entityType.charAt(0).toUpperCase() + entityType.slice(1)}`;
+
+    return (
+        <Offcanvas show={show} onHide={onClose} placement="end" style={{ width: '500px' }}>
+            <Offcanvas.Header closeButton>
+                <Offcanvas.Title>{title}</Offcanvas.Title>
+            </Offcanvas.Header>
+            <Offcanvas.Body>
+                {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
+                {renderForm()}
             </Offcanvas.Body>
         </Offcanvas>
     );
