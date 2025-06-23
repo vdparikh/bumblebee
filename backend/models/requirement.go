@@ -19,4 +19,7 @@ type Requirement struct {
 	Tags               json.RawMessage `json:"tags" db:"tags"`
 	CreatedAt          time.Time       `json:"createdAt" db:"created_at"`
 	UpdatedAt          time.Time       `json:"updatedAt" db:"updated_at"`
+	Risks              []Risk          `json:"risks,omitempty" db:"-"`   // For displaying linked risks
+	RiskIDs            []string        `json:"riskIds,omitempty" db:"-"` // For linking risks
+
 }

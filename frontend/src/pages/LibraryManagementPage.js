@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Button, Alert, Spinner, Row, Col, Card, Badge, Tabs, Tab } from 'react-bootstrap';
+import { Container, Button, Alert, Spinner, Row, Col, Card, Badge, Tabs, Tab, ListGroup } from 'react-bootstrap';
 import { 
     FaEdit, FaPlusCircle, FaChartLine, FaHistory, FaFileAlt, 
-    FaLink, FaFileUpload, FaShieldAlt, FaBook, FaTasks,
+    FaLink, FaFileUpload, FaShieldAlt, FaBook, FaTasks, FaExclamationTriangle,
     FaExclamationCircle, FaCheckCircle, FaClock, FaFileContract,
     FaCogs, FaTag, FaUserShield, FaCalendarAlt, FaBuilding
 } from 'react-icons/fa';
@@ -20,6 +20,10 @@ import {
     createTask,
     updateTask,
     getConnectedSystems,
+    getUsers,
+    getRisks,
+    createRisk,
+    updateRisk,
     getDocuments,
 } from '../services/api';
 
@@ -27,6 +31,8 @@ function LibraryManagementPage() {
     const [standards, setStandards] = useState([]);
     const [requirements, setRequirements] = useState([]);
     const [masterTasks, setMasterTasks] = useState([]);
+    const [risks, setRisks] = useState([]);
+    const [users, setUsers] = useState([]);
     const [connectedSystems, setConnectedSystems] = useState([]);
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -45,6 +51,7 @@ function LibraryManagementPage() {
         totalStandards: 0,
         totalRequirements: 0,
         totalTasks: 0,
+        totalRisks: 0,
         automatedChecks: 0,
         manualChecks: 0,
         recentUpdates: 0,
@@ -55,24 +62,29 @@ function LibraryManagementPage() {
         setLoading(true);
         setError('');
         try {
-            const [stdRes, reqRes, taskRes, systemsRes, docsRes] = await Promise.all([
+            const [stdRes, reqRes, taskRes, systemsRes, docsRes, riskRes, usersRes] = await Promise.all([
                 getComplianceStandards(),
                 getRequirements(),
                 getTasks(),
                 getConnectedSystems(),
-                getDocuments()
+                getDocuments(),
+                getRisks(),
+                getUsers(),
             ]);
             setStandards(Array.isArray(stdRes.data) ? stdRes.data : []);
             setRequirements(Array.isArray(reqRes.data) ? reqRes.data : []);
             setMasterTasks(Array.isArray(taskRes.data) ? taskRes.data : []);
+            setRisks(Array.isArray(riskRes.data) ? riskRes.data : []);
             setConnectedSystems(Array.isArray(systemsRes.data) ? systemsRes.data : []);
             setDocuments(Array.isArray(docsRes.data) ? docsRes.data : []);
+            setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
 
             // Calculate metrics
             setMetrics({
                 totalStandards: stdRes.data.length,
                 totalRequirements: reqRes.data.length,
                 totalTasks: taskRes.data.length,
+                totalRisks: riskRes.data.length,
                 automatedChecks: taskRes.data.filter(t => t.checkType).length,
                 manualChecks: taskRes.data.filter(t => !t.checkType).length,
                 recentUpdates: 0, // TODO: Implement
@@ -121,6 +133,8 @@ function LibraryManagementPage() {
                 response = idToUpdate ? await updateRequirement(idToUpdate, data) : await createRequirement(data);
             } else if (entityType === 'task') {
                 response = idToUpdate ? await updateTask(idToUpdate, data) : await createTask(data);
+            } else if (entityType === 'risk') {
+                response = idToUpdate ? await updateRisk(idToUpdate, data) : await createRisk(data);
             }
             setSuccess(`${entityType.charAt(0).toUpperCase() + entityType.slice(1)} ${idToUpdate ? 'updated' : 'created'} successfully!`);
             fetchData();
@@ -140,7 +154,7 @@ function LibraryManagementPage() {
 
     const renderDashboard = () => (
         <div className="mb-4">
-            <Row>
+            <Row xs={1} md={2} xl={4}>
                 <Col md={3}>
                     <Card className="mb-3">
                         <Card.Body>
@@ -193,6 +207,19 @@ function LibraryManagementPage() {
                         </Card.Body>
                     </Card>
                 </Col>
+                <Col md={3}>
+                    <Card className="mb-3">
+                        <Card.Body>
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 className="text-muted mb-2">Identified Risks</h6>
+                                    <h3>{metrics.totalRisks}</h3>
+                                </div>
+                                <FaExclamationTriangle size={24} className="text-danger" />
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
             </Row>
 
             <Row>
@@ -218,6 +245,34 @@ function LibraryManagementPage() {
                 </Col>
             </Row>
         </div>
+    );
+
+    const renderRisksTab = () => (
+        <Card>
+            <Card.Header className="d-flex justify-content-between align-items-center">
+                <h5>All Risks ({risks.length})</h5>
+                <Button variant="primary" size="sm" onClick={() => handleOpenPanel('add', 'risk')}>
+                    <FaPlusCircle className="me-2" />Add Risk
+                </Button>
+            </Card.Header>
+            <ListGroup variant="flush">
+                {risks.map(risk => (
+                    <ListGroup.Item key={risk.id} className="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong className="me-2">{risk.riskId}</strong> - {risk.title}
+                            <div className="text-muted small">
+                                <Badge bg="secondary" className="me-2">{risk.category || 'Uncategorized'}</Badge>
+                                Status: {risk.status} | Impact: {risk.impact || 'N/A'} | Likelihood: {risk.likelihood || 'N/A'}
+                            </div>
+                        </div>
+                        <Button variant="outline-secondary" size="sm" onClick={() => handleOpenPanel('edit', 'risk', risk)}>
+                            <FaEdit />
+                        </Button>
+                    </ListGroup.Item>
+                ))}
+                {risks.length === 0 && <ListGroup.Item className="text-muted">No risks found.</ListGroup.Item>}
+            </ListGroup>
+        </Card>
     );
 
     return (
@@ -262,6 +317,9 @@ function LibraryManagementPage() {
                         )}
                     />
                 </Tab>
+                <Tab eventKey="risks" title={<><FaExclamationTriangle className="me-1" />Risks</>}>
+                    {renderRisksTab()}
+                </Tab>
             </Tabs>
 
             <EntityFormPanel
@@ -275,6 +333,7 @@ function LibraryManagementPage() {
                 allStandards={standards}
                 allRequirements={requirements}
                 allConnectedSystems={connectedSystems}
+                allUsers={users}
                 allDocuments={documents}
             />
         </Container>

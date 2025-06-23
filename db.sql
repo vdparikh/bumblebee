@@ -77,6 +77,21 @@ CREATE TABLE requirements (
     UNIQUE (standard_id, control_id_reference)
 );
 
+CREATE TABLE risks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    risk_id VARCHAR(100) UNIQUE NOT NULL, -- User-defined or system-generated readable ID
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100), -- e.g., Financial, Operational, Security, Compliance
+    likelihood VARCHAR(50), -- e.g., Low, Medium, High, Very High
+    impact VARCHAR(50),     -- e.g., Low, Medium, High, Very High
+    status VARCHAR(50) DEFAULT 'Open', -- e.g., Open, Mitigated, Accepted, Closed
+    owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    tags JSONB,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
@@ -151,6 +166,14 @@ CREATE TABLE task_requirements ( -- Junction table for Tasks and Requirements (M
     requirement_id UUID NOT NULL REFERENCES requirements(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(task_id, requirement_id)
+);
+
+CREATE TABLE risk_requirements ( -- Junction table for Risks and Requirements (Many-to-Many)
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    risk_id UUID NOT NULL REFERENCES risks(id) ON DELETE CASCADE,
+    requirement_id UUID NOT NULL REFERENCES requirements(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(risk_id, requirement_id)
 );
 
 CREATE TABLE task_documents ( -- Junction table for Tasks and Documents (Many-to-Many)
@@ -296,6 +319,11 @@ BEFORE UPDATE ON requirements
 FOR EACH ROW
 EXECUTE PROCEDURE trigger_set_timestamp();
 
+CREATE TRIGGER set_timestamp_risks
+BEFORE UPDATE ON risks
+FOR EACH ROW
+EXECUTE PROCEDURE trigger_set_timestamp();
+
 CREATE TRIGGER set_timestamp_documents
 BEFORE UPDATE ON documents
 FOR EACH ROW
@@ -368,6 +396,11 @@ CREATE INDEX IF NOT EXISTS idx_compliance_standards_short_name ON compliance_sta
 CREATE INDEX IF NOT EXISTS idx_requirements_standard_id ON requirements(standard_id);
 CREATE INDEX IF NOT EXISTS idx_requirements_control_id_reference ON requirements(control_id_reference);
 
+-- risks
+CREATE INDEX IF NOT EXISTS idx_risks_risk_id ON risks(risk_id);
+CREATE INDEX IF NOT EXISTS idx_risks_category ON risks(category);
+CREATE INDEX IF NOT EXISTS idx_risks_status ON risks(status);
+
 -- documents
 CREATE INDEX IF NOT EXISTS idx_documents_document_type ON documents(document_type);
 
@@ -384,6 +417,10 @@ CREATE INDEX IF NOT EXISTS idx_tasks_default_assignee_team_id ON tasks(default_a
 -- task_requirements
 CREATE INDEX IF NOT EXISTS idx_task_requirements_task_id ON task_requirements(task_id);
 CREATE INDEX IF NOT EXISTS idx_task_requirements_requirement_id ON task_requirements(requirement_id);
+
+-- risk_requirements
+CREATE INDEX IF NOT EXISTS idx_risk_requirements_risk_id ON risk_requirements(risk_id);
+CREATE INDEX IF NOT EXISTS idx_risk_requirements_requirement_id ON risk_requirements(requirement_id);
 
 -- task_documents
 CREATE INDEX IF NOT EXISTS idx_task_documents_task_id ON task_documents(task_id);

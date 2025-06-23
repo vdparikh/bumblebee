@@ -2,14 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, ListGroup, Spinner, Alert, Badge, ListGroupItem, Button } from 'react-bootstrap';
 import {
     FaShieldAlt, FaFileContract, FaTasks, FaTag, FaCogs,
-    FaExclamationCircle, FaFileMedicalAlt, FaInfo, FaLink, FaPlusCircle
+    FaExclamationCircle, FaFileMedicalAlt, FaInfo, FaLink, FaPlusCircle,
+    FaExclamationTriangle
 } from 'react-icons/fa';
 import {
     getComplianceStandards,
     getRequirements as getAllRequirements,
     getTasks as getAllMasterTasks,
+    getUsers,
 } from '../../services/api';
 import PageHeader from '../common/PageHeader';
+import RiskDetailModal from '../modals/RiskDetailModal'; // Import the new modal
 
 function ThreeColumnView({
     standardActions,
@@ -23,11 +26,14 @@ function ThreeColumnView({
     const [standards, setStandards] = useState([]);
     const [requirements, setRequirements] = useState([]);
     const [tasks, setTasks] = useState([]);
+    const [allUsers, setAllUsers] = useState([]); // State for all users
 
     const [loadingStandards, setLoadingStandards] = useState(true);
     const [loadingRequirements, setLoadingRequirements] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [error, setError] = useState('');
+    const [showRiskDetailModal, setShowRiskDetailModal] = useState(false);
+    const [selectedRiskData, setSelectedRiskData] = useState(null);
 
     const [selectedStandardId, setSelectedStandardId] = useState(null);
     const [selectedRequirementId, setSelectedRequirementId] = useState(null);
@@ -35,8 +41,13 @@ function ThreeColumnView({
     const fetchStandards = useCallback(async () => {
         setLoadingStandards(true);
         try {
-            const response = await getComplianceStandards();
-            setStandards(Array.isArray(response.data) ? response.data : []);
+            const [standardsRes, usersRes] = await Promise.all([
+                getComplianceStandards(),
+                getUsers(),
+            ]);            
+            setStandards(Array.isArray(standardsRes.data) ? standardsRes.data : []);
+            setAllUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+
         } catch (err) {
             console.error("Error fetching standards:", err);
             setError('Failed to fetch compliance standards.');
@@ -45,6 +56,12 @@ function ThreeColumnView({
             setLoadingStandards(false);
         }
     }, []);
+
+        const handleOpenRiskDetailModal = (risk) => {
+        setSelectedRiskData(risk);
+        setShowRiskDetailModal(true);
+    };
+
 
     useEffect(() => {
         fetchStandards();
@@ -157,7 +174,7 @@ function ThreeColumnView({
 
 
     return (
-        <Container fluid className="">
+        <Container fluid className="p-0">
             {showPageHeader && (
                 <PageHeader icon={<FaInfo />} title="Compliance Management - Library" />
             )}
@@ -253,6 +270,25 @@ function ThreeColumnView({
                                                         {standards.find(s => s.id === req.standardId)?.shortName}
                                                     </Badge>
                                                 )}
+
+                                                 {req.risks && req.risks.length > 0 && (
+                                                    <div className="mt-2">
+                                                        <small className="text-muted d-block mb-1">Associated Risks:</small>
+                                                        <ListGroup horizontal className="flex-wrap">
+                                                            {req.risks.map(risk => (
+                                                                <ListGroup.Item
+                                                                    key={risk.id}
+                                                                    action
+                                                                    onClick={(e) => { e.stopPropagation(); handleOpenRiskDetailModal(risk); }}
+                                                                    className="p-1 px-2 me-1 mb-1 rounded-pill border d-flex align-items-center"
+                                                                >
+                                                                    <FaExclamationTriangle className="me-1 text-danger" size="0.8em" /> {risk.riskId} - {risk.title}
+                                                                </ListGroup.Item>
+                                                            ))}
+                                                        </ListGroup>
+                                                    </div>
+                                                )}
+
                                                 <p className="mb-1 small text-muted" style={{ whiteSpace: 'pre-wrap' }}>
                                                     {req.requirementText.substring(0, 150)}{req.requirementText.length > 150 ? "..." : ""}
                                                 </p>
@@ -338,6 +374,12 @@ function ThreeColumnView({
                     </Card>
                 </Col>
             </Row>
+            <RiskDetailModal
+                show={showRiskDetailModal}
+                onHide={() => setShowRiskDetailModal(false)}
+                risk={selectedRiskData}
+                allUsers={allUsers}
+            />
 
         </Container>
     );

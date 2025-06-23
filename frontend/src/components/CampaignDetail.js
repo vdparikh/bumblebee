@@ -7,11 +7,11 @@ import {
     getCampaignSelectedRequirements,
     getCampaignTaskInstances,
     updateCampaign,
-    deleteCampaign,
+    deleteCampaign, // This now includes risks
     updateCampaignTaskInstance,
     getUsers,
     getComplianceStandards,
-    getRequirements as getAllMasterRequirements,
+    getRequirements as getAllMasterRequirements, // This now includes risks
     getTasks as getAllMasterTasks,
     getTeams
 } from '../services/api';
@@ -64,7 +64,8 @@ import {
     FaExternalLinkAlt,
     FaThList,
     FaTable,
-    FaSort, FaSortUp, FaSortDown
+    FaSort, FaSortUp, FaSortDown,
+    FaExclamationTriangle
 
 
 } from 'react-icons/fa';
@@ -93,6 +94,7 @@ function CampaignDetail() {
     const [selectedRequirements, setSelectedRequirements] = useState([]);
     const [taskInstances, setTaskInstances] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
+    const [allMasterRequirements, setAllMasterRequirements] = useState([]); // To store master requirements with risks
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [tasksTabKey, setTasksTabKey] = useState('all-campaign-tasks'); // For right column tabs
@@ -148,6 +150,9 @@ function CampaignDetail() {
 
             const usersRes = await getUsers();
             setAllUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+
+            const masterReqsRes = await getAllMasterRequirements(); // Fetch all master requirements with risks
+            setAllMasterRequirements(Array.isArray(masterReqsRes.data) ? masterReqsRes.data : []);
 
             const teamsRes = await getTeams(); // Fetch teams
             setAllTeams(Array.isArray(teamsRes.data) ? teamsRes.data : []);
@@ -510,6 +515,7 @@ function CampaignDetail() {
                             </ProgressBar>
                         </div>
                     )}
+
                 </div>
                 <Badge pill bg="light" text="dark" className="ms-2">{totalTasks}</Badge>
             </div>
@@ -530,14 +536,14 @@ function CampaignDetail() {
             <div className="d-flex flex-wrap gap-2 mt-2 small text-muted">
                 {statuses.map(status => (
                     <div key={status} className="d-flex align-items-center">
-                        <div 
-                            className="me-1" 
-                            style={{ 
-                                width: '12px', 
-                                height: '12px', 
+                        <div
+                            className="me-1"
+                            style={{
+                                width: '12px',
+                                height: '12px',
                                 backgroundColor: `var(--bs-${getStatusVariant(status)})`,
                                 borderRadius: '2px'
-                            }} 
+                            }}
                         />
                         {status}
                     </div>
@@ -808,6 +814,43 @@ function CampaignDetail() {
                             {selectedRequirements.length === 0 && <ListGroup.Item>No requirements scoped.</ListGroup.Item>}
                         </ListGroup>
                     </Card>
+
+
+                    {/* Risks Associated with Scoped Requirements */}
+            {selectedRequirements.length > 0 && (
+                <Row className="mt-4">
+                    <Col md={12}>
+                        <Card>
+                            <Card.Header as="h5"><FaExclamationTriangle className="me-2 text-danger" />Risks Associated with Scoped Requirements</Card.Header>
+                            <ListGroup variant="flush">
+                                {selectedRequirements.map(scopedReq => {
+                                    const masterReq = allMasterRequirements.find(mr => mr.id === scopedReq.requirement_id);
+                                    if (masterReq && masterReq.risks && masterReq.risks.length > 0) {
+                                        return (
+                                            <ListGroup.Item key={scopedReq.id}>
+                                                <div className="fw-bold">{masterReq.controlIdReference} - {masterReq.requirementText?.substring(0, 70)}...</div>
+                                                <div className="mt-2">
+                                                    {masterReq.risks.map(risk => (
+                                                        <Badge key={risk.id} bg="danger" className="me-2 mb-1">
+                                                            {risk.riskId} - {risk.title} ({risk.status})
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            </ListGroup.Item>
+                                        );
+                                    }
+                                    return null;
+                                }).filter(Boolean)}
+                                {selectedRequirements.every(scopedReq => {
+                                    const masterReq = allMasterRequirements.find(mr => mr.id === scopedReq.requirement_id);
+                                    return !masterReq || !masterReq.risks || masterReq.risks.length === 0;
+                                }) && <ListGroup.Item className="text-muted">No risks associated with the currently scoped requirements.</ListGroup.Item>}
+                            </ListGroup>
+                        </Card>
+                    </Col>
+                </Row>
+            )}
+
                 </Col>
 
 
@@ -823,7 +866,7 @@ function CampaignDetail() {
                             </Button>
                         </div>
                     </div>
-                   
+
                     <Tabs
                         activeKey={tasksTabKey}
                         onSelect={(k) => setTasksTabKey(k)}
@@ -841,7 +884,7 @@ function CampaignDetail() {
                 </Col>
             </Row>
 
-
+            
 
             <Modal show={showAssignModal} onHide={() => setShowAssignModal(false)}>
                 <Modal.Header closeButton>

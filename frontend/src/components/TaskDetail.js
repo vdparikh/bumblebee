@@ -377,7 +377,7 @@ function TaskDetail() {
                                                     <FaFileAlt className="me-2 text-muted"/>
                                                     {/* Assuming ev.filePath is the path on server, construct a link if you serve them */}
                                                     {/* For now, just displaying filename. If ev.url is available, use that. */}
-                                                    <a href={ev.filePath.startsWith('http') ? ev.filePath : `http://localhost:8080/${ev.filePath}`} target="_blank" rel="noopener noreferrer">{ev.fileName || ev.id}</a>
+                                                    <a href={ev.filePath.startsWith('http') ? ev.filePath : `/${ev.filePath}`} target="_blank" rel="noopener noreferrer">{ev.fileName || ev.id}</a>
                                                     <small className="text-muted d-block">Uploaded: {ev.uploadedAt ? new Date(ev.uploadedAt).toLocaleString() : 'N/A'}</small>
                                                     {ev.description && <p className="mb-0 mt-1"><small>Description: {ev.description}</small></p>}
                                                 </ListGroup.Item>

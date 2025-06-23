@@ -101,6 +101,7 @@ func main() {
 	auditLogHandler := handlers.NewAuditLogHandler(dbStore)                 // Instantiate AuditLogHandler
 	integrationHandler := handlers.NewIntegrationHandler(dbStore)           // Instantiate IntegrationHandler
 	systemDefinitionHandler := handlers.NewSystemDefinitionHandler(dbStore) // Instantiate SystemDefinitionHandler
+	riskHandler := handlers.NewRiskHandler(dbStore)                         // New Risk Handler
 
 	apiV1 := router.Group("/api")
 
@@ -189,6 +190,14 @@ func main() {
 		teams.POST("/:id/members", teamHandler.AddUserToTeamHandler)
 		teams.DELETE("/:id/members/:userId", teamHandler.RemoveUserFromTeamHandler)
 		teams.GET("/:id/members", teamHandler.GetTeamMembersHandler)
+
+		// Risk Routes (Protected by AuthMiddleware, consider RoleAuthMiddleware for some)
+		riskRoutes := api.Group("/risks")
+		riskRoutes.POST("", riskHandler.CreateRiskHandler)
+		riskRoutes.GET("", riskHandler.GetRisksHandler)
+		riskRoutes.GET("/:id", riskHandler.GetRiskByIDHandler)
+		riskRoutes.PUT("/:id", riskHandler.UpdateRiskHandler)
+		riskRoutes.DELETE("/:id", riskHandler.DeleteRiskHandler)
 
 		api.GET("/user-feed", handlers.GetUserFeedHandler(dbStore))
 

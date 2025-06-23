@@ -72,6 +72,13 @@ type Store interface {
 	CreateOrUpdateRegisteredPlugin(pluginID string, pluginName string, checkConfigs map[string]models.CheckTypeConfiguration) error
 	SetRegisteredPluginActiveStatus(pluginID string, isActive bool) error
 	// GetActiveCheckTypeConfigurations() (map[string]models.CheckTypeConfiguration, error) // Already exists
+
+	// Risk Management
+	CreateRisk(risk *models.Risk) (string, error)
+	GetRiskByID(riskID string) (*models.Risk, error)
+	GetRisks() ([]models.Risk, error)
+	UpdateRisk(risk *models.Risk) error
+	DeleteRisk(riskID string) error
 }
 
 // System Type Definition Store Methods interface (optional, for clarity)
@@ -729,8 +736,28 @@ func (s *DBStore) CreateRequirement(req *models.Requirement) error {
 }
 
 func (s *DBStore) GetRequirements() ([]models.Requirement, error) {
-	query := `SELECT id, standard_id, control_id_reference, requirement_text, version, effective_date, expiry_date, official_link, priority, status, tags, created_at, updated_at FROM requirements ORDER BY control_id_reference ASC`
-	rows, err := s.DB.Query(query)
+	query := `
+		SELECT
+			req.id, req.standard_id, req.control_id_reference, req.requirement_text, req.version,
+			req.effective_date, req.expiry_date, req.official_link, req.priority, req.status, req.tags,
+			req.created_at, req.updated_at,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', r.id,
+						'riskId', r.risk_id,
+						'title', r.title
+					)
+				) FILTER (WHERE r.id IS NOT NULL),
+				'[]'
+			) as risks_json
+		FROM requirements req
+		LEFT JOIN risk_requirements rr ON req.id = rr.requirement_id
+		LEFT JOIN risks r ON rr.risk_id = r.id
+		GROUP BY req.id
+		ORDER BY req.control_id_reference ASC
+	`
+	rows, err := s.DB.Queryx(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query requirements: %w", err)
 	}
@@ -739,33 +766,28 @@ func (s *DBStore) GetRequirements() ([]models.Requirement, error) {
 	var requirements []models.Requirement
 	for rows.Next() {
 		var r models.Requirement
-		var effectiveDateNull, expiryDateNull, tagsNull sql.NullString
-		if err := rows.Scan(&r.ID, &r.StandardID, &r.ControlIDReference, &r.RequirementText, &r.Version, &effectiveDateNull, &expiryDateNull, &r.OfficialLink, &r.Priority, &r.Status, &tagsNull, &r.CreatedAt, &r.UpdatedAt); err != nil {
+		var risksJSON []byte
+		if err := rows.Scan(
+			&r.ID, &r.StandardID, &r.ControlIDReference, &r.RequirementText, &r.Version,
+			&r.EffectiveDate, &r.ExpiryDate, &r.OfficialLink, &r.Priority, &r.Status, &r.Tags,
+			&r.CreatedAt, &r.UpdatedAt,
+			&risksJSON,
+		); err != nil {
 			return nil, fmt.Errorf("failed to scan requirement row: %w", err)
 		}
-		if effectiveDateNull.Valid {
-			r.EffectiveDate = &models.CustomDate{Time: time.Time{}}
-			if err := r.EffectiveDate.UnmarshalJSON([]byte(effectiveDateNull.String)); err != nil {
-				return nil, fmt.Errorf("failed to parse effective_date: %w", err)
+
+		if len(risksJSON) > 0 && string(risksJSON) != "null" {
+			if err := json.Unmarshal(risksJSON, &r.Risks); err != nil {
+				log.Printf("Warning: failed to unmarshal risks for requirement %s: %v", r.ID, err)
 			}
-		}
-		if expiryDateNull.Valid {
-			r.ExpiryDate = &models.CustomDate{Time: time.Time{}}
-			if err := r.ExpiryDate.UnmarshalJSON([]byte(expiryDateNull.String)); err != nil {
-				return nil, fmt.Errorf("failed to parse expiry_date: %w", err)
+			r.RiskIDs = make([]string, len(r.Risks))
+			for i, risk := range r.Risks {
+				r.RiskIDs[i] = risk.ID
 			}
-		}
-		if tagsNull.Valid {
-			r.Tags = json.RawMessage(tagsNull.String)
-		} else {
-			r.Tags = nil
 		}
 		requirements = append(requirements, r)
 	}
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error during rows iteration for requirements: %w", err)
-	}
-	return requirements, nil
+	return requirements, rows.Err()
 }
 
 func (s *DBStore) GetUsers() ([]models.User, error) {
@@ -914,9 +936,29 @@ func (s *DBStore) GetComplianceStandards() ([]models.ComplianceStandard, error) 
 
 func (s *DBStore) GetRequirementByID(id string) (*models.Requirement, error) {
 	var requirement models.Requirement
-	query := `SELECT id, standard_id, control_id_reference, requirement_text, version, effective_date, expiry_date, official_link, priority, status, tags, created_at, updated_at FROM requirements WHERE id = $1`
-	row := s.DB.QueryRow(query, id)
-	err := row.Scan(
+	query := `
+		SELECT
+			req.id, req.standard_id, req.control_id_reference, req.requirement_text, req.version,
+			req.effective_date, req.expiry_date, req.official_link, req.priority, req.status, req.tags,
+			req.created_at, req.updated_at,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', r.id,
+						'riskId', r.risk_id,
+						'title', r.title
+					)
+				) FILTER (WHERE r.id IS NOT NULL),
+				'[]'
+			) as risks_json
+		FROM requirements req
+		LEFT JOIN risk_requirements rr ON req.id = rr.requirement_id
+		LEFT JOIN risks r ON rr.risk_id = r.id
+		WHERE req.id = $1
+		GROUP BY req.id
+	`
+	var risksJSON []byte
+	err := s.DB.QueryRow(query, id).Scan(
 		&requirement.ID,
 		&requirement.StandardID,
 		&requirement.ControlIDReference,
@@ -930,12 +972,23 @@ func (s *DBStore) GetRequirementByID(id string) (*models.Requirement, error) {
 		&requirement.Tags,
 		&requirement.CreatedAt,
 		&requirement.UpdatedAt,
+		&risksJSON,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, err
 		}
 		return nil, fmt.Errorf("error scanning requirement by id %s: %w", id, err)
+	}
+
+	if len(risksJSON) > 0 && string(risksJSON) != "null" {
+		if err := json.Unmarshal(risksJSON, &requirement.Risks); err != nil {
+			log.Printf("Warning: failed to unmarshal risks for requirement %s: %v", requirement.ID, err)
+		}
+		requirement.RiskIDs = make([]string, len(requirement.Risks))
+		for i, risk := range requirement.Risks {
+			requirement.RiskIDs[i] = risk.ID
+		}
 	}
 	return &requirement, nil
 }
@@ -2259,6 +2312,199 @@ func (s *DBStore) GetCampaignTaskInstanceResults(instanceID string) ([]models.Ca
 		results = append(results, result)
 	}
 	return results, rows.Err()
+}
+
+// --- Risk Management Store Methods ---
+
+func (s *DBStore) CreateRisk(risk *models.Risk) (string, error) {
+	risk.ID = uuid.NewString() // Generate new UUID for the risk
+	risk.CreatedAt = time.Now()
+	risk.UpdatedAt = time.Now()
+
+	tagsJSON := risk.Tags
+	if tagsJSON == nil {
+		tagsJSON = json.RawMessage("[]")
+	}
+
+	tx, err := s.DB.Beginx()
+	if err != nil {
+		return "", fmt.Errorf("failed to begin transaction for creating risk: %w", err)
+	}
+	defer tx.Rollback()
+
+	query := `
+		INSERT INTO risks (id, risk_id, title, description, category, likelihood, impact, status, owner_user_id, tags, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+	`
+	_, err = tx.Exec(query, risk.ID, risk.RiskID, risk.Title, risk.Description, risk.Category, risk.Likelihood, risk.Impact, risk.Status, risk.OwnerUserID, tagsJSON, risk.CreatedAt, risk.UpdatedAt)
+	if err != nil {
+		return "", fmt.Errorf("failed to insert risk: %w", err)
+	}
+
+	// Link requirements if any
+	if len(risk.RequirementIDs) > 0 {
+		stmt, err := tx.Preparex("INSERT INTO risk_requirements (risk_id, requirement_id) VALUES ($1, $2)")
+		if err != nil {
+			return "", fmt.Errorf("failed to prepare risk_requirements insert statement: %w", err)
+		}
+		defer stmt.Close()
+		for _, reqID := range risk.RequirementIDs {
+			_, err = stmt.Exec(risk.ID, reqID)
+			if err != nil {
+				// Consider if a duplicate link should be an error or ignored
+				if !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+					return "", fmt.Errorf("failed to link requirement %s to risk %s: %w", reqID, risk.ID, err)
+				}
+			}
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return "", fmt.Errorf("failed to commit transaction for creating risk: %w", err)
+	}
+
+	return risk.ID, nil
+}
+
+func (s *DBStore) GetRiskByID(riskID string) (*models.Risk, error) {
+	var risk models.Risk
+	query := `
+		SELECT
+			r.id, r.risk_id, r.title, r.description, r.category, r.likelihood, r.impact, r.status, r.owner_user_id,
+			u.name as owner_name,
+			r.tags, r.created_at, r.updated_at,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', req.id,
+						'controlIdReference', req.control_id_reference,
+						'requirementText', req.requirement_text,
+						'standardId', req.standard_id
+					)
+				) FILTER (WHERE rr.requirement_id IS NOT NULL),
+				'[]'
+			) as requirements_json
+		FROM risks r
+		LEFT JOIN users u ON r.owner_user_id = u.id
+		LEFT JOIN risk_requirements rr ON r.id = rr.risk_id
+		LEFT JOIN requirements req ON rr.requirement_id = req.id
+		WHERE r.id = $1
+		GROUP BY r.id, u.name
+	`
+	var ownerName sql.NullString
+	err := s.DB.QueryRow(query, riskID).Scan(
+		&risk.ID, &risk.RiskID, &risk.Title, &risk.Description, &risk.Category, &risk.Likelihood, &risk.Impact, &risk.Status, &risk.OwnerUserID, &ownerName, &risk.Tags, &risk.CreatedAt, &risk.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get risk by ID %s: %w", riskID, err)
+	}
+
+	if ownerName.Valid {
+		risk.Owner = &models.UserBasicInfo{ID: *risk.OwnerUserID, Name: ownerName.String}
+	}
+
+	// Unmarshal requirements JSON
+	var requirementsJSON []byte
+	if err := json.Unmarshal(requirementsJSON, &risk.Requirements); err != nil {
+		log.Printf("Warning: failed to unmarshal requirements for risk %s: %v", risk.ID, err)
+	}
+	risk.RequirementIDs = make([]string, len(risk.Requirements))
+	for i, req := range risk.Requirements {
+		risk.RequirementIDs[i] = req.ID
+	}
+
+	return &risk, nil
+}
+
+func (s *DBStore) GetRisks() ([]models.Risk, error) {
+	var risks []models.Risk
+	query := `
+		SELECT
+			r.id, r.risk_id, r.title, r.description, r.category, r.likelihood, r.impact, r.status, r.owner_user_id,
+			u.name as owner_name,
+			r.tags, r.created_at, r.updated_at,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', req.id,
+						'controlIdReference', req.control_id_reference,
+						'requirementText', req.requirement_text,
+						'standardId', req.standard_id
+					)
+				) FILTER (WHERE rr.requirement_id IS NOT NULL),
+				'[]'
+			) as requirements_json
+		FROM risks r
+		LEFT JOIN users u ON r.owner_user_id = u.id
+		LEFT JOIN risk_requirements rr ON r.id = rr.risk_id
+		LEFT JOIN requirements req ON rr.requirement_id = req.id
+		GROUP BY r.id, u.name
+		ORDER BY r.created_at DESC
+	`
+	// query := `
+	// 	SELECT r.id, r.risk_id, r.title, r.description, r.category, r.likelihood, r.impact, r.status, r.owner_user_id, u.name as owner_name, r.tags, r.created_at, r.updated_at
+	// 	FROM risks r
+	// 	LEFT JOIN users u ON r.owner_user_id = u.id
+	// 	ORDER BY r.created_at DESC
+	// `
+	rows, err := s.DB.Queryx(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get risks: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var risk models.Risk
+		var ownerName sql.NullString // For owner_name
+		var requirementsJSON []byte  // For aggregated requirements
+		if err := rows.Scan(
+			&risk.ID, &risk.RiskID, &risk.Title, &risk.Description, &risk.Category, &risk.Likelihood, &risk.Impact, &risk.Status, &risk.OwnerUserID,
+			&ownerName, &risk.Tags, &risk.CreatedAt, &risk.UpdatedAt,
+			&requirementsJSON,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan risk row: %w", err)
+		}
+
+		// Unmarshal requirements JSON
+		if err := json.Unmarshal(requirementsJSON, &risk.Requirements); err != nil {
+			log.Printf("Warning: failed to unmarshal requirements for risk %s: %v", risk.ID, err)
+		}
+		risk.RequirementIDs = make([]string, len(risk.Requirements))
+		for i, req := range risk.Requirements {
+			risk.RequirementIDs[i] = req.ID
+		}
+		if ownerName.Valid && risk.OwnerUserID != nil {
+			risk.Owner = &models.UserBasicInfo{ID: *risk.OwnerUserID, Name: ownerName.String}
+		}
+		// TODO: Fetch linked requirements for each risk
+		risks = append(risks, risk)
+	}
+	return risks, rows.Err()
+}
+
+func (s *DBStore) UpdateRisk(risk *models.Risk) error {
+	risk.UpdatedAt = time.Now()
+	tagsJSON := risk.Tags
+	if tagsJSON == nil {
+		tagsJSON = json.RawMessage("[]")
+	}
+	// TODO: Implement transaction to update risk and its linked requirements
+	query := `
+		UPDATE risks SET risk_id=$2, title=$3, description=$4, category=$5, likelihood=$6, impact=$7, status=$8, owner_user_id=$9, tags=$10, updated_at=$11
+		WHERE id = $1
+	`
+	_, err := s.DB.Exec(query, risk.ID, risk.RiskID, risk.Title, risk.Description, risk.Category, risk.Likelihood, risk.Impact, risk.Status, risk.OwnerUserID, tagsJSON, risk.UpdatedAt)
+	return err
+}
+
+func (s *DBStore) DeleteRisk(riskID string) error {
+	// Consider deleting related links in risk_requirements within a transaction
+	query := "DELETE FROM risks WHERE id = $1"
+	_, err := s.DB.Exec(query, riskID)
+	return err
 }
 
 // GetAuditLogs retrieves audit logs based on filters and pagination.

@@ -11,6 +11,7 @@ const apiClient = axios.create({
 
 const getToken = () => localStorage.getItem('authToken');
 
+
 apiClient.interceptors.request.use(config => {
     const token = getToken();
     if (token) {
@@ -20,6 +21,24 @@ apiClient.interceptors.request.use(config => {
 }, error => {
     return Promise.reject(error);
 });
+
+export const doLogin = async (authData) => {
+    const response = await apiClient.post('/auth/login', authData);
+    return response;
+};
+
+
+export const getCurrentUser = async () => {
+    const response = await apiClient.get('/auth/me');
+    return response.data;
+};
+
+export const doRegister = async (name, email, password) => {
+    const data = {name, email, password}
+    const response = await apiClient.post('/auth/register', data);
+    return response.data;
+};
+
 
 export const fetchIntegrationCheckTypes = async () => {
     const response = await apiClient.get('/integration-check-types');
@@ -286,6 +305,13 @@ export const getCampaignTaskInstanceResults = async (instanceId) => {
 export const changePassword = async (passwordData) => {
     return apiClient.post('/auth/change-password', passwordData);
 };
+
+// --- Risk Management API calls ---
+export const getRisks = () => apiClient.get('/risks');
+export const getRiskById = (id) => apiClient.get(`/risks/${id}`);
+export const createRisk = (riskData) => apiClient.post('/risks', riskData);
+export const updateRisk = (id, riskData) => apiClient.put(`/risks/${id}`, riskData);
+export const deleteRisk = (id) => apiClient.delete(`/risks/${id}`);
 
 export const getConnectedSystems = async () => {
     const response = await apiClient.get('/systems');
