@@ -280,7 +280,7 @@ function ThreeColumnView({
                                                                     key={risk.id}
                                                                     action
                                                                     onClick={(e) => { e.stopPropagation(); handleOpenRiskDetailModal(risk); }}
-                                                                    className="p-1 px-2 me-1 mb-1 rounded-pill border d-flex align-items-center"
+                                                                    className="p-1 px-2 me-1 mb-1 rounded-pill border d-flex align-items-center small"
                                                                 >
                                                                     <FaExclamationTriangle className="me-1 text-danger" size="0.8em" /> {risk.riskId} - {risk.title}
                                                                 </ListGroup.Item>

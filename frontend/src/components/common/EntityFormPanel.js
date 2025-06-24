@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Offcanvas, Form, Button, FloatingLabel, Row, Col, Alert } from 'react-bootstrap';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
-import StandardForm from '../forms/StandardForm'; // We'll create this
-import RequirementForm from '../forms/RequirementForm'; // We'll create this
-import TaskForm from '../forms/TaskForm'; // We'll create this
+import StandardForm from './forms/StandardForm'; // We'll create this
+import RequirementForm from './forms/RequirementForm'; // We'll create this
+import TaskForm from './forms/TaskForm'; // We'll create this
+import RiskForm from './forms/RiskForm'; // Import the new RiskForm
 
 function EntityFormPanel({
     show,
@@ -123,129 +124,17 @@ function EntityFormPanel({
 
     const renderForm = () => {
         switch (entityType) {
-case 'risk':
+            case 'risk':
                 return (
-                    <>
-                                    <Form onSubmit={handleSubmit}>
-
-                        <Form.Group className="mb-3">
-                            <Form.Label>Risk ID*</Form.Label>
-                            <Form.Control
-                                type="text"
-                                name="riskId"
-                                value={formData.riskId || ''}
-                                onChange={handleChange}
-                                required
-                                placeholder="e.g., RISK-001"
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Title*</Form.Label>
-                            <Form.Control
-                                type="text"
-                                name="title"
-                                value={formData.title || ''}
-                                onChange={handleChange}
-                                required
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Description</Form.Label>
-                            <Form.Control
-                                as="textarea"
-                                rows={3}
-                                name="description"
-                                value={formData.description || ''}
-                                onChange={handleChange}
-                            />
-                        </Form.Group>
-                        <Row>
-                            <Col>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Category</Form.Label>
-                                    <Form.Select name="category" value={formData.category || ''} onChange={handleChange}>
-                                        <option value="">Select Category...</option>
-                                        <option value="Financial">Financial</option>
-                                        <option value="Operational">Operational</option>
-                                        <option value="Security">Security</option>
-                                        <option value="Compliance">Compliance</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Status</Form.Label>
-                                    <Form.Select name="status" value={formData.status || 'Open'} onChange={handleChange}>
-                                        <option value="Open">Open</option>
-                                        <option value="Mitigated">Mitigated</option>
-                                        <option value="Accepted">Accepted</option>
-                                        <option value="Closed">Closed</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Likelihood</Form.Label>
-                                    <Form.Select name="likelihood" value={formData.likelihood || ''} onChange={handleChange}>
-                                        <option value="">Select Likelihood...</option>
-                                        <option value="Very Low">Very Low</option>
-                                        <option value="Low">Low</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="High">High</option>
-                                        <option value="Very High">Very High</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Impact</Form.Label>
-                                    <Form.Select name="impact" value={formData.impact || ''} onChange={handleChange}>
-                                        <option value="">Select Impact...</option>
-                                        <option value="Very Low">Very Low</option>
-                                        <option value="Low">Low</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="High">High</option>
-                                        <option value="Very High">Very High</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Owner</Form.Label>
-                            <Form.Select name="ownerUserId" value={formData.ownerUserId || ''} onChange={handleChange}>
-                                <option value="">Select Owner...</option>
-                                {allUsers.map(user => (
-                                    <option key={user.id} value={user.id}>{user.name}</option>
-                                ))}
-                            </Form.Select>
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Linked Requirements</Form.Label>
-                            <Select
-                                isMulti
-                                options={allRequirements.map(req => ({ value: req.id, label: `${req.controlIdReference} - ${req.requirementText.substring(0, 50)}...` }))}
-                                value={formData.requirementIds?.map(id => {
-                                    const req = allRequirements.find(r => r.id === id);
-                                    return req ? { value: req.id, label: `${req.controlIdReference} - ${req.requirementText.substring(0, 50)}...` } : null;
-                                }).filter(Boolean) || []}
-                                onChange={(selectedOptions) => handleMultiSelectChange('requirementIds', selectedOptions)}
-                                placeholder="Select requirements to link..."
-                                closeMenuOnSelect={false}
-                            />
-                        </Form.Group>
-
-                         {error && <Alert variant="danger">{error}</Alert>}
-                    <Button variant="primary" type="submit" disabled={loading}>
-                        {loading ? 'Saving...' : 'Save'}
-                    </Button>
-                    <Button variant="secondary" onClick={onClose} className="ms-2">
-                        Cancel
-                    </Button>
-                </Form>
-                    </>
-                );            
+                    <RiskForm
+                        initialData={initialData}
+                        onSubmit={handleFormSubmit}
+                        onCancel={onClose}
+                        mode={mode}
+                        allUsers={allUsers}
+                        allRequirements={allRequirements}
+                    />
+                );
             case 'standard':
                 return (
                     <StandardForm

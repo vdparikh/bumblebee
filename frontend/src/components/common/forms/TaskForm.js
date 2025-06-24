@@ -6,7 +6,7 @@ import {
 } from 'react-icons/fa';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
-import { fetchIntegrationCheckTypes } from '../../services/api'; // Adjust path as needed
+import { fetchIntegrationCheckTypes } from '../../../services/api'; // Adjust path as needed
 
 const evidenceTypeOptions = [
     { value: 'screenshot', label: 'Screenshot' },

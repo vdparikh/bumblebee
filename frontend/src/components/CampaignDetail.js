@@ -65,7 +65,9 @@ import {
     FaThList,
     FaTable,
     FaSort, FaSortUp, FaSortDown,
-    FaExclamationTriangle
+    FaExclamationTriangle,
+    FaTimes,
+    FaTimesCircle
 
 
 } from 'react-icons/fa';
@@ -82,6 +84,7 @@ import KeyMetricsCard from './common/KeyMetricsCard';
 import TeamDisplay from './common/TeamDisplay'; // Import TeamDisplay
 import { useAuth } from '../contexts/AuthContext';
 import { getStatusVariant, getStatusColor, chartColors } from '../theme';
+import RiskDetailModal from './modals/RiskDetailModal';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -472,6 +475,14 @@ function CampaignDetail() {
         setSortConfig({ key, direction });
     };
 
+    const [showRiskDetailModal, setShowRiskDetailModal] = useState(false);
+    const [selectedRiskData, setSelectedRiskData] = useState(null);
+
+    const handleOpenRiskDetailModal = (risk) => {
+        setSelectedRiskData(risk);
+        setShowRiskDetailModal(true);
+    };
+
     const renderRequirementWithProgressBar = (req) => {
         const tasksForThisRequirement = taskInstances.filter(
             task => task.campaign_selected_requirement_id === req.id
@@ -481,6 +492,29 @@ function CampaignDetail() {
             acc[task.status] = (acc[task.status] || 0) + 1;
             return acc;
         }, {});
+
+
+      
+
+        // req.risks && req.risks.length > 0 && (
+        //     <div className="mt-2">
+        //         <small className="text-muted d-block mb-1">Associated Risks:</small>
+        //         <ListGroup horizontal className="flex-wrap">
+        //             {req.risks.map(risk => (
+        //                 <ListGroup.Item
+        //                     key={risk.id}
+        //                     action
+        //                     onClick={(e) => { e.stopPropagation(); handleOpenRiskDetailModal(risk); }}
+        //                     className="p-1 px-2 me-1 mb-1 rounded-pill border d-flex align-items-center"
+        //                 >
+        //                     <FaExclamationTriangle className="me-1 text-danger" size="0.8em" /> {risk.riskId} - {risk.title}
+        //                 </ListGroup.Item>
+        //             ))}
+        //         </ListGroup>
+        //     </div>
+        // )
+
+
 
         const progressElements = [];
 
@@ -504,20 +538,46 @@ function CampaignDetail() {
         }
 
         return (
+            <div>
             <div className="d-flex justify-content-between align-items-center w-100">
                 <div>
                     <div className="fw-bold">{req.control_id_reference}</div>
-                    <small className="text-muted">{req.requirement_text?.substring(0, 70)}...</small>
+                    <small className="text-muted">{req.requirement_text?.substring(0, 70)}...</small>                    
                     {totalTasks > 0 && (
-                        <div>
-                            <ProgressBar style={{ height: '15px', marginTop: '5px', minWidth: '150px' }} className="rounded-1 small-progress-bar">
+                        <div style={{ height: '15px', marginTop: '5px', width: '100%' }}>
+                            <ProgressBar style={{ height: '15px', marginTop: '5px', width: '100%' }} className="rounded-1 w-100 small-progress-bar">
                                 {progressElements}
                             </ProgressBar>
                         </div>
                     )}
-
                 </div>
                 <Badge pill bg="light" text="dark" className="ms-2">{totalTasks}</Badge>
+            </div>
+              <div>
+            {selectedRequirements.map(scopedReq => {
+                const masterReq = allMasterRequirements.find(mr => mr.id === scopedReq.requirement_id);
+                if (masterReq && masterReq.risks && scopedReq.id === req.id && masterReq.risks.length > 0) {
+                    return (
+                        <div key={scopedReq.id}>
+                            {/* <div className="fw-bold">{masterReq.controlIdReference} - {masterReq.requirementText?.substring(0, 70)}...</div> */}
+                            <div className="mt-2">
+                                {masterReq.risks.map(risk => (
+                                    <div 
+                                    onClick={(e) => { e.stopPropagation(); handleOpenRiskDetailModal(risk); }}
+                                   className="p-1 px-2 me-1 mb-1 rounded-pill border d-flex align-items-center small"                                 
+                                    key={risk.id} bg="danger" >
+                                        <FaExclamationTriangle className="me-1 text-danger" size="0.8em" />
+                                        {risk.riskId} - {risk.title} ({risk.status})
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                }
+                return null;
+            }).filter(Boolean)}
+        </div>
+
             </div>
         );
     };
@@ -706,6 +766,13 @@ function CampaignDetail() {
             />
 
 
+            <RiskDetailModal
+                show={showRiskDetailModal}
+                onHide={() => setShowRiskDetailModal(false)}
+                risk={selectedRiskData}
+                allUsers={allUsers}
+            />
+
             <Card className="mb-3">
                 <Card.Body>
                     <div className="d-flex justify-content-between align-items-center mb-2">
@@ -761,21 +828,20 @@ function CampaignDetail() {
 
 
             <Row className="mb-3 gx-2">
-                <Col>
-                    <div className='bg-white rounded-pill p-3'>
-                        <Form.Control
-                            type="search"
-                            placeholder="Search campaign tasks by title, description, owner, assignee..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="h-100 border-0"
-                        />
-                    </div>
-                </Col>
-
+               
                 {(searchTerm || selectedRequirementFilterId || activeStatusFilter || activeCategoryFilter) &&
-                    <Col md={2} className="d-flex align-items-center">
-                        <Button variant="outline-secondary" onClick={clearAllTaskFilters} className="w-100 h-100">Clear Filters</Button>
+                    <Col md={12} className="d-flex justify-content-between align-items-start">
+                        <div className='bg-white w-100 rounded-pill p-3'>
+                            <Form.Control
+                                type="search"
+                                placeholder="Search campaign tasks by title, description, owner, assignee..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="h-100 border-0 "
+                            />
+                        </div>
+
+                        <Button style={{ width: "20px" }} variant="transparent" onClick={clearAllTaskFilters} className=" h-100"><FaTimesCircle /></Button>
                     </Col>
                 }
 
@@ -817,39 +883,39 @@ function CampaignDetail() {
 
 
                     {/* Risks Associated with Scoped Requirements */}
-            {selectedRequirements.length > 0 && (
-                <Row className="mt-4">
-                    <Col md={12}>
-                        <Card>
-                            <Card.Header as="h5"><FaExclamationTriangle className="me-2 text-danger" />Risks Associated with Scoped Requirements</Card.Header>
-                            <ListGroup variant="flush">
-                                {selectedRequirements.map(scopedReq => {
-                                    const masterReq = allMasterRequirements.find(mr => mr.id === scopedReq.requirement_id);
-                                    if (masterReq && masterReq.risks && masterReq.risks.length > 0) {
-                                        return (
-                                            <ListGroup.Item key={scopedReq.id}>
-                                                <div className="fw-bold">{masterReq.controlIdReference} - {masterReq.requirementText?.substring(0, 70)}...</div>
-                                                <div className="mt-2">
-                                                    {masterReq.risks.map(risk => (
-                                                        <Badge key={risk.id} bg="danger" className="me-2 mb-1">
-                                                            {risk.riskId} - {risk.title} ({risk.status})
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </ListGroup.Item>
-                                        );
-                                    }
-                                    return null;
-                                }).filter(Boolean)}
-                                {selectedRequirements.every(scopedReq => {
-                                    const masterReq = allMasterRequirements.find(mr => mr.id === scopedReq.requirement_id);
-                                    return !masterReq || !masterReq.risks || masterReq.risks.length === 0;
-                                }) && <ListGroup.Item className="text-muted">No risks associated with the currently scoped requirements.</ListGroup.Item>}
-                            </ListGroup>
-                        </Card>
-                    </Col>
-                </Row>
-            )}
+                    {/* {selectedRequirements.length > 0 && (
+                        <Row className="mt-4">
+                            <Col md={12}>
+                                <Card>
+                                    <Card.Header as="h5"><FaExclamationTriangle className="me-2 text-danger" />Risks Associated with Scoped Requirements</Card.Header>
+                                    <ListGroup variant="flush">
+                                        {selectedRequirements.map(scopedReq => {
+                                            const masterReq = allMasterRequirements.find(mr => mr.id === scopedReq.requirement_id);
+                                            if (masterReq && masterReq.risks && masterReq.risks.length > 0) {
+                                                return (
+                                                    <ListGroup.Item key={scopedReq.id}>
+                                                        <div className="fw-bold">{masterReq.controlIdReference} - {masterReq.requirementText?.substring(0, 70)}...</div>
+                                                        <div className="mt-2">
+                                                            {masterReq.risks.map(risk => (
+                                                                <Badge key={risk.id} bg="danger" className="me-2 mb-1">
+                                                                    {risk.riskId} - {risk.title} ({risk.status})
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    </ListGroup.Item>
+                                                );
+                                            }
+                                            return null;
+                                        }).filter(Boolean)}
+                                        {selectedRequirements.every(scopedReq => {
+                                            const masterReq = allMasterRequirements.find(mr => mr.id === scopedReq.requirement_id);
+                                            return !masterReq || !masterReq.risks || masterReq.risks.length === 0;
+                                        }) && <ListGroup.Item className="text-muted">No risks associated with the currently scoped requirements.</ListGroup.Item>}
+                                    </ListGroup>
+                                </Card>
+                            </Col>
+                        </Row>
+                    )} */}
 
                 </Col>
 
@@ -884,7 +950,7 @@ function CampaignDetail() {
                 </Col>
             </Row>
 
-            
+
 
             <Modal show={showAssignModal} onHide={() => setShowAssignModal(false)}>
                 <Modal.Header closeButton>
