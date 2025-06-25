@@ -381,3 +381,17 @@ export const getTaskExecutionStatus = async (taskInstanceId) => {
         throw error;
     }
 };
+
+export const linkTaskToRequirements = async (taskId, requirementIds) => {
+    const response = await apiClient.post(`/tasks/${taskId}/link-requirements`, {
+        requirement_ids: requirementIds
+    });
+    return response;
+};
+
+export const unlinkTaskFromRequirements = async (taskId, requirementIds) => {
+    const response = await apiClient.post(`/tasks/${taskId}/unlink-requirements`, {
+        requirement_ids: requirementIds
+    });
+    return response;
+};

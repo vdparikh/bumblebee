@@ -8,13 +8,15 @@ import {
     FaMobile, FaDesktop, FaLaptop, FaTablet, FaShieldVirus, FaUserShield,
     FaFileAlt, FaClipboardCheck, FaSearch, FaTools, FaCode, FaBug,
     FaRocket, FaLightbulb, FaBrain, FaRobot, FaHandshake, FaBalanceScale,
-    FaCreditCard, FaBuilding
+    FaCreditCard, FaBuilding, FaUnlink
 } from 'react-icons/fa';
 import {
     getComplianceStandards,
     getRequirements as getAllRequirements,
     getTasks as getAllMasterTasks,
     getUsers,
+    linkTaskToRequirements,
+    unlinkTaskFromRequirements,
 } from '../../services/api';
 import PageHeader from '../common/PageHeader';
 import RiskDetailModal from '../modals/RiskDetailModal';
@@ -40,6 +42,10 @@ function ModernComplianceView({
     const [selectedRiskData, setSelectedRiskData] = useState(null);
     const [selectedStandardId, setSelectedStandardId] = useState(null);
     const [selectedRequirementId, setSelectedRequirementId] = useState(null);
+    const [showAssociateTaskModal, setShowAssociateTaskModal] = useState(false);
+    const [allTasks, setAllTasks] = useState([]);
+    const [filteredTasks, setFilteredTasks] = useState([]);
+    const [loadingAllTasks, setLoadingAllTasks] = useState(false);
 
     const fetchStandards = useCallback(async () => {
         setLoadingStandards(true);
@@ -62,6 +68,28 @@ function ModernComplianceView({
     const handleOpenRiskDetailModal = (risk) => {
         setSelectedRiskData(risk);
         setShowRiskDetailModal(true);
+    };
+
+    const fetchAllTasksForAssociation = useCallback(async () => {
+        setLoadingAllTasks(true);
+        try {
+            const response = await getAllMasterTasks();
+            const tasksArray = Array.isArray(response.data) ? response.data : [];
+            setAllTasks(tasksArray);
+            setFilteredTasks(tasksArray);
+        } catch (err) {
+            console.error("Error fetching all tasks:", err);
+            setError('Failed to fetch tasks for association.');
+        } finally {
+            setLoadingAllTasks(false);
+        }
+    }, []);
+
+    const handleOpenAssociateTaskModal = () => {
+        if (allTasks.length === 0) {
+            fetchAllTasksForAssociation();
+        }
+        setShowAssociateTaskModal(true);
     };
 
     useEffect(() => {
@@ -373,7 +401,7 @@ function ModernComplianceView({
             {/* Requirements and Tasks Section */}
             {selectedStandardId && (
                 <Row>
-                    <Col md={6}>
+                    <Col md={5}>
                         <Card className="h-100">
                             <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
                                 <span><FaFileContract className="me-2" />Requirements</span>
@@ -460,14 +488,19 @@ function ModernComplianceView({
                         </Card>
                     </Col>
 
-                    <Col md={6}>
+                    <Col md={7}>
                         <Card className="h-100">
                             <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
                                 <span><FaTasks className="me-2" />Tasks</span>
                                 {onAddTaskClick && selectedRequirementId && (
-                                    <Button variant="outline-success" size="sm" onClick={() => onAddTaskClick(selectedRequirementId)}>
-                                        <FaPlusCircle className="me-1" />Add
-                                    </Button>
+                                    <div className="d-flex gap-2">
+                                        <Button variant="outline-success" size="sm" onClick={() => onAddTaskClick(selectedRequirementId)}>
+                                            <FaPlusCircle className="me-1" />Add
+                                        </Button>
+                                        <Button variant="outline-primary" size="sm" onClick={handleOpenAssociateTaskModal}>
+                                            <FaLink className="me-1" />Link Existing
+                                        </Button>
+                                    </div>
                                 )}
                             </Card.Header>
                             <div style={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto' }}>
@@ -577,6 +610,172 @@ function ModernComplianceView({
                 allUsers={allUsers}
             />
 
+            {/* Associate Task Modal */}
+            {showAssociateTaskModal && (
+                <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-lg">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    <FaLink className="me-2" />
+                                    Associate Tasks with Requirement
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => setShowAssociateTaskModal(false)}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                {loadingAllTasks ? (
+                                    <div className="text-center py-4">
+                                        <Spinner animation="border" />
+                                        <p className="mt-2">Loading available tasks...</p>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <p className="text-muted mb-3">
+                                            Select tasks to associate with the current requirement. 
+                                            Tasks can be associated with multiple requirements.
+                                        </p>
+                                        
+                                        <div className="mb-3">
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder="Search tasks by title, category, or description..."
+                                                onChange={(e) => {
+                                                    const searchTerm = e.target.value.toLowerCase();
+                                                    const filtered = allTasks.filter(task => 
+                                                        task.title?.toLowerCase().includes(searchTerm) ||
+                                                        task.category?.toLowerCase().includes(searchTerm) ||
+                                                        task.description?.toLowerCase().includes(searchTerm)
+                                                    );
+                                                    setFilteredTasks(filtered);
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                            {filteredTasks.length > 0 ? (
+                                                <ListGroup>
+                                                    {filteredTasks.map(task => {
+                                                        const isAlreadyAssociated = tasks.some(t => t.id === task.id);
+                                                        return (
+                                                            <ListGroup.Item
+                                                                key={task.id}
+                                                                className={`d-flex align-items-start ${isAlreadyAssociated ? 'bg-light' : ''}`}
+                                                            >
+                                                                <div className="d-flex align-items-start w-100">
+                                                                    <div className="task-icon me-3 mt-1">
+                                                                        {getTaskCategoryIcon(task)}
+                                                                    </div>
+                                                                    <div className="flex-grow-1">
+                                                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                                                            <h6 className="mb-1 fw-bold">{task.title}</h6>
+                                                                            {isAlreadyAssociated && (
+                                                                                <Badge bg="success" className="small">
+                                                                                    <FaCheckCircle className="me-1" />
+                                                                                    Associated
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                        
+                                                                        {task.description && (
+                                                                            <p className="mb-2 small text-muted">
+                                                                                {task.description.substring(0, 150)}
+                                                                                {task.description.length > 150 ? "..." : ""}
+                                                                            </p>
+                                                                        )}
+
+                                                                        <div className="d-flex flex-wrap gap-2 mb-2">
+                                                                            {task.category && (
+                                                                                <Badge bg="info" className="small">
+                                                                                    <FaTag className="me-1" />
+                                                                                    {task.category}
+                                                                                </Badge>
+                                                                            )}
+                                                                            {task.defaultPriority && (
+                                                                                <Badge bg={getPriorityBadgeColor(task.defaultPriority)} className="small">
+                                                                                    <FaExclamationCircle className="me-1" />
+                                                                                    {task.defaultPriority}
+                                                                                </Badge>
+                                                                            )}
+                                                                            {task.checkType && (
+                                                                                <Badge bg="secondary" className="small">
+                                                                                    <FaCogs className="me-1" />
+                                                                                    {task.checkType}
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="ms-3">
+                                                                        {!isAlreadyAssociated ? (
+                                                                            <Button
+                                                                                variant="outline-primary"
+                                                                                size="sm"
+                                                                                onClick={async () => {
+                                                                                    try {
+                                                                                        // Call API to link task to requirement
+                                                                                        await linkTaskToRequirements(task.id, [selectedRequirementId]);
+                                                                                        // Update local state
+                                                                                        setTasks(prev => [...prev, task]);
+                                                                                        setShowAssociateTaskModal(false);
+                                                                                    } catch (error) {
+                                                                                        console.error('Error associating task:', error);
+                                                                                        alert('Failed to associate task. Please try again.');
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                <FaLink className="me-1" />
+                                                                                Associate
+                                                                            </Button>
+                                                                        ) : (
+                                                                            <Button
+                                                                                variant="outline-danger"
+                                                                                size="sm"
+                                                                                onClick={async () => {
+                                                                                    try {
+                                                                                        // Call API to unlink task from requirement
+                                                                                        await unlinkTaskFromRequirements(task.id, [selectedRequirementId]);
+                                                                                        // Update local state
+                                                                                        setTasks(prev => prev.filter(t => t.id !== task.id));
+                                                                                    } catch (error) {
+                                                                                        console.error('Error removing task association:', error);
+                                                                                        alert('Failed to remove task association. Please try again.');
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                <FaUnlink className="me-1" />
+                                                                                Remove
+                                                                            </Button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </ListGroup.Item>
+                                                        );
+                                                    })}
+                                                </ListGroup>
+                                            ) : (
+                                                <div className="text-center py-4">
+                                                    <FaTasks size={48} className="text-muted mb-3" />
+                                                    <p className="text-muted">No tasks found.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <Button variant="secondary" onClick={() => setShowAssociateTaskModal(false)}>
+                                    Close
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style jsx>{`
                 // .standards-carousel .carousel-inner {
                 //     border-radius: 0.375rem;
@@ -646,9 +845,30 @@ function ModernComplianceView({
                 }
                 
                 .standard-card.border-primary {
-                    border-color: var(--bs-link-color) !important;
-                    background-color: var(--bs-light) !important;
+                    border-color: var(--bs-primary-bg-subtle) !important;
+                    background-color: var(--bs-primary-bg-subtle) !important;
                     // box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+                }
+                
+                .modal.show {
+                    z-index: 1050;
+                }
+                
+                .modal-dialog {
+                    max-width: 800px;
+                }
+                
+                .task-association-item {
+                    transition: all 0.2s ease;
+                }
+                
+                .task-association-item:hover {
+                    background-color: var(--bs-light);
+                }
+                
+                .task-association-item.bg-light {
+                    background-color: var(--bs-success-bg-subtle) !important;
+                    border-left: 4px solid var(--bs-success);
                 }
             `}</style>
         </Container>

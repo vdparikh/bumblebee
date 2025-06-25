@@ -130,6 +130,8 @@ func main() {
 		api.GET("/tasks", taskHandler.GetTasksHandler)
 		api.GET("/tasks/:id", taskHandler.GetTaskHandler)
 		api.PUT("/tasks/:id", taskHandler.UpdateTaskHandler)
+		api.POST("/tasks/:id/link-requirements", taskHandler.LinkTaskToRequirementsHandler)
+		api.POST("/tasks/:id/unlink-requirements", taskHandler.UnlinkTaskFromRequirementsHandler)
 
 		api.POST("/requirements", requirementHandler.CreateRequirementHandler)
 		api.GET("/requirements", requirementHandler.GetRequirementsHandler)

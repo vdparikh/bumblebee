@@ -194,3 +194,77 @@ func (h *TaskHandler) UpdateTaskHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, updatedTask)
 }
+
+func (h *TaskHandler) LinkTaskToRequirementsHandler(c *gin.Context) {
+	taskID := c.Param("id")
+
+	var payload struct {
+		RequirementIDs []string `json:"requirement_ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
+		return
+	}
+
+	if len(payload.RequirementIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "requirement_ids cannot be empty"})
+		return
+	}
+
+	// Verify the task exists
+	existingTask, err := h.Store.GetTaskByID(taskID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify task exists: " + err.Error()})
+		return
+	}
+	if existingTask == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	// Link the task to the requirements
+	if err := h.Store.LinkTaskToRequirements(taskID, payload.RequirementIDs); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to link task to requirements: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Task successfully linked to requirements"})
+}
+
+func (h *TaskHandler) UnlinkTaskFromRequirementsHandler(c *gin.Context) {
+	taskID := c.Param("id")
+
+	var payload struct {
+		RequirementIDs []string `json:"requirement_ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
+		return
+	}
+
+	if len(payload.RequirementIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "requirement_ids cannot be empty"})
+		return
+	}
+
+	// Verify the task exists
+	existingTask, err := h.Store.GetTaskByID(taskID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify task exists: " + err.Error()})
+		return
+	}
+	if existingTask == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	// Unlink the task from the requirements
+	if err := h.Store.UnlinkTaskFromRequirements(taskID, payload.RequirementIDs); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unlink task from requirements: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Task successfully unlinked from requirements"})
+}

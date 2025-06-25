@@ -79,6 +79,10 @@ type Store interface {
 	GetRisks() ([]models.Risk, error)
 	UpdateRisk(risk *models.Risk) error
 	DeleteRisk(riskID string) error
+
+	// Task-Requirement Linking
+	LinkTaskToRequirements(taskID string, requirementIDs []string) error
+	UnlinkTaskFromRequirements(taskID string, requirementIDs []string) error
 }
 
 // System Type Definition Store Methods interface (optional, for clarity)
@@ -2618,4 +2622,38 @@ func (s *DBStore) GetAuditLogs(filters map[string]interface{}, page, limit int) 
 	}
 
 	return logs, total, nil
+}
+
+func (s *DBStore) LinkTaskToRequirements(taskID string, requirementIDs []string) error {
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction for linking task to requirements: %w", err)
+	}
+	defer tx.Rollback()
+
+	for _, reqID := range requirementIDs {
+		_, err := tx.Exec("INSERT INTO task_requirements (task_id, requirement_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", taskID, reqID)
+		if err != nil {
+			return fmt.Errorf("failed to link task %s to requirement %s: %w", taskID, reqID, err)
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (s *DBStore) UnlinkTaskFromRequirements(taskID string, requirementIDs []string) error {
+	tx, err := s.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction for unlinking task from requirements: %w", err)
+	}
+	defer tx.Rollback()
+
+	for _, reqID := range requirementIDs {
+		_, err := tx.Exec("DELETE FROM task_requirements WHERE task_id = $1 AND requirement_id = $2", taskID, reqID)
+		if err != nil {
+			return fmt.Errorf("failed to unlink task %s from requirement %s: %w", taskID, reqID, err)
+		}
+	}
+
+	return tx.Commit()
 }
