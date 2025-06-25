@@ -103,7 +103,7 @@ const ChartCard = ({ title, data, chartTypeOptions = ['bar', 'pie', 'line', 'rad
           <ResponsivePie
             data={safeData}
             margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-            innerRadius={0.0}
+            innerRadius={0.5}
             padAngle={0.7}
             cornerRadius={3}
             colors={safeData.map(d => d.color).filter(Boolean).length > 0 ? safeData.map(d => d.color) : { scheme: 'nivo' }}

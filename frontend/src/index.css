@@ -29,11 +29,11 @@
     box-sizing: border-box;
 }
 .page-header h2 {
-  background-image: linear-gradient(180deg,#0078D3,#1D305A 58%),linear-gradient(140deg,#0078D3,#1D305A);
-      background-clip: text;
+  /* background-image: linear-gradient(180deg,#0078D3,#1D305A 58%),linear-gradient(140deg,#0078D3,#1D305A); */
+      /* background-clip: text; */
     letter-spacing: -.02em;
     padding-right: .04em;
-    -webkit-text-fill-color: transparent;
+    /* -webkit-text-fill-color: transparent; */
 }
 .page-header {
       padding: 5px 5px;
@@ -219,7 +219,7 @@ form, select, input, .form-control, .form-select {
   background-color: transparent!important;
   margin-bottom: -1px; 
   font-weight: 400;
-  color: var(--bs-dark); 
+  /* color: var(--bs-dark);  */
   opacity: 0.5;
 }
 
@@ -284,8 +284,8 @@ form, select, input, .form-control, .form-select {
 }
 
 .btn-outline-primary {
-  color: #1e69e3 !important; /* Pastel Blue text */
-  border-color: #1e69e3 !important; /* Pastel Blue border */
+  color: var(--bs-link-color) !important; /* Pastel Blue text */
+  border-color: var(--bs-link-color) !important; /* Pastel Blue border */
   background-color: transparent !important;
 }
 
@@ -493,11 +493,11 @@ form, select, input, .form-control, .form-select {
   }
 
   .page-header h2 {
-    background-image: linear-gradient(180deg,#eeeeee,#ffffff 58%),linear-gradient(140deg,#0078D3,#ffffff);
-        background-clip: text;
+    /* background-image: linear-gradient(180deg,#eeeeee,#ffffff 58%),linear-gradient(140deg,#0078D3,#ffffff); */
+        /* background-clip: text; */
       letter-spacing: -.02em;
       padding-right: .04em;
-      -webkit-text-fill-color: transparent;
+      /* -webkit-text-fill-color: transparent; */
   }
 
   .card { /* .details-pane also styled below */
@@ -563,6 +563,8 @@ form, select, input, .form-control, .form-select {
   .requirements-panel .list-group-item.active {
     background-color: var(--bs-dark-bg-subtle);
   }
+
+  
 }
 
 /* Problematic Sidebar Dropdown - review if still needed with popperConfig strategy: 'fixed' */

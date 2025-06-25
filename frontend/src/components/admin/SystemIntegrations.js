@@ -159,20 +159,27 @@ function SystemIntegrations() {
                     const systemTypeInfo = apiSystemTypes.find(option => option.value === system.systemType);
                     return (
                         <Col key={system.id}>
-                            <Card className="h-100 shadow-sm">
-                                <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
+                            <Card className="h-100 text-center shadow-sm">
+                                {/* <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
                                     <span>
-                                        {systemTypeInfo ? getSystemTypeIcon(systemTypeInfo.iconName, 22) : <FaPlug />}
-                                        <span className="ms-2">{system.name}</span>
+                                        <span className="">{system.name}</span>
                                     </span>
                                     <Badge bg={system.isEnabled ? 'success' : 'secondary'} pill>
                                         {system.isEnabled ? 'Active' : 'Disabled'}
                                     </Badge>
-                                </Card.Header>
+                                </Card.Header> */}
                                 <Card.Body>
-                                    <Card.Subtitle className="mb-2 text-muted">
-                                        Type: {systemTypeInfo ? systemTypeInfo.label : system.systemType}
+                                <div className='text-center p-2 pt-3 pb-3'
+                                    style={{ color: systemTypeInfo ? systemTypeInfo.color : '#007bff' }}
+                                >{systemTypeInfo ? getSystemTypeIcon(systemTypeInfo.iconName, 40) : <FaPlug />}</div>
+                                <div className='text-center fw-bold'>{system.name}</div>
+                                    <Card.Subtitle className="mb-2 text-muted text-center small">
+                                        Type: {systemTypeInfo ? systemTypeInfo.label : system.systemType}<br/>
+                                        <Badge bg={system.isEnabled ? 'success' : 'secondary'} pill>
+                                        {system.isEnabled ? 'Active' : 'Disabled'}
+                                    </Badge>
                                     </Card.Subtitle>
+                                    
                                     <Card.Text style={{ minHeight: '60px' }}>
                                         {system.description || 'No description provided.'}
                                     </Card.Text>
@@ -180,11 +187,11 @@ function SystemIntegrations() {
                                         Last Checked: {system.lastChecked ? new Date(system.lastChecked).toLocaleString() : 'Never'}
                                     </small>
                                 </Card.Body>
-                                <Card.Footer className="text-end bg-light border-0">
+                                <Card.Footer className="text-center bg-white border-0">
                                     <Button
                                         variant="outline-primary"
                                         size="sm"
-                                        className="me-2"
+                                        className="me-2 p-0"
                                         onClick={() => navigate(`/admin/system-integrations/edit/${system.id}`)}
                                         title="Edit System"
                                     >

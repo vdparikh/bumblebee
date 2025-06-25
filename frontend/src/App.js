@@ -105,7 +105,7 @@ function DynamicHeader() {
 
 function Layout() { 
   const location = useLocation();
-  const [showDetailsPanel, setShowDetailsPanel] = useState(true); 
+  const [showDetailsPanel, setShowDetailsPanel] = useState(false); 
   const { currentUser, logout } = useAuth();
   return (
     <Container fluid className="p-0"
