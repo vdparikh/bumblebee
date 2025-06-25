@@ -547,7 +547,6 @@ function MyTasks() {
 
                     {myTasks.length === 0 && !loading && !error && (
                         <div className='text-center m-3'>
-                            <FaTasks size="10em" className="ms-2 text-muted" />
                             <Alert variant="info" className="mt-3">You currently have no tasks assigned as owner.</Alert>
                         </div>
                     )}

@@ -24,6 +24,7 @@ import LoginPage from './components/auth/LoginPage';
 import ProtectedRoute from './components/auth/ProtectedRoute'; 
 import RegisterPage from './components/auth/RegisterPage'; 
 import ThreeColumnView from './components/views/ThreeColumnView'; 
+import ModernComplianceView from './components/views/ModernComplianceView';
 import UserProfilePage from './components/auth/UserProfilePage'; 
 import AdminSettingsPage from './pages/AdminSettingsPage'; 
 
@@ -150,7 +151,7 @@ function Layout() {
                           <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
                           <Route path="/admin-settings" element={<ProtectedRoute requiredRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
                           <Route path="/audit-logs" element={<ProtectedRoute roles={['admin', 'auditor']}><AuditLogsPage /></ProtectedRoute>} />
-                          <Route path="/alt-view" element={<ProtectedRoute><ThreeColumnView /></ProtectedRoute>} />
+                          <Route path="/alt-view" element={<ProtectedRoute><ModernComplianceView /></ProtectedRoute>} />
                           <Route path="/campaigns/:campaignId" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
                           <Route path="/admin/system-integrations" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrations /></ProtectedRoute>} />
                           <Route path="/admin/system-integrations/new" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
@@ -213,7 +214,7 @@ function AppRoutes() {
         <Route path="profile" element={<UserProfilePage />} />
         <Route path="admin-settings" element={<ProtectedRoute requiredRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
         <Route path="audit-logs" element={<ProtectedRoute roles={['admin', 'auditor']}><AuditLogsPage /></ProtectedRoute>} />
-        <Route path="alt-view" element={<ThreeColumnView />} />
+        <Route path="alt-view" element={<ModernComplianceView />} />
         <Route path="campaigns/:campaignId" element={<CampaignDetail />} />
         <Route path="tasks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Tasks /></ProtectedRoute>} />
         <Route path="pending-review" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><PendingReviewPage /></ProtectedRoute>} />

@@ -27,6 +27,7 @@ import {
     getDocuments,
 } from '../services/api';
 import RiskManagementView from '../components/views/RiskManagementView';
+import ModernComplianceView from '../components/views/ModernComplianceView';
 
 function LibraryManagementPage() {
     const [standards, setStandards] = useState([]);
@@ -301,7 +302,7 @@ function LibraryManagementPage() {
                     {renderDashboard()}
                 </Tab>
                 <Tab eventKey="library" title={<><FaBook className="me-1" />Library</>}>
-                    <ThreeColumnView
+                    <ModernComplianceView
                         key={standards.length + requirements.length + masterTasks.length}
                         showPageHeader={false}
                         onAddStandardClick={() => handleOpenPanel('add', 'standard')}

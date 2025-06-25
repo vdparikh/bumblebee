@@ -274,7 +274,7 @@ function Dashboard() {
                                 ))}
                             </div>
                         ) : (
-                            <Card.Body><p className="text-muted">No open tasks at the moment.</p></Card.Body>
+                            <Card.Body><p className="text-muted p-3 alert alert-info">No open tasks at the moment.</p></Card.Body>
                         )}
                                                 {/* </Card> */}
 

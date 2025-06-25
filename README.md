@@ -101,7 +101,7 @@ For setting up the Bumblebee environment, please refer to the technical setup gu
 3.  **Apply Database Schema:**
     Ensure `db.sql` (containing your table definitions) is in your project's root or a known location.
     ```sh
-    docker cp ./path/to/your/db.sql bumblebee-db:/tmp/db.sql
+    docker cp ./db.sql bumblebee-db:/tmp/db.sql
     docker exec -it bumblebee-db psql -U postgres -d compliance -f /tmp/db.sql
     ```
 
@@ -111,6 +111,10 @@ For setting up the Bumblebee environment, please refer to the technical setup gu
     docker cp sample_data.sql mypostgres:/tmp/sample_data.sql
     docker exec -it mypostgres psql -U postgres -d compliance -f /tmp/sample_data.sql
     ```
+
+DATABASE_URL=postgresql://compliance_user:compliance_password@localhost:5432/compliance_db?sslmode=disable
+docker cp db.sql compliance_postgres:/tmp/db.sql
+docker exec -it compliance_postgres psql -U compliance_user -d compliance_db -f /tmp/db.sql
 
 ### Running the Application
 

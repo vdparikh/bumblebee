@@ -31,7 +31,7 @@ function Sidebar({ /*currentUser,*/ logout, showDetailsPanel, setShowDetailsPane
         { to: "/", eventKey: "/", icon: <FaTachometerAlt size="1.2em" />, label: "Dashboard", roles: ['admin', 'auditor', 'user'] },
         { to: "/my-tasks", eventKey: "/my-tasks", icon: <FaTasks size="1.2em" />, label: "My Tasks", roles: ['admin', 'auditor', 'user'] },
         { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.2em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
-        { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.2em" />, label: "Alternate View", roles: ['user'] },
+        { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.2em" />, label: "Modern View", roles: ['user'] },
         { to: "/auditor-dashboard", eventKey: "/auditor-dashboard", icon: <FaUserShield size="1.2em" />, label: "Auditor Dashboard", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/auditor-dashboard') },
         (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management' },
         // { to: "/pending-review", eventKey: "/pending-review", icon: <FaHourglassHalf size="1.2em" />, label: "Pending Review", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/pending-review') },

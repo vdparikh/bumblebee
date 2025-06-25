@@ -591,3 +591,139 @@ form, select, input, .form-control, .form-select {
     text-shadow: 1px 1px 1px rgba(0,0,0,0.4); /* Optional shadow for readability */
 }
 
+
+
+/* Modern Compliance View Styles */
+.standards-carousel .carousel-inner {
+
+}
+
+.standards-carousel .carousel-item {
+    min-height: 200px;
+}
+
+.standard-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.standard-card:hover {
+    
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.standard-card.border-primary {
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.standard-icon-large {
+    font-size: 3rem;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.standard-icon-large:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.requirement-icon, .task-icon {
+    font-size: 1.2rem;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.requirement-item:hover .requirement-icon,
+.task-item:hover .task-icon {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.task-category-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 2px solid #dee2e6;
+}
+
+.task-category-group:not(:last-child) {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cursor-pointer:hover {
+    opacity: 0.8;
+}
+
+.requirement-item, .task-item {
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.requirement-item:hover, .task-item:hover {
+    border-left-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.requirement-item.active, .task-item.active {
+    border-left-color: #007bff;
+    background-color: #e3f2fd;
+}
+
+.standard-details {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 0.5rem;
+    backdrop-filter: blur(10px);
+}
+
+/* Carousel Navigation */
+.standards-carousel .carousel-control-prev,
+.standards-carousel .carousel-control-next {
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 123, 255, 0.8); 
+    border-radius: 50%; 
+    top: 50%;
+    margin: 0 1rem;
+    margin-top: -20px;
+    
+}
+
+.standards-carousel .carousel-control-prev {
+  margin-left: -20px;
+}
+
+.standards-carousel .carousel-control-next {
+  margin-right: -20px;
+}
+.standards-carousel .carousel-control-prev-icon,
+.standards-carousel .carousel-control-next-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Task Category Styling */
+.task-category-group {
+    margin-bottom: 0;
+}
+
+.task-category-group:last-child {
+    border-bottom: none;
+}
+
+/* Badge Enhancements */
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+
+.badge-outline {
+  color: black;
+  border: 1px solid #999;
+  background-color: transparent;
+}

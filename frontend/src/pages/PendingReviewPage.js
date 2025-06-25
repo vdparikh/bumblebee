@@ -488,7 +488,6 @@ function PendingReviewPage() {
 
                     {allTasks.length === 0 && !loading && !error && (
                         <div className='text-center m-3'>
-                            <FaHourglassHalf size="10em" className="ms-2 text-muted" />
                             <Alert variant="info" className="mt-3">There are currently no tasks pending review.</Alert>
                         </div>
                     )}
