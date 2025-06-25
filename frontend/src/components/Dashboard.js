@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import ActiveCampaignsWidget from './common/widgets/ActiveCampaignsWidget';
 import UserFeedWidget from './common/widgets/UseFeedWidget';
+import ChartCard from './common/ChartCard';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 function Dashboard() {
@@ -242,13 +243,13 @@ function Dashboard() {
             
             <Row className="mb-4">
                 <Col md={6} className="mb-4">
-                        <Card className=''>
-                            <Card.Header as="p">
+                        {/* <Card className=''>
+                            <Card.Header as="p"> */}
                                 <div className="d-flex justify-content-between  mb-1 p-2">
                                                 <h6>My Recent Open Tasks</h6>
                                                 <span className='small'><Link to="/my-tasks">View All My Tasks</Link></span>
                                             </div>
-                            </Card.Header>
+                            {/* </Card.Header> */}
 
                         {dashboardStats.recentOpenTasks.length > 0 ? (
                             <div>
@@ -275,7 +276,7 @@ function Dashboard() {
                         ) : (
                             <Card.Body><p className="text-muted">No open tasks at the moment.</p></Card.Body>
                         )}
-                                                </Card>
+                                                {/* </Card> */}
 
                 </Col>
                 <Col md={6} className="mb-4">

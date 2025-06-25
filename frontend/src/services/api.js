@@ -39,6 +39,11 @@ export const doRegister = async (name, email, password) => {
     return response.data;
 };
 
+export const getEvidenceLibrary = async () => {
+    const response = await apiClient.get('/evidence-library');
+    return response;
+};
+
 
 export const fetchIntegrationCheckTypes = async () => {
     const response = await apiClient.get('/integration-check-types');

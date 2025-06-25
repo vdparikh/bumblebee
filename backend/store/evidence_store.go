@@ -62,7 +62,7 @@ func (s *DBStore) GetEvidenceByID(evidenceID string) (*models.Evidence, error) {
 			e.task_id, e.file_name, e.file_path, e.mime_type, e.file_size, e.description, e.uploaded_at,
 			e.review_status, e.reviewed_by_user_id, e.reviewed_at, e.review_comments,
 			uploader.id AS "uploadedbyuser.id", uploader.name AS "uploadedbyuser.name", uploader.email AS "uploadedbyuser.email", uploader.role AS "uploadedbyuser.role",
-			reviewer.id AS "reviewedbyuser.id", reviewer.name AS "reviewedbyuser.name", reviewer.email AS "reviewedbyuser.email", reviewer.role AS "reviewedbyuser.role",
+			COALESCE(reviewer.id, '') AS "reviewedbyuser.id", reviewer.name AS "reviewedbyuser.name", reviewer.email AS "reviewedbyuser.email", reviewer.role AS "reviewedbyuser.role",
 			e.created_at, e.updated_at
 		FROM evidence e
 		LEFT JOIN users uploader ON e.uploaded_by_user_id = uploader.id
@@ -199,4 +199,69 @@ func (s *DBStore) SaveEvidence(evidence *models.Evidence) (*models.Evidence, err
 		return nil, fmt.Errorf("failed to save evidence %s: %w", evidence.ID, err)
 	}
 	return s.GetEvidenceByID(evidence.ID)
+}
+
+// ListAllEvidence retrieves all evidence records for the Evidence Library, ordered by uploaded date descending.
+func (s *DBStore) ListAllEvidence() ([]*models.Evidence, error) {
+	var evidenceList []*models.Evidence
+	query := `
+		SELECT
+			e.id, e.task_id, e.campaign_task_instance_id, e.uploaded_by_user_id,
+			e.file_name, e.file_path, e.mime_type, e.file_size, e.description, e.uploaded_at,
+			e.review_status, e.reviewed_by_user_id, e.reviewed_at, e.review_comments, e.created_at, e.updated_at,
+			uploader.id, uploader.name, uploader.email, uploader.role,
+			reviewer.id, reviewer.name, reviewer.email, reviewer.role
+		FROM evidence e
+		LEFT JOIN users uploader ON e.uploaded_by_user_id = uploader.id
+		LEFT JOIN users reviewer ON e.reviewed_by_user_id = reviewer.id
+		ORDER BY e.uploaded_at DESC`
+
+	rows, err := s.DB.Queryx(query)
+	if err != nil {
+		log.Printf("Error listing all evidence from DB: %v", err)
+		return nil, fmt.Errorf("failed to list all evidence: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var ev models.Evidence
+		var uploaderID, uploaderName, uploaderEmail, uploaderRole sql.NullString
+		var reviewerID, reviewerName, reviewerEmail, reviewerRole sql.NullString
+
+		err := rows.Scan(
+			&ev.ID, &ev.TaskID, &ev.CampaignTaskInstanceID, &ev.UploadedByUserID,
+			&ev.FileName, &ev.FilePath, &ev.MimeType, &ev.FileSize, &ev.Description, &ev.UploadedAt,
+			&ev.ReviewStatus, &ev.ReviewedByUserID, &ev.ReviewedAt, &ev.ReviewComments, &ev.CreatedAt, &ev.UpdatedAt,
+			&uploaderID, &uploaderName, &uploaderEmail, &uploaderRole,
+			&reviewerID, &reviewerName, &reviewerEmail, &reviewerRole,
+		)
+		if err != nil {
+			log.Printf("Error scanning evidence row: %v", err)
+			continue
+		}
+		if uploaderID.Valid {
+			ev.UploadedByUser = &models.User{
+				ID:    uploaderID.String,
+				Name:  uploaderName.String,
+				Email: uploaderEmail.String,
+				Role:  uploaderRole.String,
+			}
+		}
+		if reviewerID.Valid {
+			ev.ReviewedByUser = &models.User{
+				ID:    reviewerID.String,
+				Name:  reviewerName.String,
+				Email: reviewerEmail.String,
+				Role:  reviewerRole.String,
+			}
+		}
+		evidenceList = append(evidenceList, &ev)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate evidence rows: %w", err)
+	}
+	if evidenceList == nil {
+		evidenceList = []*models.Evidence{}
+	}
+	return evidenceList, nil
 }

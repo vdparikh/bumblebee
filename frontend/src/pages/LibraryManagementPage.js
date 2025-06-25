@@ -26,6 +26,7 @@ import {
     updateRisk,
     getDocuments,
 } from '../services/api';
+import RiskManagementView from '../components/views/RiskManagementView';
 
 function LibraryManagementPage() {
     const [standards, setStandards] = useState([]);
@@ -248,31 +249,37 @@ function LibraryManagementPage() {
     );
 
     const renderRisksTab = () => (
-        <Card>
-            <Card.Header className="d-flex justify-content-between align-items-center">
-                <h5>All Risks ({risks.length})</h5>
-                <Button variant="primary" size="sm" onClick={() => handleOpenPanel('add', 'risk')}>
-                    <FaPlusCircle className="me-2" />Add Risk
-                </Button>
-            </Card.Header>
-            <ListGroup variant="flush">
-                {risks.map(risk => (
-                    <ListGroup.Item key={risk.id} className="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong className="me-2">{risk.riskId}</strong> - {risk.title}
-                            <div className="text-muted small">
-                                <Badge bg="secondary" className="me-2">{risk.category || 'Uncategorized'}</Badge>
-                                Status: {risk.status} | Impact: {risk.impact || 'N/A'} | Likelihood: {risk.likelihood || 'N/A'}
-                            </div>
-                        </div>
-                        <Button variant="outline-secondary" size="sm" onClick={() => handleOpenPanel('edit', 'risk', risk)}>
-                            <FaEdit />
-                        </Button>
-                    </ListGroup.Item>
-                ))}
-                {risks.length === 0 && <ListGroup.Item className="text-muted">No risks found.</ListGroup.Item>}
-            </ListGroup>
-        </Card>
+         <RiskManagementView
+            risks={risks}
+            allUsers={users}
+            onAddRisk={() => handleOpenPanel('add', 'risk')}
+            onEditRisk={(risk) => handleOpenPanel('edit', 'risk', risk)}
+        />
+        // <Card>
+        //     <Card.Header className="d-flex justify-content-between align-items-center">
+        //         <h5>All Risks ({risks.length})</h5>
+        //         <Button variant="primary" size="sm" onClick={() => handleOpenPanel('add', 'risk')}>
+        //             <FaPlusCircle className="me-2" />Add Risk
+        //         </Button>
+        //     </Card.Header>
+        //     <ListGroup variant="flush">
+        //         {risks.map(risk => (
+        //             <ListGroup.Item key={risk.id} className="d-flex justify-content-between align-items-center">
+        //                 <div>
+        //                     <strong className="me-2">{risk.riskId}</strong> - {risk.title}
+        //                     <div className="text-muted small">
+        //                         <Badge bg="secondary" className="me-2">{risk.category || 'Uncategorized'}</Badge>
+        //                         Status: {risk.status} | Impact: {risk.impact || 'N/A'} | Likelihood: {risk.likelihood || 'N/A'}
+        //                     </div>
+        //                 </div>
+        //                 <Button variant="outline-secondary" size="sm" onClick={() => handleOpenPanel('edit', 'risk', risk)}>
+        //                     <FaEdit />
+        //                 </Button>
+        //             </ListGroup.Item>
+        //         ))}
+        //         {risks.length === 0 && <ListGroup.Item className="text-muted">No risks found.</ListGroup.Item>}
+        //     </ListGroup>
+        // </Card>
     );
 
     return (

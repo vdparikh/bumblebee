@@ -230,7 +230,7 @@ function SystemIntegrationForm() {
                                                 {getSystemTypeIcon(option.iconName, 30)}
                                             </div>
                                             <h6 className="mb-1" style={{ fontSize: '0.9rem' }}>{option.label}</h6>
-                                            {/* <small className="text-muted d-block" style={{ fontSize: '0.75rem' }}>{option.description}</small> */}
+                                            <small className="text-muted d-block" style={{ fontSize: '0.75rem' }}>{option.description}</small>
                                         </Card.Body>
                                     </Card>
                                 </Col>

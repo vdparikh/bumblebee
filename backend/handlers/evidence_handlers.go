@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/vdparikh/compliance-automation/backend/auth" // Your auth package
+
 	// For models.Evidence if needed for old state
 	"github.com/vdparikh/compliance-automation/backend/store"
 	"github.com/vdparikh/compliance-automation/backend/utils" // For audit logging
@@ -82,5 +83,32 @@ func HandleReviewEvidence(s *store.DBStore) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, updatedEvidence)
+	}
+}
+
+// HandleListAllEvidence returns all evidence records for the Evidence Library.
+func HandleListAllEvidence(s *store.DBStore) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		claimsValue, exists := c.Get(string(auth.ContextKeyClaims))
+		if !exists {
+			sendError(c, http.StatusUnauthorized, "User not authenticated", nil)
+			return
+		}
+		userClaims, ok := claimsValue.(*auth.Claims)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user claims type in context"})
+			return
+		}
+		// Only allow auditors and admins to access the evidence library
+		if userClaims.Role != "admin" && userClaims.Role != "auditor" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to view the evidence library"})
+			return
+		}
+		evidenceList, err := s.ListAllEvidence()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list evidence: " + err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, evidenceList)
 	}
 }

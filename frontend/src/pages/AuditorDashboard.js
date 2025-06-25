@@ -10,20 +10,7 @@ import { getStatusColor } from '../utils/displayUtils'; // For campaign status b
 import AuditLogsPage from './AuditLogsPage';
 import ActiveCampaignsWidget from '../components/common/widgets/ActiveCampaignsWidget'; // Import the new widget
 import UserFeedWidget from '../components/common/widgets/UseFeedWidget';
-
-// Placeholder for EvidenceLibrary component
-const EvidenceLibrary = () => {
-    return (
-        <Card>
-            <Card.Header as="h5">Evidence Library</Card.Header>
-            <Card.Body>
-                <Alert variant="info">The Evidence Library feature is under development. This section will allow auditors to browse and search all submitted evidence.</Alert>
-                {/* Future: Add search, filters, and list of evidence items */}
-            </Card.Body>
-        </Card>
-    );
-};
-
+import EvidenceLibrary from '../components/common/widgets/EvidenceLibrary';
 
 function AuditorDashboard() {
     const [loading, setLoading] = useState(true);

@@ -1,32 +1,12 @@
 import React from 'react';
-import Card from 'react-bootstrap/Card';
-import { Bar } from 'react-chartjs-2';
-import { defaults } from 'chart.js';
+import ChartCard from './ChartCard';
 
+// Deprecated: Use ChartCard directly for more flexibility
 const BarChartCard = ({ title, chartRef, chartData, onClickHandler, options, style }) => {
-    const defaultOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false, 
-            },
-        },
-    };
-    defaults.font.family = 'Geomanist';
-    
-
-    const mergedOptions = { ...defaultOptions, ...options };
-
+    // Transform chartData to Nivo format if needed
+    // For now, assume chartData is [{ label, value }]
     return (
-        <Card className="h-100">
-            <Card.Header className='text-center' as="h5">{title}</Card.Header>
-            <Card.Body style={style || { maxHeight: '300px' }}>
-                 {chartData && chartData.labels && chartData.labels.length > 0 ? (
-                    <Bar ref={chartRef} data={chartData} options={mergedOptions} onClick={onClickHandler} />
-                ) : <p className="text-muted text-center">No data available for this chart.</p>}
-            </Card.Body>
-        </Card>
+        <ChartCard title={title} data={chartData} chartTypeOptions={['bar', 'pie', 'line', 'radar']} style={style} />
     );
 };
 

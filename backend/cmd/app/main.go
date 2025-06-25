@@ -203,6 +203,9 @@ func main() {
 
 		// Audit Log Route
 		api.GET("/audit-logs", auditLogHandler.GetAuditLogsHandler)
+
+		api.GET("/evidence-library", handlers.HandleListAllEvidence(dbStore))
+
 	}
 
 	uploadsDir := "./uploads"

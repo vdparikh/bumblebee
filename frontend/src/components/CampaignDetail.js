@@ -829,7 +829,7 @@ function CampaignDetail() {
 
             <Row className="mb-3 gx-2">
                
-                {(searchTerm || selectedRequirementFilterId || activeStatusFilter || activeCategoryFilter) &&
+                
                     <Col md={12} className="d-flex justify-content-between align-items-start">
                         <div className='bg-white w-100 rounded-pill p-3'>
                             <Form.Control
@@ -840,15 +840,14 @@ function CampaignDetail() {
                                 className="h-100 border-0 "
                             />
                         </div>
-
-                        <Button style={{ width: "20px" }} variant="transparent" onClick={clearAllTaskFilters} className=" h-100"><FaTimesCircle /></Button>
+                       
                     </Col>
-                }
+                
 
             </Row>
 
             {(selectedRequirementFilterId || activeStatusFilter || activeCategoryFilter || searchTerm) && (
-                <Alert variant="info" className="d-flex justify-content-between align-items-center">
+                <Alert variant="info" className="d-flex justify-content-between align-items-center p-0 ps-2 pe-2">
                     <span>
                         <FaFilter className="me-1" />Filtering by:
                         {selectedRequirementFilterId && <Badge bg="info" className="ms-2 me-1">Req: {selectedRequirements.find(r => r.id === selectedRequirementFilterId)?.control_id_reference || 'Selected Req'}</Badge>}
@@ -856,6 +855,9 @@ function CampaignDetail() {
                         {activeCategoryFilter && <Badge bg="secondary" className="ms-2 me-1">{activeCategoryFilter}</Badge>}
                         {searchTerm && <Badge bg="dark" className="ms-2 me-1">Search: "{searchTerm}"</Badge>}
                     </span>
+                    {(searchTerm || selectedRequirementFilterId || activeStatusFilter || activeCategoryFilter) &&
+                        <Button style={{ width: "20px" }} variant="transparent" onClick={clearAllTaskFilters} ><FaTimesCircle /></Button>
+                        } 
                 </Alert>
             )}
 
