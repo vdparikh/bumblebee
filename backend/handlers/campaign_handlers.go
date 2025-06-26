@@ -935,6 +935,7 @@ func (h *CampaignHandler) ExecuteCampaignTaskInstanceHandler(c *gin.Context) {
 		return
 	}
 
+	// taskInstance.HighLevelCheckType is automated here
 	if taskInstance.CheckType == nil || *taskInstance.CheckType == "" {
 		sendError(c, http.StatusBadRequest, "This task is not configured for automated execution (no check_type defined)", nil)
 		return

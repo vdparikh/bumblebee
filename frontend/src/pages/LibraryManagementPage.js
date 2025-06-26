@@ -332,23 +332,28 @@ function LibraryManagementPage() {
                                                                         </Badge>
                                                                     )}
 
-{task.target && (
-                                                                    <span className="small text-muted">
-                                                                        <FaServer className="me-1" />
-                                                                        Target: {task.target}
-                                                                    </span>
-                                                                )}
+                                                                    {task.target && (
+                                                                        <span className="small text-muted">
+                                                                            <FaServer className="me-1" />
+                                                                            Target: {(() => {
+                                                                                const system = connectedSystems.find(s => s.id === task.target);
+                                                                                return system ? `${system.name} (${system.systemType})` : task.target;
+                                                                            })()}
+                                                                        </span>
+                                                                    )}
 
 
                                                                 </div>
 
                                                                 {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 && (
                                                                     <div className="mb-2">
-                                                                        <small className="text-muted d-block mb-1">
+                                                                        <div className="d-flex flex-wrap gap-1">
+
+                                                                        <small className="text-muted d-block">
                                                                             <FaFileMedicalAlt className="me-1" />
                                                                             Expected Evidence:
                                                                         </small>
-                                                                        <div className="d-flex flex-wrap gap-1">
+                                                                        
                                                                             {task.evidenceTypesExpected.map(et => (
                                                                                 <Badge key={et} bg="" text="dark" className="fw-normal badge-outline">
                                                                                     {et}

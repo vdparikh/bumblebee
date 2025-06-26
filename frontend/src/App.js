@@ -132,7 +132,7 @@ function Layout() {
 
                 <Row className="g-0 " style={{ height: 'calc(100vh)'  }}>
                   <Col md={showDetailsPanel ? 8 : 12} xl={showDetailsPanel ? 9 : 12} className="p-0" style={{ height: '100%', overflowY: 'auto', transition: 'width 0.3s ease-in-out' }}>
-                    <Container>
+                    <Container fluid>
                       <main className="p-4"> 
                         <Routes>
                           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

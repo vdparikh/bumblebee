@@ -62,8 +62,8 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
             setStatus(initialData.status || 'active');
             setTags(initialData.tags || []);
             setHighLevelCheckType(initialData.highLevelCheckType || initialData.high_level_check_type || 'manual');
-            setCheckType(initialData.highLevelCheckType || initialData.high_level_check_type || 'manual');
-            // setCheckType(initialData.checkType || initialData.check_type || 'manual');
+            // setCheckType(initialData.highLevelCheckType || initialData.high_level_check_type || 'manual');
+            setCheckType(initialData.checkType || initialData.check_type || 'manual');
             setTarget(initialData.target || '');
             setParameters(initialData.parameters || {});
             setEvidenceTypesExpected(
