@@ -20,6 +20,7 @@ import {
 } from '../../services/api';
 import PageHeader from '../common/PageHeader';
 import RiskDetailModal from '../modals/RiskDetailModal';
+import { getTaskCategoryIcon } from '../../utils/displayUtils';
 
 function ModernComplianceView({
     standardActions,
@@ -201,33 +202,6 @@ function ModernComplianceView({
         }
     };
 
-    const getTaskCategoryIcon = (task) => {
-        const category = task?.category || '';
-        const categoryLower = category.toLowerCase();
-        if (categoryLower.includes('security')) return <FaShieldVirus className="text-danger" />;
-        if (categoryLower.includes('network')) return <FaNetworkWired className="text-primary" />;
-        if (categoryLower.includes('database')) return <FaDatabase className="text-info" />;
-        if (categoryLower.includes('access')) return <FaLock className="text-warning" />;
-        if (categoryLower.includes('monitoring')) return <FaEye className="text-success" />;
-        if (categoryLower.includes('server')) return <FaServer className="text-secondary" />;
-        if (categoryLower.includes('cloud')) return <FaCloud className="text-info" />;
-        if (categoryLower.includes('mobile')) return <FaMobile className="text-primary" />;
-        if (categoryLower.includes('desktop')) return <FaDesktop className="text-secondary" />;
-        if (categoryLower.includes('laptop')) return <FaLaptop className="text-info" />;
-        if (categoryLower.includes('tablet')) return <FaTablet className="text-warning" />;
-        if (categoryLower.includes('audit')) return <FaClipboardCheck className="text-success" />;
-        if (categoryLower.includes('scan')) return <FaSearch className="text-info" />;
-        if (categoryLower.includes('tool')) return <FaTools className="text-secondary" />;
-        if (categoryLower.includes('code')) return <FaCode className="text-dark" />;
-        if (categoryLower.includes('test')) return <FaBug className="text-warning" />;
-        if (categoryLower.includes('deploy')) return <FaRocket className="text-success" />;
-        if (categoryLower.includes('review')) return <FaUserCheck className="text-primary" />;
-        if (categoryLower.includes('policy')) return <FaFileAlt className="text-info" />;
-        if (categoryLower.includes('compliance')) return <FaBalanceScale className="text-success" />;
-        if (categoryLower.includes('automation')) return <FaRobot className="text-primary" />;
-        if (categoryLower.includes('integration')) return <FaHandshake className="text-warning" />;
-        return <FaTasks className="text-muted" />;
-    };
 
     const getStandardIcon = (standard) => {
         const nameLower = standard.name?.toLowerCase() || '';
@@ -531,7 +505,7 @@ function ModernComplianceView({
                                                     <ListGroup.Item key={task.id} className="task-item">
                                                         <div className="d-flex align-items-start">
                                                             <div className="task-icon me-3 mt-1">
-                                                                {getTaskCategoryIcon(task)}
+                                                                { getTaskCategoryIcon(task)}
                                                             </div>
                                                             <div className="flex-grow-1">
                                                                 <div className="d-flex justify-content-between align-items-start mb-2">

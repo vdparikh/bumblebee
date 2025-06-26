@@ -61,8 +61,9 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
             setDefaultPriority(initialData.defaultPriority || 'medium');
             setStatus(initialData.status || 'active');
             setTags(initialData.tags || []);
-            setHighLevelCheckType(initialData.highLevelCheckType || initialData.high_level_check_type || 'automated');
-            setCheckType(initialData.checkType || initialData.check_type || 'automated');
+            setHighLevelCheckType(initialData.highLevelCheckType || initialData.high_level_check_type || 'manual');
+            setCheckType(initialData.highLevelCheckType || initialData.high_level_check_type || 'manual');
+            // setCheckType(initialData.checkType || initialData.check_type || 'manual');
             setTarget(initialData.target || '');
             setParameters(initialData.parameters || {});
             setEvidenceTypesExpected(
@@ -119,10 +120,10 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
     const handleSubmit = (e) => {
         e.preventDefault();
         setError('');
-        if (!requirementIds.length) {
-            setError('Please select at least one compliance requirement');
-            return;
-        }
+        // if (!requirementIds.length) {
+        //     setError('Please select at least one compliance requirement');
+        //     return;
+        // }
         if (!title.trim()) {
             setError('Task title is required');
             return;
