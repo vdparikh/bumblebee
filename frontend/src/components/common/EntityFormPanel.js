@@ -177,7 +177,7 @@ function EntityFormPanel({
     const title = `${mode === 'edit' ? 'Edit' : 'Add New'} ${entityType.charAt(0).toUpperCase() + entityType.slice(1)}`;
 
     return (
-        <Offcanvas show={show} onHide={onClose} placement="end" style={{ width: '500px' }}>
+        <Offcanvas show={show} onHide={onClose} placement="end" style={{ width: '50%' }}>
             <Offcanvas.Header closeButton>
                 <Offcanvas.Title>{title}</Offcanvas.Title>
             </Offcanvas.Header>

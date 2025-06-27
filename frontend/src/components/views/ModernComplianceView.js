@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, ListGroup, Spinner, Alert, Badge, Button, Carousel } from 'react-bootstrap';
+import { Container, Row, Col, Card, ListGroup, Spinner, Alert, Badge, Button, Carousel, Modal } from 'react-bootstrap';
 import {
     FaShieldAlt, FaFileContract, FaTasks, FaTag, FaCogs,
     FaExclamationCircle, FaFileMedicalAlt, FaInfo, FaLink, FaPlusCircle,
@@ -39,14 +39,17 @@ function ModernComplianceView({
     const [loadingRequirements, setLoadingRequirements] = useState(false);
     const [loadingTasks, setLoadingTasks] = useState(false);
     const [error, setError] = useState('');
-    const [showRiskDetailModal, setShowRiskDetailModal] = useState(false);
+    const [showRiskDetailModal, setShowRiskDetailModal] = useState(true);
     const [selectedRiskData, setSelectedRiskData] = useState(null);
+    const [selectedStandard, setSelectedStandard] = useState({});
     const [selectedStandardId, setSelectedStandardId] = useState(null);
     const [selectedRequirementId, setSelectedRequirementId] = useState(null);
     const [showAssociateTaskModal, setShowAssociateTaskModal] = useState(false);
     const [allTasks, setAllTasks] = useState([]);
     const [filteredTasks, setFilteredTasks] = useState([]);
     const [loadingAllTasks, setLoadingAllTasks] = useState(false);
+    const [showRequirementsModal, setShowRequirementsModal] = useState(false);
+    const [modalStandard, setModalStandard] = useState(null);
 
     const fetchStandards = useCallback(async () => {
         setLoadingStandards(true);
@@ -54,7 +57,7 @@ function ModernComplianceView({
             const [standardsRes, usersRes] = await Promise.all([
                 getComplianceStandards(),
                 getUsers(),
-            ]);            
+            ]);
             setStandards(Array.isArray(standardsRes.data) ? standardsRes.data : []);
             setAllUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
         } catch (err) {
@@ -125,7 +128,7 @@ function ModernComplianceView({
         setError('');
         try {
             const response = await getAllMasterTasks();
-            const filteredTasks = Array.isArray(response.data) ? response.data.filter(task => 
+            const filteredTasks = Array.isArray(response.data) ? response.data.filter(task =>
                 task.requirementIds && task.requirementIds.includes(requirementId)
             ) : [];
             setTasks(filteredTasks);
@@ -137,9 +140,10 @@ function ModernComplianceView({
         }
     }, []);
 
-    const handleStandardSelect = (standardId) => {
+    const handleStandardSelect = (standardId, standard) => {
         const newSelectedStandardId = selectedStandardId === standardId ? null : standardId;
         setSelectedStandardId(newSelectedStandardId);
+        setSelectedStandard(standard);
         setSelectedRequirementId(null);
         setTasks([]);
         if (newSelectedStandardId) {
@@ -169,7 +173,7 @@ function ModernComplianceView({
                 getAllMasterTasks()
                     .then(response => {
                         const allTasks = Array.isArray(response.data) ? response.data : [];
-                        const filtered = allTasks.filter(task => 
+                        const filtered = allTasks.filter(task =>
                             task.requirementIds && task.requirementIds.some(id => requirementIds.includes(id))
                         );
                         setTasks(filtered);
@@ -206,7 +210,7 @@ function ModernComplianceView({
     const getStandardIcon = (standard) => {
         const nameLower = standard.name?.toLowerCase() || '';
         const shortNameLower = standard.shortName?.toLowerCase() || '';
-        
+
         if (nameLower.includes('sox') || shortNameLower.includes('sox')) return <FaChartLine className="text-success" />;
         if (nameLower.includes('pci') || shortNameLower.includes('pci')) return <FaCreditCard className="text-primary" />;
         if (nameLower.includes('nydfs') || shortNameLower.includes('nydfs')) return <FaShieldAlt className="text-warning" />;
@@ -220,7 +224,7 @@ function ModernComplianceView({
     const getRequirementIcon = (requirement) => {
         const textLower = requirement.requirementText?.toLowerCase() || '';
         const controlId = requirement.controlIdReference?.toLowerCase() || '';
-        
+
         if (textLower.includes('access') || controlId.includes('access')) return <FaLock className="text-warning" />;
         if (textLower.includes('encrypt') || controlId.includes('encrypt')) return <FaShieldVirus className="text-danger" />;
         if (textLower.includes('monitor') || controlId.includes('monitor')) return <FaEye className="text-success" />;
@@ -242,6 +246,21 @@ function ModernComplianceView({
         return acc;
     }, {});
 
+    const handleOpenRequirementsModal = (standard) => {
+        console.log("standard", standard);
+        setModalStandard(standard);
+        // setShowRequirementsModal(true);
+        fetchRequirementsByStandard(standard.id);
+        setSelectedStandardId(standard.id);
+        setSelectedRequirementId(null);
+    };
+
+    const handleCloseRequirementsModal = () => {
+        setShowRequirementsModal(false);
+        setModalStandard(null);
+        setRequirements([]);
+    };
+
     return (
         <Container fluid className="p-0">
             {showPageHeader && (
@@ -251,130 +270,194 @@ function ModernComplianceView({
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
 
             {/* Standards Carousel */}
-            <Card className="mb-4">
-                <Card.Header as="h5"
-                    className="d-flex justify-content-between align-items-center mb-2">
-                    <span>Compliance Standards</span>
-                    {onAddStandardClick && (
-                        <Button variant="outline-success" size="sm" onClick={onAddStandardClick}>
-                            <FaPlusCircle className="me-1" />Add Standard
+            {/* <Card className="mb-4"> */}
+
+            {selectedStandardId && (
+                <Card className="mb-4">
+                    <div className='d-flex justify-content-between align-items-center mb-2 ms-3 me-3'>
+                        <div className="">
+
+                            <div className="d-flex justify-content-start align-items-center ">
+                                <div className="standard-icon-large float-start">
+                                    {getStandardIcon(selectedStandardId)}
+                                </div>
+                                <h5 className="m-0 p-0 ms-2">{selectedStandard.name}</h5>
+                                <Badge bg="light" text="dark" className="ms-2">
+                                    {selectedStandard.shortName}
+                                </Badge>
+                                {selectedStandard.version && (
+                                    <Badge bg="light" text="dark" className="ms-2">Version {selectedStandard.version}</Badge>
+                                )}
+                                {selectedStandard.official_link && (
+                                    <Button
+                                        variant="outline-transparent p-0 m-0"
+                                        href={selectedStandard.official_link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        size="sm"
+                                        className='float-end'
+                                    >
+                                        <FaLink />
+                                    </Button>
+                                )}
+                            </div>
+                            <p className="text-muted small mb-3">
+                                {selectedStandard.description}
+                            </p>
+                            <div className="d-flex flex-wrap gap-1 mb-3 justify-content-start">
+                                {selectedStandard.issuing_body && (
+                                    <Badge bg="" text="dark" className="small badge-outline">
+                                        <FaBuilding className="me-1" />
+                                        {selectedStandard.issuing_body}
+                                    </Badge>
+                                )}
+                                {selectedStandard.jurisdiction && (
+                                    <Badge bg="" text="dark" className="small badge-outline">
+                                        {selectedStandard.jurisdiction}
+                                    </Badge>
+                                )}
+                                {selectedStandard.industry && (
+                                    <Badge bg="" text="dark" className="small badge-outline">
+                                        {selectedStandard.industry}
+                                    </Badge>
+                                )}
+                            </div>
+                         
+
+                        </div>
+                        <Button variant="outline-secondary" onClick={() => setSelectedStandardId(null)}>
+                            Back to Standards
                         </Button>
-                    )}
-                </Card.Header>
-                <Card.Body className="">
+                    </div>
+                </Card>
+            )}
+
+            {!selectedStandardId && (
+                <div className="mb-4">
+                    <div as="h5"
+                        className="d-flex justify-content-between align-items-center mb-2 ms-3 me-3"
+                    >
+                        <h5 className='m-0 p-0'>Compliance Standards</h5>
+                        {onAddStandardClick && (
+                            <Button variant="outline-success" size="sm" onClick={onAddStandardClick}>
+                                <FaPlusCircle className="me-1" />Add Standard
+                            </Button>
+                        )}
+                    </div>
+                    {/* <Card.Body className=""> */}
                     {loadingStandards ? (
                         <div className="text-center py-4">
                             <Spinner animation="border" />
                             <p className="mt-2">Loading Standards...</p>
                         </div>
                     ) : standards.length > 0 ? (
-                        <Carousel 
-                            interval={null} 
-                            indicators={false}
-                            className="standards-carousel"
-                            style={{ backgroundColor: 'transparent' }}
-                            prevIcon={<span className="carousel-control-prev-icon" />}
-                            nextIcon={<span className="carousel-control-next-icon" />}
-                        >
-                            {Array.from({ length: Math.ceil(standards.length / 3) }, (_, slideIndex) => (
-                                <Carousel.Item key={slideIndex}>
-                                    <Row>
-                                        {standards.slice(slideIndex * 3, (slideIndex + 1) * 3).map((standard) => (
-                                            <Col md={4} key={standard.id} className="mb-3">
-                                                <Card className={`h-100 border-sm border shadow-none standard-card ${selectedStandardId === standard.id ? 'border-primary' : ''}`}>
-                                                    <Card.Body className="text-center">
-                                                        <div className="standard-icon-large mb-3">
-                                                            {getStandardIcon(standard)}
-                                                        </div>
-                                                        <h5 className="mb-2">{standard.name}</h5>
-                                                        <Badge bg="light" text="dark" className="mb-2">
-                                                            {standard.shortName}
-                                                        </Badge>
-                                                        {standard.version && (
-                                                            <div className="text-muted small mb-3">Version {standard.version}</div>
-                                                        )}
-                                                        
-                                                        <p className="text-muted small mb-3">
-                                                            {standard.description?.substring(0, 100)}
-                                                            {standard.description?.length > 100 ? "..." : ""}
-                                                        </p>
-                                                        
-                                                        <div className="d-flex flex-wrap gap-1 mb-3 justify-content-center">
-                                                            {standard.issuing_body && (
-                                                                <Badge bg="" text="dark"  className="small badge-outline">
-                                                                    <FaBuilding className="me-1" />
-                                                                    {standard.issuing_body}
-                                                                </Badge>
-                                                            )}
-                                                            {standard.jurisdiction && (
-                                                                <Badge bg="" text="dark"  className="small badge-outline">
-                                                                    {standard.jurisdiction}
-                                                                </Badge>
-                                                            )}
-                                                            {standard.industry && (
-                                                                <Badge bg="" text="dark" className="small badge-outline">
-                                                                    {standard.industry}
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                        
-                                                        <div className="d-flex gap-2">
-                                                            <Button
-                                                                variant={selectedStandardId === standard.id ? "primary" : "outline-primary"}
-                                                                onClick={() => handleStandardSelect(standard.id)}
-                                                                className="flex-fill"
-                                                                size="sm"
-                                                            >
-                                                                {selectedStandardId === standard.id ? (
-                                                                    <>
-                                                                        <FaCheckCircle className="me-1" />
-                                                                        Selected
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <FaEye className="me-1" />
-                                                                        View
-                                                                    </>
-                                                                )}
-                                                            </Button>
-                                                            {standard.official_link && (
-                                                                <Button
-                                                                    variant="outline-secondary"
-                                                                    href={standard.official_link}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    size="sm"
-                                                                >
-                                                                    <FaLink />
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                        
-                                                        {standardActions && (
-                                                            <div className="mt-2">
-                                                                {standardActions(standard)}
-                                                            </div>
-                                                        )}
-                                                    </Card.Body>
-                                                </Card>
-                                            </Col>
-                                        ))}
-                                    </Row>
-                                </Carousel.Item>
+                        <Row xs={1} sm={2} md={3} lg={4} xl={5} className="g-3">
+                            {standards.map(standard => (
+                                <Col key={standard.id}>
+                                    <Card
+                                        className={`h-100 standard-card ${selectedStandardId === standard.id ? 'border-primary' : ''}`}
+                                        onClick={() => handleOpenRequirementsModal(standard)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <Card.Body>
+                                            <div className="standard-icon-large mb-3">
+                                                {getStandardIcon(standard)}
+                                            </div>
+                                            <h5 className="mb-2">{standard.name}</h5>
+                                            <Badge bg="light" text="dark" className="mb-2">
+                                                {standard.shortName}
+                                            </Badge>
+                                            {standard.version && (
+                                                <div className="text-muted small mb-3">Version {standard.version}</div>
+                                            )}
+
+                                            <p className="text-muted small mb-3">
+                                                {standard.description?.substring(0, 100)}
+                                                {standard.description?.length > 100 ? "..." : ""}
+                                            </p>
+
+                                            <div className="d-flex flex-wrap gap-1 mb-3 justify-content-center">
+                                                {standard.issuing_body && (
+                                                    <Badge bg="" text="dark" className="small badge-outline">
+                                                        <FaBuilding className="me-1" />
+                                                        {standard.issuing_body}
+                                                    </Badge>
+                                                )}
+                                                {standard.jurisdiction && (
+                                                    <Badge bg="" text="dark" className="small badge-outline">
+                                                        {standard.jurisdiction}
+                                                    </Badge>
+                                                )}
+                                                {standard.industry && (
+                                                    <Badge bg="" text="dark" className="small badge-outline">
+                                                        {standard.industry}
+                                                    </Badge>
+                                                )}
+                                            </div>
+
+                                            <div className="d-flex gap-2">
+                                                <Button
+                                                    variant={selectedStandardId === standard.id ? "primary" : "outline-primary"}
+                                                    onClick={() => handleStandardSelect(standard.id, standard)}
+                                                    className="flex-fill"
+                                                    size="sm"
+                                                >
+                                                    {selectedStandardId === standard.id ? (
+                                                        <>
+                                                            <FaCheckCircle className="me-1" />
+                                                            Selected
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <FaEye className="me-1" />
+                                                            View
+                                                        </>
+                                                    )}
+                                                </Button>
+                                                {standard.official_link && (
+                                                    <Button
+                                                        variant="outline-secondary"
+                                                        href={standard.official_link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        size="sm"
+                                                    >
+                                                        <FaLink />
+                                                    </Button>
+                                                )}
+                                            </div>
+
+                                            {standardActions && (
+                                                <div className="mt-2">
+                                                    {standardActions(standard)}
+                                                </div>
+                                            )}
+                                            {/* <div className="d-flex align-items-center mb-2">
+                                  {getStandardIcon(std)}
+                                  <span className="ms-2 fw-bold">{std.name}</span>
+                              </div>
+                              <div className="text-muted small">{std.description}</div> */}
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
                             ))}
-                        </Carousel>
+                        </Row>
                     ) : (
                         <div className="text-center py-4">
                             <FaShieldAlt size={48} className="text-muted mb-3" />
                             <p className="text-muted">No compliance standards found.</p>
                         </div>
                     )}
-                </Card.Body>
-            </Card>
+                    {/* </Card.Body> */}
+                    {/* </Card> */}
+
+                </div>
+
+            )}
 
             {/* Requirements and Tasks Section */}
             {selectedStandardId && (
-                <Row>
+                <Row className='mt-3'>
                     <Col md={5}>
                         <Card className="h-100">
                             <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
@@ -407,7 +490,7 @@ function ModernComplianceView({
                                                     <div className="d-flex justify-content-between align-items-start mb-2">
                                                         <div>
                                                             <h6 className="mb-1 fw-bold">{req.controlIdReference}</h6>
-                                                            <Badge bg="" text="dark"  className="me-2 badge-outline">
+                                                            <Badge bg="" text="dark" className="me-2 badge-outline">
                                                                 {standards.find(s => s.id === req.standardId)?.shortName}
                                                             </Badge>
                                                             {req.priority && (
@@ -420,7 +503,7 @@ function ModernComplianceView({
                                                             <div className="ms-2">{requirementActions(req)}</div>
                                                         )}
                                                     </div>
-                                                    
+
                                                     <p className="mb-2 small text-muted" style={{ whiteSpace: 'pre-wrap' }}>
                                                         {req.requirementText.substring(0, 120)}
                                                         {req.requirementText.length > 120 ? "..." : ""}
@@ -494,27 +577,27 @@ function ModernComplianceView({
                                     Object.entries(groupedTasks).map(([category, categoryTasks]) => (
                                         <div key={category} className="task-category-group">
                                             <div className="task-category-header p-3 border-bottom bg-light">
-                                                <div className="d-flex align-items-center">
+                                                <div className="d-flex small text-muted align-items-center">
                                                     {getTaskCategoryIcon(categoryTasks[0])}
-                                                    <h6 className="mb-0 ms-2 fw-bold text-uppercase">{category}</h6>
-                                                    <Badge bg="secondary" className="ms-2">{categoryTasks.length}</Badge>
+                                                    <h6 className="mb-0 m-0 p-0 ms-2 fw-bold text-uppercase">{category}</h6>
+                                                    <Badge bg="secondary" className="ms-2 ">{categoryTasks.length}</Badge>
                                                 </div>
                                             </div>
                                             <ListGroup variant="flush">
                                                 {categoryTasks.map(task => (
                                                     <ListGroup.Item key={task.id} className="task-item">
                                                         <div className="d-flex align-items-start">
-                                                            <div className="task-icon me-3 mt-1">
+                                                            {/* <div className="task-icon me-3 mt-1">
                                                                 { getTaskCategoryIcon(task)}
-                                                            </div>
+                                                            </div> */}
                                                             <div className="flex-grow-1">
-                                                                <div className="d-flex justify-content-between align-items-start mb-2">
-                                                                    <h6 className="mb-1 fw-bold">{task.title}</h6>
+                                                                <div className="d-flex justify-content-between align-items-start">
+                                                                    <h6 className="mb-1 m-0 p-0 fw-bold">{task.title}</h6>
                                                                     {taskActions && (
                                                                         <div className="ms-2">{taskActions(task)}</div>
                                                                     )}
                                                                 </div>
-                                                                
+
                                                                 {task.description && (
                                                                     <p className="mb-2 small text-muted">
                                                                         {task.description.substring(0, 100)}
@@ -530,14 +613,22 @@ function ModernComplianceView({
                                                                         </Badge>
                                                                     )}
                                                                     {task.checkType && (
+                                                                        <>
+                                                                            <Badge bg="" className="fw-normal badge-outline"><strong>Evidence:</strong> {task.highLevelCheckType}</Badge>
+                                                                            {/* <Card.Text className="ps-1"><strong>Check Type:</strong> {task.checkType}</Card.Text>
+                                            <Card.Text className="ps-1"><strong>Target:</strong> {task.target || 'N/A'}</Card.Text>
+                                            <Card.Text className="ps-1"><strong>Parameters:</strong> {task.parameters ? JSON.stringify(task.parameters) : 'None'}</Card.Text> */}
+                                                                        </>
+                                                                    )}
+                                                                    {/* {task.checkType && (
                                                                         <Badge bg="info">
                                                                             <FaCogs className="me-1" size="0.7em" />
                                                                             {task.checkType}
                                                                         </Badge>
-                                                                    )}
+                                                                    )} */}
                                                                 </div>
 
-                                                                {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 && (
+                                                                {/* {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 && (
                                                                     <div className="mb-2">
                                                                         <small className="text-muted d-block mb-1">
                                                                             <FaFileMedicalAlt className="me-1" />
@@ -551,14 +642,14 @@ function ModernComplianceView({
                                                                             ))}
                                                                         </div>
                                                                     </div>
-                                                                )}
+                                                                )} */}
 
-                                                                {task.target && (
+                                                                {/* {task.target && (
                                                                     <div className="small text-muted">
                                                                         <FaServer className="me-1" />
                                                                         Target: {task.target}
                                                                     </div>
-                                                                )}
+                                                                )} */}
                                                             </div>
                                                         </div>
                                                     </ListGroup.Item>
@@ -583,6 +674,61 @@ function ModernComplianceView({
                 risk={selectedRiskData}
                 allUsers={allUsers}
             />
+
+            {/* Requirements Modal */}
+            {showRequirementsModal && selectedStandardId && modalStandard && selectedStandardId === modalStandard.id && (
+                <Modal show={showRequirementsModal} onHide={handleCloseRequirementsModal} size="lg" centered>
+                    <Modal.Header closeButton>
+                        <Modal.Title>
+                            Requirements for Standard: {modalStandard ? modalStandard.name : ''}
+                        </Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                        {loadingRequirements ? (
+                            <div className="text-center py-4">
+                                <Spinner animation="border" />
+                                <p className="mt-2">Loading Requirements...</p>
+                            </div>
+                        ) : requirements.length > 0 ? (
+                            <ListGroup>
+                                {requirements.map(req => (
+                                    <ListGroup.Item key={req.id} className="d-flex align-items-start">
+                                        <div className="requirement-icon me-3 mt-1">
+                                            {getRequirementIcon(req)}
+                                        </div>
+                                        <div className="flex-grow-1">
+                                            <div className="d-flex justify-content-between align-items-start mb-2">
+                                                <div>
+                                                    <h6 className="mb-1 fw-bold">{req.controlIdReference}</h6>
+                                                    <Badge bg="" text="dark" className="me-2 badge-outline">
+                                                        {modalStandard?.shortName}
+                                                    </Badge>
+                                                    {req.priority && (
+                                                        <Badge bg={getPriorityBadgeColor(req.priority)} className="me-2">
+                                                            {req.priority}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <p className="mb-2 small text-muted" style={{ whiteSpace: 'pre-wrap' }}>
+                                                {req.requirementText.substring(0, 120)}
+                                                {req.requirementText.length > 120 ? "..." : ""}
+                                            </p>
+                                        </div>
+                                    </ListGroup.Item>
+                                ))}
+                            </ListGroup>
+                        ) : (
+                            <div className="text-center py-4 text-muted">
+                                No requirements found for this standard.
+                            </div>
+                        )}
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={handleCloseRequirementsModal}>Close</Button>
+                    </Modal.Footer>
+                </Modal>
+            )}
 
             {/* Associate Task Modal */}
             {showAssociateTaskModal && (
@@ -609,10 +755,10 @@ function ModernComplianceView({
                                 ) : (
                                     <div>
                                         <p className="text-muted mb-3">
-                                            Select tasks to associate with the current requirement. 
+                                            Select tasks to associate with the current requirement.
                                             Tasks can be associated with multiple requirements.
                                         </p>
-                                        
+
                                         <div className="mb-3">
                                             <input
                                                 type="text"
@@ -620,7 +766,7 @@ function ModernComplianceView({
                                                 placeholder="Search tasks by title, category, or description..."
                                                 onChange={(e) => {
                                                     const searchTerm = e.target.value.toLowerCase();
-                                                    const filtered = allTasks.filter(task => 
+                                                    const filtered = allTasks.filter(task =>
                                                         task.title?.toLowerCase().includes(searchTerm) ||
                                                         task.category?.toLowerCase().includes(searchTerm) ||
                                                         task.description?.toLowerCase().includes(searchTerm)
@@ -654,7 +800,7 @@ function ModernComplianceView({
                                                                                 </Badge>
                                                                             )}
                                                                         </div>
-                                                                        
+
                                                                         {task.description && (
                                                                             <p className="mb-2 small text-muted">
                                                                                 {task.description.substring(0, 150)}

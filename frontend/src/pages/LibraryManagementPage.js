@@ -348,8 +348,7 @@ function LibraryManagementPage() {
                                                                 {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 && (
                                                                     <div className="mb-2">
                                                                         <div className="d-flex flex-wrap gap-1">
-
-                                                                        <small className="text-muted d-block">
+                                                                        <small className="text-muted d-block mb-1">
                                                                             <FaFileMedicalAlt className="me-1" />
                                                                             Expected Evidence:
                                                                         </small>

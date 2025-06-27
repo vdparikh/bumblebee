@@ -38,6 +38,7 @@ import AuditLogsPage from './pages/AuditLogsPage'; // You will create this file
 import HelpPage from './pages/HelpPage';
 import SystemIntegrations from './components/admin/SystemIntegrations';
 import SystemIntegrationForm from './components/admin/SystemIntegrationForm';
+import TaskWizardPage from './pages/TaskWizardPage';
 
 function DynamicHeader() {
   const location = useLocation();
@@ -156,6 +157,8 @@ function Layout() {
                           <Route path="/admin/system-integrations" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrations /></ProtectedRoute>} />
                           <Route path="/admin/system-integrations/new" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
                           <Route path="/admin/system-integrations/edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
+                          <Route path="/tasks/new" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TaskWizardPage /></ProtectedRoute>} />
+                          <Route path="/tasks/:id/edit" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TaskWizardPage /></ProtectedRoute>} />
                         </Routes>
                       </main>
                     </Container>
@@ -225,6 +228,8 @@ function AppRoutes() {
         <Route path="admin/system-integrations" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrations /></ProtectedRoute>} />
         <Route path="admin/system-integrations/new" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
         <Route path="admin/system-integrations/edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
+        <Route path="tasks/new" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TaskWizardPage /></ProtectedRoute>} />
+        <Route path="tasks/:id/edit" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TaskWizardPage /></ProtectedRoute>} />
       </Route>
     </Routes>
   );

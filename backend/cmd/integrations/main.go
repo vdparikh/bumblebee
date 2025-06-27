@@ -10,11 +10,15 @@ import (
 
 	"github.com/vdparikh/compliance-automation/backend/integrations"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/awschecker" // Import new AWS plugin
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/azuresqlchecker"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/databasequerier"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/filechecker"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/gcpbucketchecker"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/httpchecker"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/pingchecker"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/portscanner"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/scriptrunner"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/sslchecker"
 	"github.com/vdparikh/compliance-automation/backend/queue"
 	"github.com/vdparikh/compliance-automation/backend/services"
 	"github.com/vdparikh/compliance-automation/backend/store"
@@ -93,6 +97,27 @@ func main() {
 	awsPlugin := awschecker.New()
 	if err := pluginRegistry.RegisterPlugin(awsPlugin); err != nil {
 		log.Fatalf("Failed to register AWS Checker plugin: %v", err)
+	}
+
+	// Register new plugins
+	pingPlugin := pingchecker.New()
+	if err := pluginRegistry.RegisterPlugin(pingPlugin); err != nil {
+		log.Fatalf("Failed to register Ping Checker plugin: %v", err)
+	}
+
+	sslPlugin := sslchecker.New()
+	if err := pluginRegistry.RegisterPlugin(sslPlugin); err != nil {
+		log.Fatalf("Failed to register SSL Checker plugin: %v", err)
+	}
+
+	gcpPlugin := gcpbucketchecker.New()
+	if err := pluginRegistry.RegisterPlugin(gcpPlugin); err != nil {
+		log.Fatalf("Failed to register GCP Bucket Checker plugin: %v", err)
+	}
+
+	azurePlugin := azuresqlchecker.New()
+	if err := pluginRegistry.RegisterPlugin(azurePlugin); err != nil {
+		log.Fatalf("Failed to register Azure SQL Checker plugin: %v", err)
 	}
 
 	// // Example: Print registered check types (optional)

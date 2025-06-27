@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Button, Spinner, Alert, Modal, Form, Dropdown } from 'react-bootstrap';
 import { getUsers, updateUser, deleteUser } from '../../services/api'; 
-import { FaEdit, FaTrash, FaUserPlus } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaUser, FaUserPlus } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext'; 
+import PageHeader from '../common/PageHeader';
 
 function UserManagement() {
     const { currentUser } = useAuth();
@@ -94,7 +95,11 @@ function UserManagement() {
 
     return (
         <div>
-            <h3>Manage Users</h3>
+             <PageHeader
+                icon={<FaUser />}
+                title="Manage Users"
+            />
+
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
             

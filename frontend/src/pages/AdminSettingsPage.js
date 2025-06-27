@@ -22,18 +22,18 @@ function AdminSettingsPage() {
 
     const settings = [
         {
-            id: 'userManagement',
-            title: 'User Management',
-            icon: <FaUsersCog />,
-            description: 'Manage users, roles, and permissions',
-            badge: 'Core'
-        },
-        {
             id: 'systemIntegrations',
             title: 'System Integrations',
             icon: <FaPlug />,
             description: 'Configure external system connections',
             badge: 'Integration'
+        },
+        {
+            id: 'userManagement',
+            title: 'User Management',
+            icon: <FaUsersCog />,
+            description: 'Manage users, roles, and permissions',
+            badge: 'Core'
         },
         {
             id: 'manageTeams',
@@ -163,9 +163,9 @@ function AdminSettingsPage() {
             <Row>
                 <Col md={3}>
                     <Card className="shadow-sm">
-                        <Card.Header className="bg-light">
+                        {/* <Card.Header className="bg-light">
                             <h5 className="mb-0">Settings Menu</h5>
-                        </Card.Header>
+                        </Card.Header> */}
                         <ListGroup variant="flush">
                             {settings.map((setting) => (
                                 <ListGroup.Item
@@ -197,11 +197,7 @@ function AdminSettingsPage() {
                     </Card>
                 </Col>
                 <Col md={9}>
-                    <Card className="shadow-sm">
-                        <Card.Body>
                             {renderActiveSetting()}
-                        </Card.Body>
-                    </Card>
                 </Col>
             </Row>
         </div>
