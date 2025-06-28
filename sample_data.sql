@@ -277,6 +277,11 @@ INSERT INTO system_type_definitions (value, label, description, icon_name, color
     {"name":"instanceUrl","label":"Instance URL","type":"url","placeholder":"https://erp.example.com","required":true,"sensitive":false,"options":null,"helpText":null},
     {"name":"username","label":"Username","type":"text","placeholder":null,"required":true,"sensitive":false,"options":null,"helpText":null},
     {"name":"password","label":"Password","type":"password","placeholder":null,"required":true,"sensitive":true,"options":null,"helpText":null}
+]'::jsonb),
+
+('n8n', 'n8n', 'Workflow Automation Platform', 'FaCogs', '#FF6B6B', 'Automation', '[
+    {"name":"baseUrl","label":"n8n Base URL","type":"url","placeholder":"http://localhost:5678","required":true,"sensitive":false,"options":null,"helpText":"The URL where your n8n instance is running."},
+    {"name":"apiKey","label":"API Key (Optional)","type":"password","placeholder":"your-n8n-api-key","required":false,"sensitive":true,"options":null,"helpText":"API key for authentication (if enabled in n8n)."}
 ]'::jsonb)
 ON CONFLICT (value) DO NOTHING;
 -- Use ON CONFLICT (value) DO NOTHING to prevent errors if you run this script multiple times.

@@ -15,6 +15,7 @@ import (
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/filechecker"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/gcpbucketchecker"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/httpchecker"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/n8nchecker"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/pingchecker"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/portscanner"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/scriptrunner"
@@ -118,6 +119,11 @@ func main() {
 	azurePlugin := azuresqlchecker.New()
 	if err := pluginRegistry.RegisterPlugin(azurePlugin); err != nil {
 		log.Fatalf("Failed to register Azure SQL Checker plugin: %v", err)
+	}
+
+	n8nPlugin := n8nchecker.New()
+	if err := pluginRegistry.RegisterPlugin(n8nPlugin); err != nil {
+		log.Fatalf("Failed to register n8n Checker plugin: %v", err)
 	}
 
 	// // Example: Print registered check types (optional)

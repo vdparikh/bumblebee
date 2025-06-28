@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/n8nchecker"
 	"github.com/vdparikh/compliance-automation/backend/models"
 	"github.com/vdparikh/compliance-automation/backend/store"
 )
@@ -89,7 +90,7 @@ func (h *SystemIntegrationHandler) UpdateConnectedSystemHandler(c *gin.Context) 
 		}
 	}
 
-	systemUpdates.ID = id 
+	systemUpdates.ID = id
 
 	err := h.store.UpdateConnectedSystem(&systemUpdates)
 	if err != nil {
@@ -115,4 +116,51 @@ func (h *SystemIntegrationHandler) DeleteConnectedSystemHandler(c *gin.Context) 
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Connected system deleted successfully"})
+}
+
+func (h *SystemIntegrationHandler) GetN8NWorkflowsHandler(c *gin.Context) {
+	systemId := c.Param("id")
+
+	// Get the connected system
+	system, err := h.store.GetConnectedSystemByID(systemId)
+	if err != nil {
+		log.Printf("Error retrieving connected system %s: %v", systemId, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve connected system"})
+		return
+	}
+	if system == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Connected system not found"})
+		return
+	}
+
+	// Check if it's an n8n system
+	if system.SystemType != "n8n" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Connected system is not an n8n instance"})
+		return
+	}
+
+	// Parse n8n configuration
+	var n8nConfig struct {
+		BaseURL string `json:"baseUrl"`
+		APIKey  string `json:"apiKey"`
+	}
+	if err := json.Unmarshal(system.Configuration, &n8nConfig); err != nil {
+		log.Printf("Error parsing n8n configuration: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid n8n configuration"})
+		return
+	}
+
+	// Create n8n checker instance and fetch workflows
+	n8nChecker := n8nchecker.New()
+	workflows, err := n8nChecker.GetWorkflows(n8nchecker.N8NSystemConfig{
+		BaseURL: n8nConfig.BaseURL,
+		APIKey:  n8nConfig.APIKey,
+	})
+	if err != nil {
+		log.Printf("Error fetching n8n workflows: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch n8n workflows: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, workflows)
 }

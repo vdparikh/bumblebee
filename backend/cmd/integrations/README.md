@@ -140,3 +140,78 @@ func main() {
 4.  Verify that the `TaskExecutionService` picks up the task and your plugin's `ExecuteCheck` method is called and produces the expected result. Check the logs of the `integrations` service.
 
 That's it! Your new plugin should now be integrated into the system.
+
+# Integration Plugins
+
+This directory contains various integration plugins for the compliance automation system.
+
+## Available Plugins
+
+### n8n Workflow Execution Checker
+
+The n8n plugin allows you to execute n8n workflows via webhooks as part of compliance tasks.
+
+#### Configuration
+
+To use the n8n plugin, you need to create a connected system with the following configuration:
+
+```json
+{
+  "systemType": "n8n",
+  "name": "My n8n Instance",
+  "configuration": {
+    "baseUrl": "http://localhost:5678",
+    "apiKey": "your-n8n-api-key"
+  }
+}
+```
+
+#### Features
+
+- **Webhook Execution**: Executes n8n workflows via their webhook URLs
+- **Input Data Support**: Passes optional JSON data to workflows via webhook payload
+- **Result Integration**: Webhook execution results are captured and stored as task evidence
+
+#### Usage
+
+1. Create an n8n connected system in the compliance automation system
+2. In n8n, create a workflow with a webhook trigger node
+3. Copy the webhook URL from the n8n webhook trigger node
+4. When creating a task, select "automated" as the check type
+5. Select your n8n system as the target
+6. Choose "n8n Workflow Execution" as the automated check type
+7. Enter the webhook URL from your n8n workflow
+8. Optionally provide JSON input data for the workflow
+9. The webhook execution results will be automatically captured when the task is executed
+
+#### API Endpoints
+
+- `GET /api/systems/{id}/n8n-workflows` - Fetch workflows from an n8n system (for reference only)
+
+#### Check Type
+
+- **ID**: `n8n_workflow_execution`
+- **Label**: "n8n Workflow Execution"
+- **Parameters**:
+  - `webhookUrl` (required): The webhook URL for the n8n workflow to execute
+  - `inputData` (optional): JSON input data to pass to the workflow via webhook
+
+#### How It Works
+
+1. **Webhook Trigger**: The plugin sends a POST request to the n8n webhook URL
+2. **Data Payload**: Optional JSON data is sent in the request body
+3. **Workflow Execution**: n8n receives the webhook and executes the workflow
+4. **Result Capture**: The webhook response is captured and stored as task evidence
+
+### Other Plugins
+
+- **AWS Checker**: Various AWS compliance checks
+- **HTTP Checker**: HTTP endpoint availability and response checks
+- **File Checker**: File existence and content checks
+- **Port Scanner**: Network port availability checks
+- **Script Runner**: Custom script execution
+- **Database Querier**: Database query execution
+- **Ping Checker**: ICMP ping checks
+- **SSL Checker**: SSL certificate expiry checks
+- **GCP Bucket Checker**: GCP storage bucket encryption checks
+- **Azure SQL Checker**: Azure SQL database encryption checks

@@ -373,7 +373,7 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
                                         {/* )} */}
 
 
-                                        {target && (
+                                        {target && connectedSystems.find(sys => sys.id === target)?.systemType !== 'n8n' && (
                                             <FloatingLabel controlId="formCheckType" label={<><FaCogs className="me-1" />Automated Check Type*</>} className="mb-3">
                                                 <Form.Select
                                                     value={checkType}
@@ -392,7 +392,35 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
                                             </FloatingLabel>
                                         )}
 
+                                        {/* n8n Workflow Selection */}
+                                        {target && connectedSystems.find(sys => sys.id === target)?.systemType === 'n8n' && (
+                                            <>
+                                                <FloatingLabel controlId="formN8NWebhook" label="n8n Webhook URL*" className="mb-3">
+                                                    <Form.Control
+                                                        type="url"
+                                                        value={parameters.webhookUrl || ''}
+                                                        onChange={e => handleParamChange('webhookUrl', e.target.value, { name: 'webhookUrl', required: true })}
+                                                        placeholder="https://your-n8n-instance.com/webhook/abc123"
+                                                        required
+                                                    />
+                                                    <Form.Text muted>Enter the webhook URL for the n8n workflow you want to execute.</Form.Text>
+                                                </FloatingLabel>
+                                            </>
+                                        )}
 
+                                        {/* n8n Input Data */}
+                                        {target && connectedSystems.find(sys => sys.id === target)?.systemType === 'n8n' && parameters.webhookUrl && (
+                                            <FloatingLabel controlId="formN8NInputData" label="Input Data (JSON)" className="mb-3">
+                                                <Form.Control
+                                                    as="textarea"
+                                                    value={parameters.inputData || ''}
+                                                    onChange={e => handleParamChange('inputData', e.target.value, { name: 'inputData', type: 'textarea' })}
+                                                    placeholder='{"key": "value"}'
+                                                    style={{ height: '100px' }}
+                                                />
+                                                <Form.Text muted>Optional JSON data to pass as input to the n8n workflow via webhook.</Form.Text>
+                                            </FloatingLabel>
+                                        )}
 
                                         {checkType && target && dynamicCheckTypeConfigurations[checkType] && (
                                             <Accordion className="mb-3">
