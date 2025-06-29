@@ -36,3 +36,104 @@
   }
 }
 
+/* Task Library Styles */
+.task-item {
+  border-left: 4px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.task-item:hover {
+  border-left-color: #007bff;
+  background-color: #f8f9fa;
+}
+
+.task-icon {
+  color: #6c757d;
+}
+
+.badge-outline {
+  border: 1px solid #dee2e6;
+  background-color: transparent;
+  color: #6c757d;
+}
+
+/* Metrics Cards */
+.metrics-card {
+  transition: transform 0.2s ease;
+}
+
+.metrics-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Filter Panel */
+.filter-panel {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+}
+
+/* Chart Cards */
+.chart-card {
+  min-height: 200px;
+}
+
+.chart-card .card-body {
+  padding: 1rem;
+}
+
+.chart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.chart-item:last-child {
+  border-bottom: none;
+}
+
+/* Sort Button */
+.sort-button {
+  min-width: 40px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Search Input */
+.search-input {
+  border-radius: 20px;
+}
+
+.search-input:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Task Badges */
+.task-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+  }
+  
+  .filter-row .col-md-2,
+  .filter-row .col-md-4 {
+    margin-bottom: 1rem;
+  }
+  
+  .metrics-row .col-md-3 {
+    margin-bottom: 1rem;
+  }
+  
+  .chart-row .col-md-4 {
+    margin-bottom: 1rem;
+  }
+}
+

@@ -11,6 +11,7 @@ import {
 import ThreeColumnView from '../components/views/ThreeColumnView';
 import EntityFormPanel from '../components/common/EntityFormPanel';
 import PageHeader from '../components/common/PageHeader';
+import TaskLibraryView from '../components/views/TaskLibraryView';
 import {
     getComplianceStandards,
     getRequirements,
@@ -289,122 +290,12 @@ function LibraryManagementPage() {
 
     
     const renderTaskLibrary = () => (
-        <Card>
-            <Card.Header className="d-flex justify-content-between align-items-center">
-                <h5>All Tasks ({masterTasks.length})</h5>
-                <Button variant="primary" size="sm" onClick={() => handleOpenPanel('add', 'task')}>
-                    <FaPlusCircle className="me-2" />Add Task
-                </Button>
-            </Card.Header>
-            <ListGroup variant="flush">
-
-
-            
-                                                {masterTasks.map(task => (
-                                                    <ListGroup.Item key={task.id} className="task-item">
-                                                        <div className="d-flex align-items-start">
-                                                            <div className="task-icon me-3 mt-1">
-                                                            { getTaskCategoryIcon(task) }
-                                                            </div>
-                                                            <div className="flex-grow-1">
-                                                                <div className="d-flex justify-content-between align-items-start mb-0 mt-2">
-                                                                    <h6 className="mb-1 fw-bold">{task.title}</h6>
-                                                                </div>
-                                                                
-                                                                {task.description && (
-                                                                    <p className="mb-2 small text-muted">
-                                                                        {task.description.substring(0, 100)}
-                                                                        {task.description.length > 100 ? "..." : ""}
-                                                                    </p>
-                                                                )}
-
-                                                                <div className="d-flex flex-wrap gap-2 mb-2">
-                                                                    {task.defaultPriority && (
-                                                                        <Badge bg={getStatusColor(task.defaultPriority)}>
-                                                                            <FaExclamationCircle className="me-1" size="0.7em" />
-                                                                            {task.defaultPriority}
-                                                                        </Badge>
-                                                                    )}
-                                                                    {task.checkType && (
-                                                                        <Badge bg="info">
-                                                                            <FaCogs className="me-1" size="0.7em" />
-                                                                            {task.highLevelCheckType}
-                                                                        </Badge>
-                                                                    )}
-
-                                                                    {task.target && (
-                                                                        <span className="small text-muted">
-                                                                            <FaServer className="me-1" />
-                                                                            Target: {(() => {
-                                                                                const system = connectedSystems.find(s => s.id === task.target);
-                                                                                return system ? `${system.name} (${system.systemType})` : task.target;
-                                                                            })()}
-                                                                        </span>
-                                                                    )}
-
-
-                                                                </div>
-
-                                                                {task.evidenceTypesExpected && task.evidenceTypesExpected.length > 0 && (
-                                                                    <div className="mb-2">
-                                                                        <div className="d-flex flex-wrap gap-1">
-                                                                        <small className="text-muted d-block mb-1">
-                                                                            <FaFileMedicalAlt className="me-1" />
-                                                                            Expected Evidence:
-                                                                        </small>
-                                                                        
-                                                                            {task.evidenceTypesExpected.map(et => (
-                                                                                <Badge key={et} bg="" text="dark" className="fw-normal badge-outline">
-                                                                                    {et}
-                                                                                </Badge>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-
-                                                                
-                                                            {task.requirements && (
-                                                                <div>
-                                                                    <div className="small text-muted">
-                                                                        <FaFileContract className="me-1" />
-                                                                        Associated Requirements: 
-                                                                    </div>
-                                                                <ul>
-                                                                    {task.requirements.map(req => (
-                                                                        <li>{req.requirementText} ({req.controlIdReference})</li>
-                                                                    ))}
-                                                                </ul>
-                                                                </div>
-                                                            )}
-                                                        
-                                                        
-                                                            </div>
-                                                            <Button variant="outline-transparent" size="sm" onClick={() => handleOpenPanel('edit', 'task', task)}>
-                                                                <FaEdit />
-                                                            </Button>
-                                                        </div>
-                                                        
-                                                    </ListGroup.Item>
-                                                ))}
-
-
-                {/* {masterTasks.map(task => (
-                    <ListGroup.Item key={task.id} className="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong className="me-2">{task.title}</strong>
-                            <span className="text-muted small ms-2">{task.category}</span>
-                            <div className="text-muted small">
-                                {task.description && <span>{task.description.substring(0, 80)}{task.description.length > 80 ? '...' : ''}</span>}
-                            </div>
-                        </div>
-                        <Button variant="outline-secondary" size="sm" onClick={() => handleOpenPanel('edit', 'task', task)}>
-                            <FaEdit />
-                        </Button>
-                    </ListGroup.Item>
-                ))} */}
-                {masterTasks.length === 0 && <ListGroup.Item className="text-muted">No tasks found.</ListGroup.Item>}
-            </ListGroup>
-        </Card>
+        <TaskLibraryView
+            tasks={masterTasks}
+            connectedSystems={connectedSystems}
+            onAddTask={() => handleOpenPanel('add', 'task')}
+            onEditTask={(task) => handleOpenPanel('edit', 'task', task)}
+        />
     );
 
     return (
