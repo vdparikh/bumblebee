@@ -173,7 +173,6 @@ func main() {
 		systemRoutes.GET("/:id", systemIntegrationHandler.GetConnectedSystemHandler)
 		systemRoutes.PUT("/:id", systemIntegrationHandler.UpdateConnectedSystemHandler)
 		systemRoutes.DELETE("/:id", systemIntegrationHandler.DeleteConnectedSystemHandler)
-		systemRoutes.GET("/:id/n8n-workflows", systemIntegrationHandler.GetN8NWorkflowsHandler)
 
 		// Document Routes
 		documents := api.Group("/documents")

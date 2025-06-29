@@ -147,6 +147,65 @@ This directory contains various integration plugins for the compliance automatio
 
 ## Available Plugins
 
+### Temporal Workflow Execution Checker
+
+The Temporal plugin allows you to execute Temporal workflows as part of compliance tasks.
+
+#### Configuration
+
+To use the Temporal plugin, you need to create a connected system with the following configuration:
+
+```json
+{
+  "systemType": "temporal",
+  "name": "My Temporal Instance",
+  "configuration": {
+    "serverUrl": "http://localhost:8080",
+    "namespace": "default"
+  }
+}
+```
+
+**Note**: The default Temporal port 7233 is for gRPC communication. The REST API is typically available on port 8080. If you're using a different setup, adjust the serverUrl accordingly.
+
+#### Features
+
+- **Workflow Execution**: Executes Temporal workflows via their REST API
+- **Input Data Support**: Passes optional JSON data to workflows
+- **Result Integration**: Workflow execution results are captured and stored as task evidence
+
+#### Usage
+
+1. Create a Temporal connected system in the compliance automation system with your Temporal server details
+2. In Temporal, create a workflow with the desired business logic
+3. When creating a task:
+   - Select "automated" as the check type
+   - Select your Temporal system as the target (this automatically sets the check type to "Temporal Workflow Execution")
+   - Enter the workflow ID, workflow type, and task queue in the parameters section
+   - Optionally provide JSON input data for the workflow
+   - Optionally set a timeout for workflow execution
+4. The workflow execution results will be automatically captured when the task is executed
+
+#### Check Type
+
+- **ID**: `temporal_workflow_execution`
+- **Label**: "Temporal Workflow Execution"
+- **Target Type**: "connected_system" (Temporal instance)
+- **Parameters**:
+  - `workflowId` (required): The ID of the Temporal workflow to execute
+  - `workflowType` (required): The type/name of the workflow to execute
+  - `taskQueue` (required): The task queue where the workflow will be executed
+  - `inputData` (optional): JSON input data to pass to the workflow
+  - `timeout` (optional): Timeout in seconds for workflow execution (defaults to 300 seconds)
+
+#### How It Works
+
+1. **System Configuration**: The Temporal connected system contains the server URL and namespace
+2. **Task Parameters**: The task contains the specific workflow details (ID, type, task queue, input data, timeout)
+3. **Workflow Start**: The plugin sends a POST request to the Temporal REST API to start the workflow
+4. **Execution**: Temporal executes the workflow using the provided parameters
+5. **Result Capture**: The workflow start response is captured and stored as task evidence
+
 ### n8n Workflow Execution Checker
 
 The n8n plugin allows you to execute n8n workflows via webhooks as part of compliance tasks.
@@ -174,34 +233,33 @@ To use the n8n plugin, you need to create a connected system with the following 
 
 #### Usage
 
-1. Create an n8n connected system in the compliance automation system
+1. Create an n8n connected system in the compliance automation system with your n8n instance details
 2. In n8n, create a workflow with a webhook trigger node
 3. Copy the webhook URL from the n8n webhook trigger node
-4. When creating a task, select "automated" as the check type
-5. Select your n8n system as the target
-6. Choose "n8n Workflow Execution" as the automated check type
-7. Enter the webhook URL from your n8n workflow
-8. Optionally provide JSON input data for the workflow
-9. The webhook execution results will be automatically captured when the task is executed
-
-#### API Endpoints
-
-- `GET /api/systems/{id}/n8n-workflows` - Fetch workflows from an n8n system (for reference only)
+4. When creating a task:
+   - Select "automated" as the check type
+   - Select your n8n system as the target (this automatically sets the check type to "n8n Workflow Execution")
+   - Enter the webhook URL from your n8n workflow in the parameters section
+   - Optionally provide JSON input data for the workflow
+5. The webhook execution results will be automatically captured when the task is executed
 
 #### Check Type
 
 - **ID**: `n8n_workflow_execution`
 - **Label**: "n8n Workflow Execution"
+- **Target Type**: "connected_system" (n8n instance)
 - **Parameters**:
   - `webhookUrl` (required): The webhook URL for the n8n workflow to execute
   - `inputData` (optional): JSON input data to pass to the workflow via webhook
 
 #### How It Works
 
-1. **Webhook Trigger**: The plugin sends a POST request to the n8n webhook URL
-2. **Data Payload**: Optional JSON data is sent in the request body
-3. **Workflow Execution**: n8n receives the webhook and executes the workflow
-4. **Result Capture**: The webhook response is captured and stored as task evidence
+1. **System Configuration**: The n8n connected system contains the base URL and API key for the n8n instance
+2. **Task Parameters**: The task contains the specific webhook URL and optional input data
+3. **Webhook Trigger**: The plugin sends a POST request to the n8n webhook URL
+4. **Data Payload**: Optional JSON data is sent in the request body
+5. **Workflow Execution**: n8n receives the webhook and executes the workflow
+6. **Result Capture**: The webhook response is captured and stored as task evidence
 
 ### Other Plugins
 

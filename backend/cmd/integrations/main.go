@@ -20,6 +20,7 @@ import (
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/portscanner"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/scriptrunner"
 	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/sslchecker"
+	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/temporalchecker"
 	"github.com/vdparikh/compliance-automation/backend/queue"
 	"github.com/vdparikh/compliance-automation/backend/services"
 	"github.com/vdparikh/compliance-automation/backend/store"
@@ -124,6 +125,11 @@ func main() {
 	n8nPlugin := n8nchecker.New()
 	if err := pluginRegistry.RegisterPlugin(n8nPlugin); err != nil {
 		log.Fatalf("Failed to register n8n Checker plugin: %v", err)
+	}
+
+	temporalPlugin := temporalchecker.New()
+	if err := pluginRegistry.RegisterPlugin(temporalPlugin); err != nil {
+		log.Fatalf("Failed to register Temporal Checker plugin: %v", err)
 	}
 
 	// // Example: Print registered check types (optional)

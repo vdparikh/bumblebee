@@ -323,8 +323,8 @@ export const getConnectedSystems = async () => {
     return response;
 };
 
-export const getConnectedSystemById = async (systemId) => {
-    const response = await apiClient.get(`/systems/${systemId}`);
+export const getConnectedSystemById = async (id) => {
+    const response = await apiClient.get(`/systems/${id}`);
     return response;
 };
 
@@ -391,10 +391,5 @@ export const linkTaskToRequirements = async (taskId, requirementIds) => {
 
 export const unlinkTaskFromRequirements = async (taskId, requirementIds) => {
     const response = await apiClient.post(`/tasks/${taskId}/unlink-requirements`, { requirementIds });
-    return response;
-};
-
-export const getN8NWorkflows = async (systemId) => {
-    const response = await apiClient.get(`/systems/${systemId}/n8n-workflows`);
     return response;
 };

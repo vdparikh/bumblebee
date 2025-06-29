@@ -920,7 +920,18 @@ function CampaignTaskInstanceDetail() {
                                                 <Card.Header as="h5"><FaCogs className="me-2 text-muted" />Automated Check Details</Card.Header>
                                                 <ListGroupItem ><strong>Check Type:</strong> {taskInstance.check_type}</ListGroupItem>
                                                 <ListGroupItem ><strong>Target:</strong> {taskInstance.target || 'N/A'}</ListGroupItem>
-                                                <ListGroupItem ><strong>Parameters:</strong> {taskInstance.parameters ? JSON.stringify(taskInstance.parameters) : 'None'}</ListGroupItem>
+                                                <ListGroupItem ><strong>Parameters:</strong> 
+                                                
+                                                <pre className="bg-light p-2 rounded mt-1 mb-0" style={{
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-all',
+                    fontSize: '0.9em',
+                    maxHeight: '400px',
+                    overflow: 'auto'
+                }}>
+                                                {taskInstance.parameters ? JSON.stringify(taskInstance.parameters) : 'None'}
+                                                </pre>
+                                                </ListGroupItem>
                                             </>
                                         )}
                                     </ListGroup>

@@ -360,7 +360,23 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
                                             label='Target System' >
                                             <Form.Select
                                                 value={target}
-                                                onChange={e => setTarget(e.target.value)}
+                                                onChange={e => {
+                                                    const newTarget = e.target.value;
+                                                    setTarget(newTarget);
+                                                    
+                                                    // Auto-set check type for n8n and temporal systems
+                                                    if (newTarget && connectedSystems.find(sys => sys.id === newTarget)?.systemType === 'n8n') {
+                                                        setCheckType('n8n_workflow_execution');
+                                                    } else if (newTarget && connectedSystems.find(sys => sys.id === newTarget)?.systemType === 'temporal') {
+                                                        setCheckType('temporal_workflow_execution');
+                                                    } else if (newTarget) {
+                                                        // Clear check type for other systems
+                                                        setCheckType('');
+                                                    }
+                                                    
+                                                    // Clear parameters when target changes
+                                                    setParameters({});
+                                                }}
                                                 required
                                             >
                                                 <option value="">Select Target System</option>
@@ -373,7 +389,7 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
                                         {/* )} */}
 
 
-                                        {target && connectedSystems.find(sys => sys.id === target)?.systemType !== 'n8n' && (
+                                        {target && connectedSystems.find(sys => sys.id === target)?.systemType !== 'n8n' && connectedSystems.find(sys => sys.id === target)?.systemType !== 'temporal' && (
                                             <FloatingLabel controlId="formCheckType" label={<><FaCogs className="me-1" />Automated Check Type*</>} className="mb-3">
                                                 <Form.Select
                                                     value={checkType}
@@ -392,36 +408,7 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
                                             </FloatingLabel>
                                         )}
 
-                                        {/* n8n Workflow Selection */}
-                                        {target && connectedSystems.find(sys => sys.id === target)?.systemType === 'n8n' && (
-                                            <>
-                                                <FloatingLabel controlId="formN8NWebhook" label="n8n Webhook URL*" className="mb-3">
-                                                    <Form.Control
-                                                        type="url"
-                                                        value={parameters.webhookUrl || ''}
-                                                        onChange={e => handleParamChange('webhookUrl', e.target.value, { name: 'webhookUrl', required: true })}
-                                                        placeholder="https://your-n8n-instance.com/webhook/abc123"
-                                                        required
-                                                    />
-                                                    <Form.Text muted>Enter the webhook URL for the n8n workflow you want to execute.</Form.Text>
-                                                </FloatingLabel>
-                                            </>
-                                        )}
-
-                                        {/* n8n Input Data */}
-                                        {target && connectedSystems.find(sys => sys.id === target)?.systemType === 'n8n' && parameters.webhookUrl && (
-                                            <FloatingLabel controlId="formN8NInputData" label="Input Data (JSON)" className="mb-3">
-                                                <Form.Control
-                                                    as="textarea"
-                                                    value={parameters.inputData || ''}
-                                                    onChange={e => handleParamChange('inputData', e.target.value, { name: 'inputData', type: 'textarea' })}
-                                                    placeholder='{"key": "value"}'
-                                                    style={{ height: '100px' }}
-                                                />
-                                                <Form.Text muted>Optional JSON data to pass as input to the n8n workflow via webhook.</Form.Text>
-                                            </FloatingLabel>
-                                        )}
-
+                                        {/* Show generic parameters for all systems including n8n */}
                                         {checkType && target && dynamicCheckTypeConfigurations[checkType] && (
                                             <Accordion className="mb-3">
                                                 <Accordion.Item eventKey="0">
@@ -439,7 +426,6 @@ function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, 
                                                                         {paramDef.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                                     </Form.Select>
                                                                 ) : paramDef.type === 'textarea' ? (
-
                                                                     <Form.Control
                                                                         as="textarea"
                                                                         value={parameters[paramDef.name] || ''}

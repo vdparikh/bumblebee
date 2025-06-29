@@ -4,7 +4,7 @@ import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import { Badge, Tooltip, OverlayTrigger } from 'react-bootstrap';
-import { FaUserShield, FaUserCheck, FaCalendarAlt, FaBullhorn, FaExternalLinkAlt, FaTag, FaExclamationCircle, FaFileContract, FaUsers, FaFlag, FaClock } from 'react-icons/fa';
+import { FaUserShield, FaUserCheck, FaCalendarAlt, FaBullhorn, FaExternalLinkAlt, FaTag, FaExclamationCircle, FaFileContract, FaUsers, FaFlag, FaClock, FaLink } from 'react-icons/fa';
 import StatusIcon from './StatusIcon';
 import TeamDisplay from './TeamDisplay'; // Import TeamDisplay
 import UserDisplay from './UserDisplay';
@@ -91,7 +91,7 @@ const TaskListItem = ({
 
                     </div>
                     <div className="d-flex justify-content-between align-items-start">
-                        {actionMenu ? actionMenu : (linkTo && <FaExternalLinkAlt style={{ lineHeight: "1em" }} size="1em" className="text-muted mt-1" title="View Details" />)}
+                        {actionMenu ? actionMenu : (linkTo && <FaLink style={{ lineHeight: "1em" }} size="1em" className="text-muted mt-1" title="View Details" />)}
                     </div>
                 </div>
                 

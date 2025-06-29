@@ -60,31 +60,8 @@ func (p *N8NChecker) GetCheckTypeConfigurations() map[string]models.CheckTypeCon
 }
 
 type N8NSystemConfig struct {
-	BaseURL    string `json:"baseUrl"`
-	APIKey     string `json:"apiKey"`
-	WebhookURL string `json:"webhookUrl"` // Webhook URL for triggering workflows
-}
-
-type n8nWorkflow struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Active    bool   `json:"active"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
-	// Additional fields that might be present
-	VersionId    string                 `json:"versionId,omitempty"`
-	Meta         map[string]interface{} `json:"meta,omitempty"`
-	Nodes        []interface{}          `json:"nodes,omitempty"`
-	Connections  map[string]interface{} `json:"connections,omitempty"`
-	Settings     map[string]interface{} `json:"settings,omitempty"`
-	StaticData   map[string]interface{} `json:"staticData,omitempty"`
-	Tags         []interface{}          `json:"tags,omitempty"`
-	TriggerCount int                    `json:"triggerCount,omitempty"`
-}
-
-type n8nWorkflowExecutionRequest struct {
-	WorkflowID string      `json:"workflowId"`
-	InputData  interface{} `json:"inputData,omitempty"`
+	BaseURL string `json:"baseUrl"`
+	APIKey  string `json:"apiKey"`
 }
 
 type n8nWorkflowExecutionResponse struct {
@@ -216,112 +193,6 @@ func (p *N8NChecker) executeN8NWebhook(webhookUrl string, inputData interface{})
 	} else {
 		return nil, fmt.Errorf("webhook failed: %s - %s", resp.Status, string(body))
 	}
-}
-
-// GetWorkflows fetches all workflows from n8n instance
-func (p *N8NChecker) GetWorkflows(config N8NSystemConfig) ([]n8nWorkflow, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
-
-	// Try different possible n8n API endpoints
-	endpoints := []string{
-		"/api/v1/workflows",
-		"/api/workflows",
-		"/rest/workflows",
-	}
-
-	var workflows []n8nWorkflow
-	var lastError error
-
-	for _, endpoint := range endpoints {
-		url := fmt.Sprintf("%s%s", config.BaseURL, endpoint)
-		fmt.Printf("Trying n8n endpoint: %s\n", url)
-
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			lastError = fmt.Errorf("create request for %s: %w", endpoint, err)
-			continue
-		}
-
-		// Try different authentication methods
-		if config.APIKey != "" {
-			// Try different possible header names for API key
-			req.Header.Set("X-N8N-API-KEY", config.APIKey)
-			req.Header.Set("Authorization", "Bearer "+config.APIKey)
-			req.Header.Set("X-API-Key", config.APIKey)
-		}
-
-		// Add basic headers
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Accept", "application/json")
-		req.Header.Set("User-Agent", "compliance-automation/1.0")
-
-		resp, err := client.Do(req)
-		if err != nil {
-			lastError = fmt.Errorf("execute request for %s: %w", endpoint, err)
-			continue
-		}
-		defer resp.Body.Close()
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			lastError = fmt.Errorf("read response body for %s: %w", endpoint, err)
-			continue
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			fmt.Printf("Endpoint %s returned status %d: %s\n", endpoint, resp.StatusCode, string(body))
-			lastError = fmt.Errorf("n8n API error for %s: %s - %s", endpoint, resp.Status, string(body))
-			continue
-		}
-
-		fmt.Printf("Successful response from %s: %s\n", endpoint, string(body))
-
-		// First, try to parse as generic map to understand structure
-		var rawResponse map[string]interface{}
-		if err := json.Unmarshal(body, &rawResponse); err == nil {
-			fmt.Printf("Raw response structure: %+v\n", rawResponse)
-			// Check what keys are available
-			for key := range rawResponse {
-				fmt.Printf("Available key: %s\n", key)
-			}
-		}
-
-		// Try to parse as direct array first
-		if err := json.Unmarshal(body, &workflows); err == nil {
-			fmt.Printf("Successfully parsed %d workflows as direct array\n", len(workflows))
-			return workflows, nil
-		} else {
-			fmt.Printf("Failed to parse as direct array: %v\n", err)
-		}
-
-		// If that fails, try parsing as object with data field
-		var response struct {
-			Data []n8nWorkflow `json:"data"`
-		}
-		if err := json.Unmarshal(body, &response); err == nil {
-			workflows = response.Data
-			fmt.Printf("Successfully parsed %d workflows from data field\n", len(workflows))
-			return workflows, nil
-		} else {
-			fmt.Printf("Failed to parse as data field: %v\n", err)
-		}
-
-		// Try parsing as object with workflows field
-		var response2 struct {
-			Workflows []n8nWorkflow `json:"workflows"`
-		}
-		if err := json.Unmarshal(body, &response2); err == nil {
-			workflows = response2.Workflows
-			fmt.Printf("Successfully parsed %d workflows from workflows field\n", len(workflows))
-			return workflows, nil
-		} else {
-			fmt.Printf("Failed to parse as workflows field: %v\n", err)
-		}
-
-		lastError = fmt.Errorf("could not parse response from %s as any known format", endpoint)
-	}
-
-	return nil, fmt.Errorf("failed to fetch workflows from any endpoint: %v", lastError)
 }
 
 var _ integrations.IntegrationPlugin = (*N8NChecker)(nil)

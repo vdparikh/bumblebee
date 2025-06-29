@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vdparikh/compliance-automation/backend/integrations/plugins/n8nchecker"
 	"github.com/vdparikh/compliance-automation/backend/models"
 	"github.com/vdparikh/compliance-automation/backend/store"
 )
@@ -48,80 +47,18 @@ func (h *SystemIntegrationHandler) CreateConnectedSystemHandler(c *gin.Context) 
 	c.JSON(http.StatusCreated, system)
 }
 
-func (h *SystemIntegrationHandler) GetConnectedSystemHandler(c *gin.Context) {
-	id := c.Param("id")
-	system, err := h.store.GetConnectedSystemByID(id)
-	if err != nil {
-		log.Printf("Error retrieving connected system %s: %v", id, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve connected system"})
-		return
-	}
-	if system == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Connected system not found"})
-		return
-	}
-	c.JSON(http.StatusOK, system)
-}
-
 func (h *SystemIntegrationHandler) GetAllConnectedSystemsHandler(c *gin.Context) {
 	systems, err := h.store.GetAllConnectedSystems()
 	if err != nil {
-		log.Printf("Error retrieving all connected systems: %v", err)
+		log.Printf("Error retrieving connected systems: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve connected systems"})
 		return
 	}
 	c.JSON(http.StatusOK, systems)
 }
 
-func (h *SystemIntegrationHandler) UpdateConnectedSystemHandler(c *gin.Context) {
-	id := c.Param("id")
-	var systemUpdates models.ConnectedSystem
-	if err := c.ShouldBindJSON(&systemUpdates); err != nil {
-		log.Printf("Error binding JSON for updating connected system %s: %v", id, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload: " + err.Error()})
-		return
-	}
-
-	if len(systemUpdates.Configuration) > 0 {
-		var js json.RawMessage
-		if err := json.Unmarshal(systemUpdates.Configuration, &js); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Configuration must be valid JSON: " + err.Error()})
-			return
-		}
-	}
-
-	systemUpdates.ID = id
-
-	err := h.store.UpdateConnectedSystem(&systemUpdates)
-	if err != nil {
-		log.Printf("Error updating connected system %s: %v", id, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update connected system: " + err.Error()})
-		return
-	}
-	updatedSystem, err := h.store.GetConnectedSystemByID(id)
-	if err != nil || updatedSystem == nil {
-		log.Printf("Error fetching updated system %s after update: %v", id, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve updated system details"})
-		return
-	}
-	c.JSON(http.StatusOK, updatedSystem)
-}
-
-func (h *SystemIntegrationHandler) DeleteConnectedSystemHandler(c *gin.Context) {
-	id := c.Param("id")
-	err := h.store.DeleteConnectedSystem(id)
-	if err != nil {
-		log.Printf("Error deleting connected system %s: %v", id, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete connected system"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Connected system deleted successfully"})
-}
-
-func (h *SystemIntegrationHandler) GetN8NWorkflowsHandler(c *gin.Context) {
+func (h *SystemIntegrationHandler) GetConnectedSystemHandler(c *gin.Context) {
 	systemId := c.Param("id")
-
-	// Get the connected system
 	system, err := h.store.GetConnectedSystemByID(systemId)
 	if err != nil {
 		log.Printf("Error retrieving connected system %s: %v", systemId, err)
@@ -132,35 +69,35 @@ func (h *SystemIntegrationHandler) GetN8NWorkflowsHandler(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Connected system not found"})
 		return
 	}
+	c.JSON(http.StatusOK, system)
+}
 
-	// Check if it's an n8n system
-	if system.SystemType != "n8n" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Connected system is not an n8n instance"})
+func (h *SystemIntegrationHandler) UpdateConnectedSystemHandler(c *gin.Context) {
+	systemId := c.Param("id")
+	var system models.ConnectedSystem
+	if err := c.ShouldBindJSON(&system); err != nil {
+		log.Printf("Error binding JSON for connected system update: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload: " + err.Error()})
 		return
 	}
 
-	// Parse n8n configuration
-	var n8nConfig struct {
-		BaseURL string `json:"baseUrl"`
-		APIKey  string `json:"apiKey"`
-	}
-	if err := json.Unmarshal(system.Configuration, &n8nConfig); err != nil {
-		log.Printf("Error parsing n8n configuration: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid n8n configuration"})
-		return
-	}
-
-	// Create n8n checker instance and fetch workflows
-	n8nChecker := n8nchecker.New()
-	workflows, err := n8nChecker.GetWorkflows(n8nchecker.N8NSystemConfig{
-		BaseURL: n8nConfig.BaseURL,
-		APIKey:  n8nConfig.APIKey,
-	})
+	system.ID = systemId
+	err := h.store.UpdateConnectedSystem(&system)
 	if err != nil {
-		log.Printf("Error fetching n8n workflows: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch n8n workflows: " + err.Error()})
+		log.Printf("Error updating connected system %s: %v", systemId, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update connected system: " + err.Error()})
 		return
 	}
+	c.JSON(http.StatusOK, system)
+}
 
-	c.JSON(http.StatusOK, workflows)
+func (h *SystemIntegrationHandler) DeleteConnectedSystemHandler(c *gin.Context) {
+	systemId := c.Param("id")
+	err := h.store.DeleteConnectedSystem(systemId)
+	if err != nil {
+		log.Printf("Error deleting connected system %s: %v", systemId, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete connected system: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Connected system deleted successfully"})
 }
