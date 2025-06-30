@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Button, Spinner, Alert, Badge, Row, Col } from 'react-bootstrap';
+import { Card, Button, Spinner, Alert, Badge, Row, Col, Tab, Tabs, Container } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { 
     FaPlusCircle, 
@@ -7,7 +7,10 @@ import {
     FaTrash, 
     FaPlug, 
     FaCheckCircle, 
-    FaTimesCircle
+    FaTimesCircle,
+    FaTasks,
+    FaBookOpen,
+    FaPlus
 } from 'react-icons/fa';
 import { getConnectedSystems, deleteConnectedSystem, getSystemTypeDefinitions } from '../../services/api';
 import { getSystemTypeIcon } from '../../utils/iconMap';
@@ -46,6 +49,7 @@ import {
     FaFileArchive
 } from 'react-icons/fa';
 import PageHeader from '../common/PageHeader';
+import SystemIntegrationForm from './SystemIntegrationForm';
 
 
 
@@ -90,6 +94,7 @@ function SystemIntegrations() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [apiSystemTypes, setApiSystemTypes] = useState([]);
+    const [selectedSystem, setSelectedSystem] = useState(null);
 
     const fetchSystems = useCallback(async () => {
         try {
@@ -116,6 +121,12 @@ function SystemIntegrations() {
         fetchSystems();
         fetchDefinitions();
     }, [fetchSystems]);
+
+    const handleEdit = async (systemId) => {
+        console.log(systems)
+       const system = systems.filter(option => (option.id === systemId)) 
+       console.log(system)
+    };
 
     const handleDelete = async (systemId) => {
         if (window.confirm('Are you sure you want to delete this system?')) {
@@ -154,20 +165,16 @@ function SystemIntegrations() {
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
 
-            <Row xs={1} md={2} lg={3} className="g-4">
-                {systems.map(system => {
+
+            <Tabs defaultActiveKey="existing" id="auditor-dashboard-tabs" className="mb-3 nav-line-tabs">
+                <Tab eventKey="existing" title={<><FaTasks className="me-1" />Existing</>}>
+                <Row xs={1} md={2} lg={3} className="g-4">
+
+                        {systems.map(system => {
                     const systemTypeInfo = apiSystemTypes.find(option => option.value === system.systemType);
                     return (
                         <Col key={system.id}>
                             <Card className="h-100 text-center shadow-sm">
-                                {/* <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
-                                    <span>
-                                        <span className="">{system.name}</span>
-                                    </span>
-                                    <Badge bg={system.isEnabled ? 'success' : 'secondary'} pill>
-                                        {system.isEnabled ? 'Active' : 'Disabled'}
-                                    </Badge>
-                                </Card.Header> */}
                                 <Card.Body>
                                 <div className='text-center p-2 pt-3 pb-3'
                                     style={{ color: systemTypeInfo ? systemTypeInfo.color : '#007bff' }}
@@ -191,7 +198,7 @@ function SystemIntegrations() {
                                     <Button
                                         variant="outline-primary"
                                         size="sm"
-                                        className="me-2 p-0"
+                                        className="me-2 ps-3 pe-2 me-2"
                                         onClick={() => navigate(`/admin/system-integrations/edit/${system.id}`)}
                                         title="Edit System"
                                     >
@@ -210,7 +217,15 @@ function SystemIntegrations() {
                         </Col>
                     );
                 })}
-            </Row>
+                    </Row>
+                </Tab>
+                <Tab eventKey="evidenceLibrary" title={<><FaPlus className="me-1" />Add New Integration</>}>
+                    <SystemIntegrationForm />
+                </Tab>
+            </Tabs>
+
+                
+            
         </div>
     );
 }

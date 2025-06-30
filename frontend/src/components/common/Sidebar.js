@@ -1,221 +1,155 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import Nav from 'react-bootstrap/Nav';
-import Navbar from 'react-bootstrap/Navbar';
-import NavDropdown from 'react-bootstrap/NavDropdown';
-import Col from 'react-bootstrap/Col';
-import Image from 'react-bootstrap/Image';
-import Tooltip from 'react-bootstrap/Tooltip';
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import Button from 'react-bootstrap/Button';
 import {
-    FaHourglassHalf,
-    FaTachometerAlt, FaUser, FaBullhorn, FaColumns, FaUsers,
-    FaTasks, FaFileContract, FaShieldAlt, FaBookOpen, FaLayerGroup,
-    FaQuestionCircle, FaRegQuestionCircle,
-    FaCog,
-    FaHistory,
-    FaPlug, 
-    FaUserShield, // Added for Auditor Dashboard
-    FaCogs
+    FaTachometerAlt, FaTasks, FaBullhorn, FaBookOpen, FaLayerGroup, FaUserShield, FaHistory, FaCog, FaQuestionCircle, FaRegQuestionCircle, FaUsers, FaChevronDown, FaChevronRight, FaUser,
+    FaCogs,
+    FaPlug,
+    FaShieldAlt,
+    FaExclamation,
+    FaExclamationTriangle
 } from 'react-icons/fa';
-import { useAuth } from '../../contexts/AuthContext'; // Import useAuth
+import { useAuth } from '../../contexts/AuthContext';
 import ThemeSwitcher from './ThemeSwitcher';
 
-function Sidebar({ /*currentUser,*/ logout, showDetailsPanel, setShowDetailsPanel }) { // currentUser prop can be removed if always using useAuth
-    const { currentUser, startRoleSimulation, stopRoleSimulation } = useAuth(); // Get functions and currentUser from context
+const sidebarSections = [
+    {
+        header: 'Main',
+        items: [
+            { to: '/', icon: <FaTachometerAlt />, label: 'Dashboard', roles: ['admin', 'auditor', 'user'] },
+            { to: '/my-tasks', icon: <FaTasks />, label: 'My Tasks', roles: ['admin', 'auditor', 'user'] },
+            { to: '/campaigns', icon: <FaBullhorn />, label: 'Campaigns', roles: ['admin', 'auditor', 'user'] },
+            { to: '/audit-logs', icon: <FaHistory />, label: 'Audit Logs', roles: ['admin', 'auditor'] },
+        ]
+    },
+    {
+        header: 'Management',
+        items: [
+            { to: '/auditor-dashboard', icon: <FaUserShield />, label: 'Auditor', roles: ['admin', 'auditor'] },
+            { to: '/documents', icon: <FaBookOpen />, label: 'Documents', roles: ['admin', 'auditor'] },
+            {
+                label: 'Compliance',
+                icon: <FaShieldAlt />,
+                roles: ['admin'],
+                children: [
+                    { to: '/library', icon: <FaLayerGroup />, label: 'Library', roles: ['admin', 'auditor'] },
+                    { to: '/tasks', icon: <FaTasks />, label: 'Tasks', roles: ['admin', 'auditor'] },
+                    { to: '/risks', icon: <FaExclamationTriangle />, label: 'Risks', roles: ['admin', 'auditor'] }
+
+                ]
+            },
+            {
+                label: 'Settings',
+                icon: <FaCogs />,
+                roles: ['admin'],
+                children: [
+                    { to: '/admin-settings', icon: <FaCog />, label: 'Settings', roles: ['admin'] },
+                    { to: '/admin/system-integrations', icon: <FaPlug />, label: 'Integrations', roles: ['admin'] },
+                    { to: '/teams', icon: <FaUsers />, label: 'Teams', roles: ['admin', 'auditor'] },
+                ]
+            }
+        ]
+    }
+];
+
+function Sidebar({ logout, showDetailsPanel, setShowDetailsPanel }) {
+    const { currentUser } = useAuth();
     const location = useLocation();
-    const userActionsHeight = '150px'; // Approximate height for user actions section
+    const [openSections, setOpenSections] = useState({});
 
-    const navItems = [
-        { to: "/", eventKey: "/", icon: <FaTachometerAlt size="1.2em" />, label: "Dashboard", roles: ['admin', 'auditor', 'user'] },
-        { to: "/my-tasks", eventKey: "/my-tasks", icon: <FaTasks size="1.2em" />, label: "My Tasks", roles: ['admin', 'auditor', 'user'] },
-        { to: "/campaigns", eventKey: "/campaigns", icon: <FaBullhorn size="1.2em" />, label: "Campaigns", roles: ['admin', 'auditor', 'user'], activeCheck: () => location.pathname.startsWith('/campaigns') },
-        { to: "/alt-view", eventKey: "/alt-view", icon: <FaColumns size="1.2em" />, label: "Modern View", roles: ['user'] },
-        { to: "/auditor-dashboard", eventKey: "/auditor-dashboard", icon: <FaUserShield size="1.2em" />, label: "Auditor Dashboard", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/auditor-dashboard') },
-        (currentUser?.role === 'admin' || currentUser?.role === 'auditor') && { type: 'divider', label: 'Management', key: 'nav-div-management' },
-        // { to: "/pending-review", eventKey: "/pending-review", icon: <FaHourglassHalf size="1.2em" />, label: "Pending Review", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/pending-review') },
-        { to: "/documents", eventKey: "/documents", icon: <FaBookOpen size="1.2em" />, label: "Documents", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/documents') },
-        { to: "/library", eventKey: "/library", icon: <FaLayerGroup size="1.2em" />, label: "Manage Library", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/library') },
-        // { to: "/admin/system-integrations", eventKey: "/admin/system-integrations", icon: <FaPlug size="1.2em" />, label: "System Integrations", roles: ['admin'], activeCheck: () => location.pathname.startsWith('/admin/system-integrations') },
-        // { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Teams", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/teams') },
-        { to: "/audit-logs", eventKey: "/audit-logs", icon: <FaHistory size="1.2em" />, label: "Audit Logs", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/audit-logs') },
-
-        // { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Manage Teams", roles: ['admin', 'auditor'] }, // Can be moved to AdminSettings or kept separate
-    ];
-
-    const navSettingsItems = [
-        { to: "/admin-settings", eventKey: "/settings", icon: <FaCog size="1.2em" />, label: "Settings", roles: ['admin'], activeCheck: () => location.pathname.startsWith('/admin-settings') },
-
-        { to: "/admin/system-integrations", eventKey: "/admin/system-integrations", icon: <FaPlug size="1.2em" />, label: "System Integrations", roles: ['admin'], activeCheck: () => location.pathname.startsWith('/admin/system-integrations') },
-        { to: "/teams", eventKey: "/teams", icon: <FaUsers size="1.2em" />, label: "Teams", roles: ['admin', 'auditor'], activeCheck: () => location.pathname.startsWith('/teams') },
-    ];
-
-
-    // This check now uses currentUser from useAuth, which includes actualRole
-    const canSimulate = currentUser && (currentUser.actualRole === 'admin' || currentUser.actualRole === 'auditor');
+    const toggleSection = (label) => {
+        setOpenSections(prev => ({ ...prev, [label]: !prev[label] }));
+    };
 
     return (
-        <Col className="p-0 sidebar d-flex flex-column" style={{ maxWidth: "60px" }}>
-            {/* Top Logo */}
-            <Navbar.Brand as={Link} to="/" className="text-center mt-3 mb-3">
-                <Image height={44} src={process.env.PUBLIC_URL + '/logo.webp'} alt="Bumblebee Logo" />
-            </Navbar.Brand>
-
-            {/* Scrollable Navigation Links */}
-            <Nav variant='pills' activeKey={location.pathname} className="flex-column w-100 flex-grow-1" style={{ overflowY: 'auto', overflowX: 'hidden', maxHeight: `calc(100vh - ${userActionsHeight})` }}>
-                <div className="mt-1">
-
-                    {/* <div className='' > */}
-                    <NavDropdown
-                        title={
-                            <OverlayTrigger placement="right" delay={{ show: 250, hide: 100 }} overlay={<Tooltip id="tooltip-user-actions">{currentUser?.name || 'User Menu'}</Tooltip>}>
-                                <div style={{ height: "50px" }} className="d-flex justify-content-center align-items-center  border-0">
-                                    <FaUser className='text-white' size="1.2em" />
-                                </div>
-                            </OverlayTrigger>
-                        }
-                        id="sidebar-user-actions-dropdown"
-                        drop="end"
-                        align={{ lg: 'start' }}
-                        className="sidebar-user-dropdown" // Added a class for potential specific styling
-                        popperConfig={{ strategy: 'fixed' }}
-                    >
-                        <NavDropdown.Header className="text-center small text-muted">{currentUser?.name || 'User'}</NavDropdown.Header>
-                        <NavDropdown.Item as={Link} to="/profile">Profile ({currentUser?.role})</NavDropdown.Item>
-                        {/* Role Simulation Options */}
-                        {canSimulate && (
-                            <>
-                                <NavDropdown.Divider />
-                                <NavDropdown.Header className="small text-muted">Role Simulation</NavDropdown.Header>
-                                {currentUser.isSimulating && currentUser.role === 'user' ? (
-                                    <NavDropdown.Item onClick={() => { stopRoleSimulation(); window.location.reload(); }}>
-                                        Stop Simulating (Back to {currentUser.actualRole})
-                                    </NavDropdown.Item>
-                                ) : (
-                                    <NavDropdown.Item onClick={() => { startRoleSimulation('user'); window.location.reload(); }} disabled={currentUser.role === 'user' && !currentUser.isSimulating}>
-                                        Simulate User Role
-                                    </NavDropdown.Item>
-                                )}
-                                {/* Add more roles to simulate if needed, e.g., Simulate Auditor */}
-                            </>
-                        )}
-                        <NavDropdown.Divider className='' />
-                        <NavDropdown.Item onClick={logout}>Logout</NavDropdown.Item>
-                    </NavDropdown>
-                    {/* </div> */}
-                    {navItems
-                        .filter(Boolean)
-                        .map((item, index) => {
-                            if (item.type === 'divider') {
-                                return (
-                                    <Nav.Item key={item.key || `divider-${index}`} className='text-center mt-3 mb-1'>
-                                        <hr className="border border-dark  w-75 mx-auto" />
-                                    </Nav.Item>
-                                );
-                            }
-                            if (item.roles && !item.roles.includes(currentUser?.role)) {
-                                return null;
-                            }
-                            return (
-                                <OverlayTrigger
-                                    key={item.eventKey}
-                                    placement="right"
-                                    delay={{ show: 250, hide: 100 }}
-                                    overlay={
-                                        <Tooltip id={`tooltip-${item.eventKey.replace(/\//g, '')}`}>
-                                            {item.label}
-                                        </Tooltip>
-                                    }
-                                >
-                                    <Button
-                                        as={NavLink}
-                                        to={item.to}
-                                        size='sm'
-                                        variant='transparent'
-                                        eventKey={item.eventKey}
-                                        className="d-flex justify-content-center align-items-center  p-3 border-0"
-                                        title={item.label}
-                                        isActive={item.activeCheck ? item.activeCheck : undefined}
-                                    >
-                                        {item.icon}
-                                    </Button>
-                                </OverlayTrigger>
-                            );
-                        })}
-
-                    {/* {currentUser?.role === 'admin' && <Button as={NavLink}
-                        className="d-flex justify-content-center align-items-center  p-3  border-0"
-                        size='sm'
-                        variant='transparent'
-                        title="Settings"
-                        to="/admin-settings"
-                        isActive={location.pathname.startsWith('/settings') ? location.pathname.startsWith('/settings') : undefined}> <FaCog size="1.2em" />
-                    </Button>} */}
-
-                    {currentUser?.role === 'admin' && (
-                        <NavDropdown
-                            title={
-                                <OverlayTrigger placement="right" delay={{ show: 250, hide: 100 }} overlay={<Tooltip id="tooltip-settings-menu">Settings</Tooltip>}>
-                                    <div style={{ height: "50px" }} className="d-flex justify-content-center align-items-center border-0">
-                                        <FaCog className='text-white' size="1.2em" />
-                                    </div>
-                                </OverlayTrigger>
-                            }
-                            id="sidebar-settings-actions-dropdown"
-                            drop="end"
-                            align={{ lg: 'start' }}
-                            className="sidebar-user-dropdown mt-1"
-                            popperConfig={{ strategy: 'fixed' }}
-                        >
-                            <NavDropdown.Header className="text-center small text-muted">Admin Settings</NavDropdown.Header>
-
-                            {navSettingsItems
-                                .filter(Boolean)
-                                .filter(item => item.roles && item.roles.includes(currentUser?.role)) // Ensure role check for settings items
-                                .map((item, index) => {
-                                    return (
-                                        <NavDropdown.Item
-                                            key={item.eventKey}
-                                            as={NavLink}
-                                            to={item.to}
-                                            eventKey={item.eventKey} // eventKey is useful for NavDropdown's internal state if needed
-                                            className={({ isActive }) => isActive || (item.activeCheck && item.activeCheck()) ? "dropdown-item active" : "dropdown-item"}
+        <div className="sidebar-modern" style={{  }}>
+            {/* Logo */}
+            <div className="sidebar-logo" style={{ margin: '32px 0 24px 0', textAlign: 'center' }}>
+                <Link to="/">
+                    <img src={process.env.PUBLIC_URL + '/logo.webp'} alt="Logo" height={44} />
+                </Link>
+            </div>
+            {/* Navigation */}
+            <nav className="sidebar-nav" style={{ width: '100%' }}>
+                {sidebarSections.map(section => (
+                    <div key={section.header} style={{ marginBottom: 18 }}>
+                        <div className="sidebar-section-header">{section.header}</div>
+                        <div>
+                            {section.items
+                                .filter(item => Array.isArray(item.roles) && item.roles.includes(currentUser?.role))
+                                .map(item => item.children ? (
+                                    <div key={item.label}>
+                                        <div
+                                            className={`sidebar-nav-link sidebar-tree-parent${openSections[item.label] ? ' open' : ''}`}
+                                            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px', cursor: 'pointer', borderRadius: 12, fontWeight: 500, fontSize: '0.8em!important', background: openSections[item.label] ? 'none' : 'none' }}
+                                            onClick={() => toggleSection(item.label)}
                                         >
-                                            {item.icon} <span className="ms-2">{item.label}</span>
-                                        </NavDropdown.Item>
-                                    );
-                                })}
-                        </NavDropdown>
-                    )}
-                </div>
-            </Nav>
-
-            {/* Bottom Fixed User Actions */}
-            <Nav variant='pills' className="flex-column w-100 flex-grow-1" style={{ height: userActionsHeight, justifyContent: 'flex-end' }}>
-                <Nav.Item className="text-center mt-3 mb-1">
-                    <ThemeSwitcher />
-                </Nav.Item>
-
-                <OverlayTrigger
-                    placement="right"
-                    delay={{ show: 250, hide: 100 }}
-                    overlay={<Tooltip id="tooltip-help">{showDetailsPanel ? "Hide Help Panel" : "Show Help Panel"}</Tooltip>}
+                                            <span className="sidebar-icon" style={{ fontSize: 14 }}>{item.icon}</span>
+                                            <span className="sidebar-label" style={{ flex: 1 }}>{item.label}</span>
+                                            <span className="sidebar-chevron" style={{ fontSize: 12, color: '#aaa' }}>
+                                                {openSections[item.label] ? <FaChevronDown /> : <FaChevronRight />}
+                                            </span>
+                                        </div>
+                                        {openSections[item.label] && (
+                                            <div className="sidebar-tree-children" style={{ }}>
+                                                {item.children
+                                                    .filter(child => Array.isArray(child.roles) && child.roles.includes(currentUser?.role))
+                                                    .map(child => (
+                                                        <NavLink
+                                                            key={child.to}
+                                                            to={child.to}
+                                                            className={({ isActive }) => isActive ? "sidebar-nav-link active" : "sidebar-nav-link"}
+                                                            style={({ isActive }) => ({
+                                                                
+                                                            })}
+                                                        >
+                                                            <span className="sidebar-icon" style={{ fontSize: 17 }}>{child.icon}</span>
+                                                            <span className="sidebar-label">{child.label}</span>
+                                                        </NavLink>
+                                                    ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <NavLink
+                                        key={item.to}
+                                        to={item.to}
+                                        className={({ isActive }) => isActive ? "sidebar-nav-link active" : "sidebar-nav-link"}
+                                        style={({ isActive }) => ({
+                                            display: 'flex', alignItems: 'center', gap: 12, padding: '2px 24px', color: isActive ? '#1976d2' : '#444', fontWeight: 500, fontSize: '1em!important', borderRadius: 0, background: isActive ? 'none' : 'none', marginBottom: 2
+                                        })}
+                                    >
+                                        <span className="sidebar-icon" style={{ fontSize: 14 }}>{item.icon}</span>
+                                        <span className="sidebar-label">{item.label}</span>
+                                    </NavLink>
+                                ))}
+                        </div>
+                    </div>
+                ))}
+            </nav>
+            {/* Spacer */}
+            <div className="sidebar-spacer" style={{ flex: 1 }} />
+            {/* Bottom Section */}
+            <div className="sidebar-bottom" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+                {/* Theme Switcher */}
+                <ThemeSwitcher />
+                {/* Help/Support */}
+                <button
+                    className="sidebar-nav-link"
+                    title={showDetailsPanel ? "Hide Help Panel" : "Show Help Panel"}
+                    onClick={() => setShowDetailsPanel(!showDetailsPanel)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px', borderRadius: 12, color: '#888', background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}
                 >
-                    <Button
-                        variant=""
-                        size="sm"
-                        onClick={() => setShowDetailsPanel(!showDetailsPanel)}
-                        className="d-flex justify-content-center align-items-center  p-3 w-100 border-0"
-                        title={showDetailsPanel ? "Hide Help Panel" : "Show Help Panel"}
-                    >
-                        {showDetailsPanel ? <FaQuestionCircle size="1.2em" /> : <FaRegQuestionCircle size="1.2em" />}
-                    </Button>
-                </OverlayTrigger>
-
-
-            </Nav>
-        </Col>
+                    <span className="sidebar-icon">
+                        {showDetailsPanel ? <FaQuestionCircle /> : <FaRegQuestionCircle />}
+                    </span>
+                    <span className="sidebar-label" style={{ fontSize: '1.01rem' }}>Help</span>
+                </button>
+                {/* User/Profile */}
+                <div className="sidebar-user" style={{ width: 48, height: 48, borderRadius: 16, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: 22, marginTop: 8 }}>
+                    <FaUser />
+                </div>
+            </div>
+        </div>
     );
 }
 

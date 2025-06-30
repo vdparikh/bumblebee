@@ -209,7 +209,7 @@ function Documents() {
                                     <tbody>
                                         {docsInType.map(doc => (
                                             <tr key={doc.id}>
-                                                <td style={{width: '40%'}}>
+                                                <td style={{width: '40%'}} className=''>
                                                     <FaFileAlt className="me-2 text-muted" />
                                                     {doc.source_url ? (
                                                         <a href={doc.source_url} target="_blank" rel="noopener noreferrer" title={doc.name}>
