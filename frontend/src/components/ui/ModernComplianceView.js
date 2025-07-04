@@ -953,13 +953,13 @@ function ModernComplianceView({
                     opacity: 1;
                 }
                 
-                .task-category-header {
-                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-                }
+                // .task-category-header {
+                //     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                // }
                 
-                .task-category-group:not(:last-child) {
-                    border-bottom: 1px solid #dee2e6;
-                }
+                // .task-category-group:not(:last-child) {
+                //     border-bottom: 1px solid #dee2e6;
+                // }
                 
                 .cursor-pointer {
                     cursor: pointer;

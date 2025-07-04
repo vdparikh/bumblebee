@@ -26,7 +26,6 @@ const sidebarSections = [
         header: 'Management',
         items: [
             { to: '/auditor-dashboard', icon: <FaUserShield />, label: 'Auditor', roles: ['admin', 'auditor'] },
-            { to: '/documents', icon: <FaBookOpen />, label: 'Documents', roles: ['admin', 'auditor'] },
             {
                 label: 'Compliance',
                 icon: <FaShieldAlt />,
@@ -35,8 +34,8 @@ const sidebarSections = [
                     { to: '/standards', icon: <FaLayerGroup />, label: 'Standards', roles: ['admin', 'auditor'] },
                     { to: '/requirements', icon: <FaFileContract />, label: 'Requirements', roles: ['admin', 'auditor'] },
                     { to: '/tasks', icon: <FaTasks />, label: 'Task Library', roles: ['admin', 'auditor'] },
-                    { to: '/risks', icon: <FaExclamationTriangle />, label: 'Risks', roles: ['admin', 'auditor'] }
-
+                    { to: '/risks', icon: <FaExclamationTriangle />, label: 'Risks', roles: ['admin', 'auditor'] },
+                    { to: '/documents', icon: <FaBookOpen />, label: 'Documents', roles: ['admin', 'auditor'] }
                 ]
             },
             {
@@ -88,7 +87,7 @@ function Sidebar({ logout, showDetailsPanel, setShowDetailsPanel }) {
                                     <div key={item.label}>
                                         <div
                                             className={`sidebar-nav-link sidebar-tree-parent${openSections[item.label] ? ' open' : ''}`}
-                                            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 24px', cursor: 'pointer', borderRadius: 12, fontWeight: 500, fontSize: '0.8em!important', background: openSections[item.label] ? 'none' : 'none' }}
+                                            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '2px 24px', cursor: 'pointer', borderRadius: 12, fontWeight: 500, fontSize: '0.8em!important', background: openSections[item.label] ? 'none' : 'none' }}
                                             onClick={() => toggleSection(item.label)}
                                         >
                                             <span className="sidebar-icon" style={{ fontSize: 14 }}>{item.icon}</span>
@@ -123,7 +122,7 @@ function Sidebar({ logout, showDetailsPanel, setShowDetailsPanel }) {
                                         to={item.to}
                                         className={({ isActive }) => isActive ? "sidebar-nav-link active" : "sidebar-nav-link"}
                                         style={({ isActive }) => ({
-                                            display: 'flex', alignItems: 'center', gap: 12, padding: '2px 24px', color: isActive ? '#1976d2' : '#444', fontWeight: 500, fontSize: '1em!important', borderRadius: 0, background: isActive ? 'none' : 'none', marginBottom: 2
+                                            display: 'flex', alignItems: 'center', gap: 12, padding: '2px 24px'
                                         })}
                                     >
                                         <span className="sidebar-icon" style={{ fontSize: 14 }}>{item.icon}</span>

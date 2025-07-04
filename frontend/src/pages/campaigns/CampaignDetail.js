@@ -230,10 +230,12 @@ function CampaignDetail() {
         setFilteredTaskInstances(tempTasks);
     }, [taskInstances, searchTerm, selectedRequirementFilterId, activeStatusFilter, activeCategoryFilter, sortConfig, allUsers]);
     const handleOpenAssignModal = (taskInstance) => {
+         console.log(taskInstance)
         setCurrentTaskInstanceForAssignment(taskInstance);
 
         const currentOwnerIds = taskInstance.owners ? taskInstance.owners.map(owner => owner.id) : [];
 
+        
         setSelectedOwnerIDs(allUsers.filter(u => currentOwnerIds.includes(u.id)).map(u => ({ value: u.id, label: u.name })));
         setSelectedAssignee(taskInstance.assignee_user_id || (currentUser ? currentUser.id : ''));
 
@@ -241,7 +243,7 @@ function CampaignDetail() {
         setSelectedAssigneeTeam(taskInstance.assignee_team_id || '');
 
 
-        setSelectedDueDate(taskInstance.due_date ? new Date(taskInstance.due_date).toISOString().split('T')[0] : '');
+        setSelectedDueDate(taskInstance.due_date ? new Date(taskInstance.due_date).toISOString().split('T')[0] : new Date(campaign.end_date).toISOString().split('T')[0] );
         setSelectedPriority(taskInstance.priority || ''); // Initialize priority
         setShowAssignModal(true);
     };
@@ -956,7 +958,7 @@ function CampaignDetail() {
 
             <Modal show={showAssignModal} onHide={() => setShowAssignModal(false)}>
                 <Modal.Header closeButton>
-                    <Modal.Title>Assign Users for Task: {currentTaskInstanceForAssignment?.title}</Modal.Title>
+                    <Modal.Title><small>Edit Assignments for Task:</small><br/>{currentTaskInstanceForAssignment?.title}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <Form>

@@ -2,18 +2,16 @@
 /* @import url('https://fonts.googleapis.com/css2?family=Commissioner&family=Museo+Sans:wght@100..900&display=swap'); */
 
 /* GLOBAL & BODY STYLES */
-@font-face {
+/* @font-face {
   font-family: 'Geomanist';
-  /* Choose a name for your font */
-  src: url('./assets/geomanist/Geomanist-Regular.otf') format('truetype');
+  src: url('./assets/Geomanist-Regular-Webfont/geomanist-regular-webfont.woff') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'Geomanist';
-  /* Choose a name for your font */
-  src: url('./assets/geomanist/Geomanist-Regular-Italic.otf') format('truetype');
+  src: url('./assets/Geomanist-Regular-Italic-Webfont/geomanist-regular-italic-webfont.woff') format('truetype');
   font-weight: normal;
   font-style: italic;
 }
@@ -23,9 +21,33 @@
   src: url('./assets/geomanist-book/geomanist-book.woff') format('woff');
   font-weight: normal;
   font-style: normal;
+} */
+
+@font-face {
+  font-family: 'geomanistregular';
+  src: url('./assets/Geomanist-Regular-Webfont/geomanist-regular-webfont.eot');
+  src: url('./assets/Geomanist-Regular-Webfont/geomanist-regular-webfont.eot?#iefix') format('embedded-opentype'),
+       url('./assets/Geomanist-Regular-Webfont/geomanist-regular-webfont.woff2') format('woff2'),
+       url('./assets/Geomanist-Regular-Webfont/geomanist-regular-webfont.woff') format('woff'),
+       url('./assets/Geomanist-Regular-Webfont/geomanist-regular-webfont.ttf') format('truetype'),
+       url('./assets/Geomanist-Regular-Webfont/geomanist-regular-webfont.svg#geomanistregular') format('svg');
+  font-weight: normal;
+  font-style: normal;
+
 }
 
+@font-face {
+  font-family: 'geomanistitalic';
+  src: url('./assets/Geomanist-Regular-Italic-Webfont/geomanist-regular-italic-webfont.eot');
+  src: url('./assets/Geomanist-Regular-Italic-Webfont/geomanist-regular-italic-webfont.eot?#iefix') format('embedded-opentype'),
+       url('./assets/Geomanist-Regular-Italic-Webfont/geomanist-regular-italic-webfont.woff2') format('woff2'),
+       url('./assets/Geomanist-Regular-Italic-Webfont/geomanist-regular-italic-webfont.woff') format('woff'),
+       url('./assets/Geomanist-Regular-Italic-Webfont/geomanist-regular-italic-webfont.ttf') format('truetype'),
+       url('./assets/Geomanist-Regular-Italic-Webfont/geomanist-regular-italic-webfont.svg#geomanistitalic') format('svg');
+  font-weight: normal;
+  font-style: normal;
 
+}
 *,
 :after,
 :before {
@@ -47,7 +69,7 @@
 
 body {
   margin: 0;
-  font-family: 'Geomanist', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'geomanistregular', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -72,7 +94,7 @@ code {
   --custom-primary: #0078D3;
   /* Flexy: Primary Blue */
   --custom-theme-color: #EC5100;
-  --custom-header-font: 'Geomanist-Book', sans-serif;
+  --custom-header-font: 'geomanistregular', sans-serif;
   --custom-card-header-bg: #ffffff;
   /* White card headers */
 
@@ -135,7 +157,7 @@ h6,
 .h5,
 .h6 {
   font-family: var(--custom-header-font);
-  font-weight: 500 !important;
+  font-weight: 800!important;
   color: var(--bs-heading-color);
 }
 
@@ -612,13 +634,6 @@ input,
     background-color: #111!important;
   }
 
-  .sidebar-nav-link {
-    color: #999!important;
-  }
-
-  .sidebar-nav-link.active {
-    color: var(--bs-primary)!important;
-  }
 
   .card {
     /* .details-pane also styled below */
@@ -658,7 +673,14 @@ input,
   .list-group-item.active,
   .list-group-item.active .text-muted {
     color: #ffffff !important;
-    background-color: #000 !important;
+    background-color: var(--bs-accordion-active-bg)!important;
+  }
+
+  .list-group-item.active,
+  .list-group-item:hover,
+  .list-group-item.active .text-muted {
+    color: #ffffff !important;
+    background-color: var(--bs-body-bg)!important;
   }
 
   .nav-tabs .nav-link.active {
@@ -876,7 +898,6 @@ input,
   flex-direction: column;
   align-items: stretch;
   min-height: 100vh;
-  font-family: 'Geomanist', 'Segoe UI', Arial, sans-serif;
   border-right: '1px solid #eee';
   box-shadow: '2px 0 8px rgba(0,0,0,0.04)'
 }
@@ -897,7 +918,7 @@ input,
 }
 
 .sidebar-nav-link {
-  color: #000;
+  color: var(--bs-body-color);
   /* display: flex;
   align-items: center;
   gap: 12px;
@@ -919,8 +940,9 @@ input,
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 0.8em;
-  font-weight: 500;
+  color: var(--bs-primary)!important;
+  font-weight: 900;
+  
 }
 
 .sidebar-icon {
@@ -931,8 +953,8 @@ input,
 
 .sidebar-label {
   font-size: 0.9rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+
+  /* letter-spacing: 0.01em; */
 }
 
 .sidebar-tree-children {
@@ -941,17 +963,20 @@ input,
   
 }
 
+
+
+
+
 .sidebar-tree-children .sidebar-nav-link {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.8em;
-  font-weight: 500;;
-  padding: 3px 14px;
+  gap: 10px;
+  padding: 1px 14px;
   margin-left: 34px;
   /* background: #e3f2fd; */
   border-left: 2px solid #f0f2f7;
   padding-left: 8px;
+  
 }
 
 .sidebar-tree-children .sidebar-nav-link.active {
@@ -960,6 +985,7 @@ input,
   border-left: 2px solid var(--bs-primary);
   padding-left: 8px;
   color: var(--bs-primary);
+  
 }
 
 
@@ -980,18 +1006,3 @@ input,
   font-size: 1.2rem;
   margin-top: 8px;
 }
-
-.sidebar-modern button.sidebar-nav-link {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #b0b8c9;
-  font-size: 1.1rem;
-  padding: 8px 24px;
-}
-
-.sidebar-modern button.sidebar-nav-link:hover {
-  color: #1976d2;
-  background: #e3f2fd;
-}
-
