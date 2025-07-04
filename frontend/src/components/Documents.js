@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import {
     getDocuments,
     createDocument,
@@ -22,6 +22,7 @@ import {
 import { FaBook, FaPlusCircle, FaEdit, FaTrashAlt, FaLink, FaInfoCircle, FaFolder, FaFileAlt } from 'react-icons/fa'; // Added FaFolder, FaFileAlt
 import PageHeader from './common/PageHeader';
 import ConfirmModal from './common/ConfirmModal';
+import { RightPanelContext } from '../App';
 
 const documentTypes = ["Policy", "Procedure", "Standard Operating Procedure (SOP)", "Regulatory Document", "Guideline", "Framework", "Other"];
 
@@ -32,10 +33,12 @@ function Documents() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    const [showModal, setShowModal] = useState(false);
+    // Right panel state
+    const { openRightPanel, closeRightPanel } = useContext(RightPanelContext);
     const [isEditing, setIsEditing] = useState(false);
     const [currentDocument, setCurrentDocument] = useState(null);
 
+    // Delete modal state
     const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
     const [documentToDelete, setDocumentToDelete] = useState(null);
 
@@ -46,7 +49,6 @@ function Documents() {
         source_url: '',
         internal_reference: ''
     };
-    const [formData, setFormData] = useState(initialFormState);
 
     const fetchDocuments = useCallback(async () => {
         setLoading(true);
@@ -79,71 +81,40 @@ function Documents() {
         }
     }, [documents]);
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleOpenCreateModal = () => {
-        setIsEditing(false);
-        setCurrentDocument(null);
-        setFormData(initialFormState);
-        setShowModal(true);
-        setError('');
-        setSuccess('');
-    };
-
-    const handleOpenEditModal = (doc) => {
-        setIsEditing(true);
+    // --- Right Panel Form ---
+    const handleOpenPanel = (mode, doc = null) => {
+        setIsEditing(mode === 'edit');
         setCurrentDocument(doc);
-        setFormData({
-            name: doc.name || '',
-            description: doc.description || '',
-            document_type: doc.document_type || '',
-            source_url: doc.source_url || '',
-            internal_reference: doc.internal_reference || ''
+        openRightPanel('documentForm', {
+            title: mode === 'edit' ? 'Edit Document' : 'Create New Document',
+            content: (
+                <DocumentForm
+                    mode={mode}
+                    initialData={doc}
+                    onSave={handleSaveDocument}
+                    onClose={closeRightPanel}
+                />
+            )
         });
-        setShowModal(true);
-        setError('');
-        setSuccess('');
     };
 
-    const handleCloseModal = () => {
-        setShowModal(false);
-        setIsEditing(false);
-        setCurrentDocument(null);
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    // --- Save Handler ---
+    const handleSaveDocument = async (data, idToUpdate) => {
         setError('');
         setSuccess('');
-
-        const payload = {
-            name: formData.name.trim(),
-            description: formData.description.trim() || null,
-            document_type: formData.document_type.trim(),
-            source_url: formData.source_url.trim() || null,
-            internal_reference: formData.internal_reference.trim() || null,
-        };
-
-        if (!payload.name || !payload.document_type) {
-            setError("Name and Document Type are required.");
-            return;
-        }
-
         try {
-            if (isEditing && currentDocument) {
-                await updateDocument(currentDocument.id, payload);
+            if (idToUpdate) {
+                await updateDocument(idToUpdate, data);
                 setSuccess('Document updated successfully!');
             } else {
-                await createDocument(payload);
+                await createDocument(data);
                 setSuccess('Document created successfully!');
             }
             fetchDocuments();
-            handleCloseModal();
+            closeRightPanel();
         } catch (err) {
             setError('Operation failed. ' + (err.response?.data?.error || err.message));
+            throw err;
         }
     };
 
@@ -178,7 +149,7 @@ function Documents() {
                 icon={<FaBook />}
                 title="Manage Documents"
                 actions={
-                    <Button className='' variant="primary" onClick={handleOpenCreateModal}>
+                    <Button className='' variant="primary" onClick={() => handleOpenPanel('add')}>
                         <FaPlusCircle className="me-1" /> Create Document
                     </Button>
                 }
@@ -198,14 +169,6 @@ function Documents() {
                             </Accordion.Header>
                             <Accordion.Body className="p-0">
                                 <Table hover responsive className="mb-0">
-                                    {/* Optional: Add a subtle header within the folder if needed */}
-                                    {/* <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Description</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead> */}
                                     <tbody>
                                         {docsInType.map(doc => (
                                             <tr key={doc.id}>
@@ -223,7 +186,7 @@ function Documents() {
                                                     {doc.description ? `${doc.description.substring(0, 100)}${doc.description.length > 100 ? '...' : ''}` : 'N/A'}
                                                 </td>
                                                 <td style={{width: '20%'}} className="text-end">
-                                                    <Button variant="link" size="sm" className="me-2 p-0 text-primary" onClick={() => handleOpenEditModal(doc)} title="Edit">
+                                                    <Button variant="link" size="sm" className="me-2 p-0 text-primary" onClick={() => handleOpenPanel('edit', doc)} title="Edit">
                                                         <FaEdit />
                                                     </Button>
                                                     <Button variant="link" size="sm" onClick={() => handleDeleteClick(doc)} title="Delete" className="p-0 text-danger">
@@ -240,41 +203,6 @@ function Documents() {
                 </Accordion>
             )}
 
-            <Modal show={showModal} onHide={handleCloseModal} size="lg">
-                <Modal.Header closeButton>
-                    <Modal.Title>{isEditing ? 'Edit Document' : 'Create New Document'}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Form onSubmit={handleSubmit}>
-                        <Form.Group className="mb-3" controlId="docName">
-                            <Form.Label>Name*</Form.Label>
-                            <Form.Control type="text" name="name" value={formData.name} onChange={handleInputChange} required placeholder="e.g., Password Policy" />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="docType">
-                            <Form.Label>Document Type*</Form.Label>
-                            <Form.Select name="document_type" value={formData.document_type} onChange={handleInputChange} required>
-                                <option value="">Select type...</option>
-                                {documentTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                            </Form.Select>
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="docDescription">
-                            <Form.Label>Description</Form.Label>
-                            <Form.Control as="textarea" rows={3} name="description" value={formData.description} onChange={handleInputChange} placeholder="Brief summary of the document" />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="docSourceUrl">
-                            <Form.Label>Source URL <FaInfoCircle title="Link to the document if external or in a DMS (e.g., SharePoint, Confluence)" className="ms-1 text-muted" /></Form.Label>
-                            <Form.Control type="url" name="source_url" value={formData.source_url} onChange={handleInputChange} placeholder="https://example.com/path/to/document.pdf" />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="docInternalRef">
-                            <Form.Label>Internal Reference <FaInfoCircle title="Internal ID, version number, or local file path if applicable" className="ms-1 text-muted" /></Form.Label>
-                            <Form.Control type="text" name="internal_reference" value={formData.internal_reference} onChange={handleInputChange} placeholder="e.g., V1.2 or /docs/policy.docx" />
-                        </Form.Group>
-                        <Button variant="secondary" onClick={handleCloseModal} className="me-2">Cancel</Button>
-                        <Button variant="primary" type="submit">{isEditing ? 'Update Document' : 'Create Document'}</Button>
-                    </Form>
-                </Modal.Body>
-            </Modal>
-
             <ConfirmModal
                 show={showDeleteConfirmModal}
                 title="Confirm Deletion"
@@ -285,6 +213,82 @@ function Documents() {
                 confirmVariant="danger"
             />
         </Container>
+    );
+}
+
+// DocumentForm component for right panel
+function DocumentForm({ mode, initialData, onSave, onClose }) {
+    const [formData, setFormData] = useState({
+        name: initialData?.name || '',
+        description: initialData?.description || '',
+        document_type: initialData?.document_type || '',
+        source_url: initialData?.source_url || '',
+        internal_reference: initialData?.internal_reference || ''
+    });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        const payload = {
+            name: formData.name.trim(),
+            description: formData.description.trim() || null,
+            document_type: formData.document_type.trim(),
+            source_url: formData.source_url.trim() || null,
+            internal_reference: formData.internal_reference.trim() || null,
+        };
+        if (!payload.name || !payload.document_type) {
+            setError("Name and Document Type are required.");
+            setLoading(false);
+            return;
+        }
+        try {
+            await onSave(payload, mode === 'edit' && initialData ? initialData.id : null);
+        } catch (err) {
+            setError('Operation failed. ' + (err.response?.data?.error || err.message));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Form onSubmit={handleSubmit} className="p-3">
+            {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
+            <Form.Group className="mb-3" controlId="docName">
+                <Form.Label>Name*</Form.Label>
+                <Form.Control type="text" name="name" value={formData.name} onChange={handleInputChange} required placeholder="e.g., Password Policy" />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="docType">
+                <Form.Label>Document Type*</Form.Label>
+                <Form.Select name="document_type" value={formData.document_type} onChange={handleInputChange} required>
+                    <option value="">Select type...</option>
+                    {documentTypes.map(type => <option key={type} value={type}>{type}</option>)}
+                </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="docDescription">
+                <Form.Label>Description</Form.Label>
+                <Form.Control as="textarea" rows={3} name="description" value={formData.description} onChange={handleInputChange} placeholder="Brief summary of the document" />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="docSourceUrl">
+                <Form.Label>Source URL <FaInfoCircle title="Link to the document if external or in a DMS (e.g., SharePoint, Confluence)" className="ms-1 text-muted" /></Form.Label>
+                <Form.Control type="url" name="source_url" value={formData.source_url} onChange={handleInputChange} placeholder="https://example.com/path/to/document.pdf" />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="docInternalRef">
+                <Form.Label>Internal Reference <FaInfoCircle title="Internal ID, version number, or local file path if applicable" className="ms-1 text-muted" /></Form.Label>
+                <Form.Control type="text" name="internal_reference" value={formData.internal_reference} onChange={handleInputChange} placeholder="e.g., V1.2 or /docs/policy.docx" />
+            </Form.Group>
+            <div className="d-flex justify-content-end gap-2">
+                <Button variant="secondary" onClick={onClose} disabled={loading}>Cancel</Button>
+                <Button variant="primary" type="submit" disabled={loading}>{mode === 'edit' ? 'Update Document' : 'Create Document'}</Button>
+            </div>
+        </Form>
     );
 }
 

@@ -273,6 +273,16 @@ function ModernComplianceView({
             {/* <Card className="mb-4"> */}
 
             {selectedStandardId && (
+                <div>
+                     <PageHeader title={selectedStandard.name} subtitle={selectedStandard.description} icon={<FaInfo />}
+                        actions={
+                            <Button variant="outline-secondary" onClick={() => setSelectedStandardId(null)}>
+                                Back to Standards
+                            </Button>
+                        }
+                    />
+
+                
                 <Card className="mb-4">
                     <div className='d-flex justify-content-between align-items-center mb-2 ms-3 me-3'>
                         <div className="">
@@ -281,7 +291,7 @@ function ModernComplianceView({
                                 <div className="standard-icon-large float-start">
                                     {getStandardIcon(selectedStandardId)}
                                 </div>
-                                <h5 className="m-0 p-0 ms-2">{selectedStandard.name}</h5>
+                                {/* <h5 className="m-0 p-0 ms-2">{selectedStandard.name}</h5> */}
                                 <Badge bg="light" text="dark" className="ms-2">
                                     {selectedStandard.shortName}
                                 </Badge>
@@ -301,9 +311,9 @@ function ModernComplianceView({
                                     </Button>
                                 )}
                             </div>
-                            <p className="text-muted small mb-3">
+                            {/* <p className="text-muted small mb-3">
                                 {selectedStandard.description}
-                            </p>
+                            </p> */}
                             <div className="d-flex flex-wrap gap-1 mb-3 justify-content-start">
                                 {selectedStandard.issuing_body && (
                                     <Badge bg="" text="dark" className="small badge-outline">
@@ -322,19 +332,28 @@ function ModernComplianceView({
                                     </Badge>
                                 )}
                             </div>
-                         
+
 
                         </div>
-                        <Button variant="outline-secondary" onClick={() => setSelectedStandardId(null)}>
+                        {/* <Button variant="outline-secondary" onClick={() => setSelectedStandardId(null)}>
                             Back to Standards
-                        </Button>
+                        </Button> */}
                     </div>
                 </Card>
+                </div>
             )}
 
             {!selectedStandardId && (
                 <div className="mb-4">
-                    <div as="h5"
+                    <PageHeader title="Compliance Standards" subtitle="Manage compliance standards" icon={<FaInfo />}
+                        actions={
+                            <Button variant="outline-success" size="sm" onClick={onAddStandardClick}>
+                                <FaPlusCircle className="me-1" />Add Standard
+                            </Button>
+                        }
+                    />
+
+                    {/* <div as="h5"
                         className="d-flex justify-content-between align-items-center mb-2 ms-3 me-3"
                     >
                         <h5 className='m-0 p-0'>Compliance Standards</h5>
@@ -343,7 +362,7 @@ function ModernComplianceView({
                                 <FaPlusCircle className="me-1" />Add Standard
                             </Button>
                         )}
-                    </div>
+                    </div> */}
                     {/* <Card.Body className=""> */}
                     {loadingStandards ? (
                         <div className="text-center py-4">

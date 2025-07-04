@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { Container, Button, Alert, Spinner, Row, Col, Card, Badge, Tabs, Tab, ListGroup } from 'react-bootstrap';
 import { 
     FaEdit, FaPlusCircle, FaChartLine, FaHistory, FaFileAlt, 
@@ -33,6 +33,7 @@ import {
 import RiskManagementView from '../components/views/RiskManagementView';
 import ModernComplianceView from '../components/views/ModernComplianceView';
 import { getStatusColor, getTaskCategoryIcon } from '../utils/displayUtils';
+import { RightPanelContext } from '../App';
 
 function LibraryManagementPage() {
     const [standards, setStandards] = useState([]);
@@ -64,6 +65,8 @@ function LibraryManagementPage() {
         recentUpdates: 0,
         pendingReviews: 0
     });
+
+    const { openRightPanel, closeRightPanel } = useContext(RightPanelContext);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -118,9 +121,27 @@ function LibraryManagementPage() {
             setPanelDataToEdit(dataToEdit);
         }
         setPanelParentId(parentId);
-        setShowPanel(true);
         setError('');
         setSuccess('');
+        openRightPanel('entityForm', {
+            title: `${mode === 'add' ? 'Add' : 'Edit'} ${entityType.charAt(0).toUpperCase() + entityType.slice(1)}`,
+            content: (
+                <EntityFormPanel
+                    show={true}
+                    mode={mode}
+                    entityType={entityType}
+                    initialData={entityType === 'requirement' && parentId ? { standardId: parentId } : dataToEdit}
+                    parentId={parentId}
+                    onSave={handleSaveEntity}
+                    onClose={closeRightPanel}
+                    allStandards={standards}
+                    allRequirements={requirements}
+                    allConnectedSystems={connectedSystems}
+                    allUsers={users}
+                    allDocuments={documents}
+                />
+            )
+        });
     };
 
     const handleClosePanel = () => {
@@ -347,21 +368,6 @@ function LibraryManagementPage() {
                     {renderRisksTab()}
                 </Tab>
             </Tabs>
-
-            <EntityFormPanel
-                show={showPanel}
-                mode={panelMode}
-                entityType={panelEntityType}
-                initialData={panelDataToEdit}
-                parentId={panelParentId}
-                onSave={handleSaveEntity}
-                onClose={handleClosePanel}
-                allStandards={standards}
-                allRequirements={requirements}
-                allConnectedSystems={connectedSystems}
-                allUsers={users}
-                allDocuments={documents}
-            />
         </Container>
     );
 }

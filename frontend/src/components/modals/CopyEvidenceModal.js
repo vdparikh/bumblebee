@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Modal, Button, ListGroup, Form, Spinner, Alert, Row, Col, Badge } from 'react-bootstrap';
+import { Button, ListGroup, Form, Spinner, Alert, Row, Col, Card } from 'react-bootstrap';
 import { getCampaigns, getCampaignTaskInstances, getEvidenceByCampaignTaskInstanceId } from '../../services/api';
 import { FaCopy, FaFileAlt, FaLink } from 'react-icons/fa';
+import RightSidePanel from '../common/RightSidePanel';
 
 const CopyEvidenceModal = ({ show, onHide, targetCampaignId, onCopySubmit }) => {
     const [campaigns, setCampaigns] = useState([]);
@@ -92,52 +93,52 @@ const CopyEvidenceModal = ({ show, onHide, targetCampaignId, onCopySubmit }) => 
     };
 
     return (
-        <Modal show={show} onHide={onHide} size="lg" centered>
-            <Modal.Header closeButton>
-                <Modal.Title><FaCopy className="me-2" />Copy Evidence From Another Task</Modal.Title>
-            </Modal.Header>
-            <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                {error && <Alert variant="danger">{error}</Alert>}
-                <Row>
-                    <Col md={6}>
-                        <Form.Group className="mb-3">
-                            <Form.Label>1. Select Source Campaign</Form.Label>
-                            {loadingCampaigns && <Spinner animation="border" size="sm" />}
-                            <Form.Select value={selectedCampaignId} onChange={e => setSelectedCampaignId(e.target.value)} disabled={loadingCampaigns}>
-                                <option value="">-- Select Campaign --</option>
-                                {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </Form.Select>
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>2. Select Source Task Instance</Form.Label>
-                            {loadingTasks && <Spinner animation="border" size="sm" />}
-                            <Form.Select value={selectedTaskInstanceId} onChange={e => setSelectedTaskInstanceId(e.target.value)} disabled={!selectedCampaignId || loadingTasks}>
-                                <option value="">-- Select Task --</option>
-                                {taskInstances.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-                            </Form.Select>
-                        </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                        <Form.Label>3. Select Evidence to Copy ({selectedEvidenceToCopy.length} selected)</Form.Label>
-                        {loadingEvidence && <Spinner animation="border" size="sm" />}
-                        <ListGroup style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                            {sourceEvidence.length > 0 ? sourceEvidence.map(ev => (
-                                <ListGroup.Item key={ev.id} action active={selectedEvidenceToCopy.includes(ev.id)} onClick={() => handleEvidenceSelection(ev.id)}>
-                                    {ev.mimeType === 'text/url' ? <FaLink className="me-1" /> : <FaFileAlt className="me-1" />}
-                                    {ev.fileName || ev.description?.substring(0, 50) || 'Evidence Item'}
-                                </ListGroup.Item>
-                            )) : <ListGroup.Item disabled>{selectedTaskInstanceId ? 'No evidence found for this task.' : 'Select a task to see evidence.'}</ListGroup.Item>}
-                        </ListGroup>
-                    </Col>
-                </Row>
-            </Modal.Body>
-            <Modal.Footer>
+        <Card show={show} onClose={onHide} title={<><FaCopy className="me-2" />Copy Evidence From Another Task</>} width={540}>
+            <Card.Body>
+            {error && <Alert variant="danger">{error}</Alert>}
+            <Row>
+                <Col md={12}>
+                    <Form.Group className="mb-3">
+                        <Form.Label>1. Select Source Campaign</Form.Label>
+                        {loadingCampaigns && <Spinner animation="border" size="sm" />}
+                        <Form.Select value={selectedCampaignId} onChange={e => setSelectedCampaignId(e.target.value)} disabled={loadingCampaigns}>
+                            <option value="">-- Select Campaign --</option>
+                            {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </Form.Select>
+                    </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>2. Select Source Task Instance</Form.Label>
+                        {loadingTasks && <Spinner animation="border" size="sm" />}
+                        <Form.Select value={selectedTaskInstanceId} onChange={e => setSelectedTaskInstanceId(e.target.value)} disabled={!selectedCampaignId || loadingTasks}>
+                            <option value="">-- Select Task --</option>
+                            {taskInstances.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                        </Form.Select>
+                    </Form.Group>
+                </Col>
+                <Col md={12}>
+                    <Form.Label>3. Select Evidence to Copy ({selectedEvidenceToCopy.length} selected)</Form.Label>
+                    {loadingEvidence && <Spinner animation="border" size="sm" />}
+                    <ListGroup style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        {sourceEvidence.length > 0 ? sourceEvidence.map(ev => (
+                            <ListGroup.Item key={ev.id} action active={selectedEvidenceToCopy.includes(ev.id)} onClick={() => handleEvidenceSelection(ev.id)}>
+                                {ev.mimeType === 'text/url' ? <FaLink className="me-1" /> : <FaFileAlt className="me-1" />}
+                                {ev.fileName || ev.description?.substring(0, 50) || 'Evidence Item'}
+                            </ListGroup.Item>
+                        )) : <ListGroup.Item disabled>{selectedTaskInstanceId ? 'No evidence found for this task.' : 'Select a task to see evidence.'}</ListGroup.Item>}
+                    </ListGroup>
+                </Col>
+            </Row>
+            </Card.Body>
+            <Card.Footer>
+            <div className="mt-4 d-flex justify-content-end gap-2">
                 <Button variant="secondary" onClick={onHide}>Cancel</Button>
                 <Button variant="primary" onClick={handleSubmit} disabled={selectedEvidenceToCopy.length === 0}>
                     Copy Selected Evidence ({selectedEvidenceToCopy.length})
                 </Button>
-            </Modal.Footer>
-        </Modal>
+            </div>
+            </Card.Footer>
+            
+        </Card>
     );
 };
 

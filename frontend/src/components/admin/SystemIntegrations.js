@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Button, Spinner, Alert, Badge, Row, Col, Tab, Tabs, Container } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { Card, Button, Spinner, Alert, Badge, Row, Col, Tab, Tabs, Container, ListGroup } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { 
     FaPlusCircle, 
@@ -50,7 +50,7 @@ import {
 } from 'react-icons/fa';
 import PageHeader from '../common/PageHeader';
 import SystemIntegrationForm from './SystemIntegrationForm';
-
+import { RightPanelContext } from '../../App';
 
 
 // // Export the system type options and configuration schemas for use in SystemIntegrationForm
@@ -95,6 +95,9 @@ function SystemIntegrations() {
     const [success, setSuccess] = useState('');
     const [apiSystemTypes, setApiSystemTypes] = useState([]);
     const [selectedSystem, setSelectedSystem] = useState(null);
+    const [selectedCategory, setSelectedCategory] = useState(null);
+    const [selectedSystemType, setSelectedSystemType] = useState(null);
+    const { openRightPanel, closeRightPanel } = useContext(RightPanelContext);
 
     const fetchSystems = useCallback(async () => {
         try {
@@ -122,10 +125,45 @@ function SystemIntegrations() {
         fetchDefinitions();
     }, [fetchSystems]);
 
-    const handleEdit = async (systemId) => {
-        console.log(systems)
-       const system = systems.filter(option => (option.id === systemId)) 
-       console.log(system)
+    const handleEdit = (systemId) => {
+        const system = systems.find(option => option.id === systemId);
+        if (system) {
+            openRightPanel('systemIntegrationForm', {
+                title: `Edit "${system.systemType}" System Integration`,
+                content: (
+                    <SystemIntegrationForm 
+                        id={systemId}
+                        onSuccess={() => {
+                            fetchSystems();
+                            closeRightPanel();
+                        }}
+                        onClose={closeRightPanel}
+                    />
+                )
+            });
+        }
+    };
+
+    const handleSystemTypeSelect = (systemType) => {
+        setSelectedSystemType(systemType);
+        openRightPanel('systemIntegrationForm', {
+            title: `Configure "${systemType}" System Integration`,
+            content: (
+                <SystemIntegrationForm 
+                    key={systemType} // Add key to force re-render
+                    selectedSystemType={systemType}
+                    onSuccess={() => {
+                        fetchSystems();
+                        closeRightPanel();
+                        setSelectedSystemType(null); // Reset selection after success
+                    }}
+                    onClose={() => {
+                        closeRightPanel();
+                        setSelectedSystemType(null); // Reset selection when closing
+                    }}
+                />
+            )
+        });
     };
 
     const handleDelete = async (systemId) => {
@@ -140,6 +178,64 @@ function SystemIntegrations() {
         }
     };
 
+    const renderSystemTypeSelector = () => (
+        <div className="mb-4">
+            <Row>
+                <Col md={3} className="mb-3 mb-md-0">
+                    <Card>
+                        <Card.Header>Select System Type*</Card.Header>
+                        <ListGroup variant="flush">
+                            {Object.keys(apiSystemTypes.reduce((acc, option) => {
+                                acc[option.category || 'Other'] = true;
+                                return acc;
+                            }, {})).sort().map(category => (
+                                <ListGroup.Item
+                                    key={category}
+                                    action
+                                    active={selectedCategory === category}
+                                    onClick={() => setSelectedCategory(category)}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    {category}
+                                </ListGroup.Item>
+                            ))}
+                        </ListGroup>
+                    </Card>
+                </Col>
+                <Col md={9}>
+                    {selectedCategory && (
+                        <Row className="g-3">
+                            {apiSystemTypes.filter(option => (option.category || 'Other') === selectedCategory).map((option) => (
+                                <Col key={option.value} xs={6} sm={4} md={4} lg={3}>
+                                    <Card
+                                        className={`h-100 system-type-card ${selectedSystemType === option.value ? 'selected' : ''}`}
+                                        onClick={() => handleSystemTypeSelect(option.value)}
+                                        style={{
+                                            cursor: 'pointer',
+                                            border: selectedSystemType === option.value ? `2px solid ${option.color || '#007bff'}` : '1px solid #dee2e6',
+                                            transition: 'all 0.2s ease-in-out'
+                                        }}
+                                    >
+                                        <Card.Body className="text-center d-flex flex-column justify-content-center">
+                                            <div
+                                                className="mb-2 mx-auto"
+                                                style={{ color: option.color || '#007bff', height: '40px' }}
+                                            >
+                                                {getSystemTypeIcon(option.iconName, 30)}
+                                            </div>
+                                            <h6 className="mb-1" style={{ fontSize: '0.9rem' }}>{option.label}</h6>
+                                            <small className="text-muted d-block" style={{ fontSize: '0.75rem' }}>{option.description}</small>
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
+                            ))}
+                        </Row>
+                    )}
+                </Col>
+            </Row>
+        </div>
+    );
+
     if (loading) {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ height: "200px" }}>
@@ -150,82 +246,76 @@ function SystemIntegrations() {
 
     return (
         <div className="">
-
              <PageHeader
                 icon={<FaPlug />}
                 title="System Integrations"
-                actions={
-                    <Button variant="primary" onClick={() => navigate('/admin/system-integrations/new')}>
-                    <FaPlusCircle className="me-2" />
-                    Add New System
-                </Button>
-                }
+                // actions={
+                //     <Button variant="primary" onClick={() => setSelectedCategory(apiSystemTypes[0]?.category || 'Other')}>
+                //         <FaPlusCircle className="me-2" />
+                //         Add New System
+                //     </Button>
+                // }
             />
 
             {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
             {success && <Alert variant="success" onClose={() => setSuccess('')} dismissible>{success}</Alert>}
 
-
             <Tabs defaultActiveKey="existing" id="auditor-dashboard-tabs" className="mb-3 nav-line-tabs">
                 <Tab eventKey="existing" title={<><FaTasks className="me-1" />Existing</>}>
-                <Row xs={1} md={2} lg={3} className="g-4">
-
+                    <Row xs={1} md={2} lg={3} className="g-4">
                         {systems.map(system => {
-                    const systemTypeInfo = apiSystemTypes.find(option => option.value === system.systemType);
-                    return (
-                        <Col key={system.id}>
-                            <Card className="h-100 text-center shadow-sm">
-                                <Card.Body>
-                                <div className='text-center p-2 pt-3 pb-3'
-                                    style={{ color: systemTypeInfo ? systemTypeInfo.color : '#007bff' }}
-                                >{systemTypeInfo ? getSystemTypeIcon(systemTypeInfo.iconName, 40) : <FaPlug />}</div>
-                                <div className='text-center fw-bold'>{system.name}</div>
-                                    <Card.Subtitle className="mb-2 text-muted text-center small">
-                                        Type: {systemTypeInfo ? systemTypeInfo.label : system.systemType}<br/>
-                                        <Badge bg={system.isEnabled ? 'success' : 'secondary'} pill>
-                                        {system.isEnabled ? 'Active' : 'Disabled'}
-                                    </Badge>
-                                    </Card.Subtitle>
-                                    
-                                    <Card.Text style={{ minHeight: '60px' }}>
-                                        {system.description || 'No description provided.'}
-                                    </Card.Text>
-                                    <small className="text-muted">
-                                        Last Checked: {system.lastChecked ? new Date(system.lastChecked).toLocaleString() : 'Never'}
-                                    </small>
-                                </Card.Body>
-                                <Card.Footer className="text-center bg-white border-0">
-                                    <Button
-                                        variant="outline-primary"
-                                        size="sm"
-                                        className="me-2 ps-3 pe-2 me-2"
-                                        onClick={() => navigate(`/admin/system-integrations/edit/${system.id}`)}
-                                        title="Edit System"
-                                    >
-                                        <FaEdit /> Edit
-                                    </Button>
-                                    <Button
-                                        variant="outline-danger"
-                                        size="sm"
-                                        onClick={() => handleDelete(system.id)}
-                                        title="Delete System"
-                                    >
-                                        <FaTrash /> Delete
-                                    </Button>
-                                </Card.Footer>
-                            </Card>
-                        </Col>
-                    );
-                })}
+                            const systemTypeInfo = apiSystemTypes.find(option => option.value === system.systemType);
+                            return (
+                                <Col key={system.id}>
+                                    <Card className="h-100 text-center shadow-sm">
+                                        <Card.Body>
+                                            <div className='text-center p-2 pt-3 pb-3'
+                                                style={{ color: systemTypeInfo ? systemTypeInfo.color : '#007bff' }}
+                                            >{systemTypeInfo ? getSystemTypeIcon(systemTypeInfo.iconName, 40) : <FaPlug />}</div>
+                                            <div className='text-center fw-bold'>{system.name}</div>
+                                            <Card.Subtitle className="mb-2 text-muted text-center small">
+                                                Type: {systemTypeInfo ? systemTypeInfo.label : system.systemType}<br/>
+                                                <Badge bg={system.isEnabled ? 'success' : 'secondary'} pill>
+                                                    {system.isEnabled ? 'Active' : 'Disabled'}
+                                                </Badge>
+                                            </Card.Subtitle>
+                                            
+                                            <Card.Text style={{ minHeight: '60px' }}>
+                                                {system.description || 'No description provided.'}
+                                            </Card.Text>
+                                            <small className="text-muted">
+                                                Last Checked: {system.lastChecked ? new Date(system.lastChecked).toLocaleString() : 'Never'}
+                                            </small>
+                                        </Card.Body>
+                                        <Card.Footer className="text-center bg-white border-0">
+                                            <Button
+                                                variant="outline-primary"
+                                                size="sm"
+                                                className="me-2 ps-3 pe-2 me-2"
+                                                onClick={() => handleEdit(system.id)}
+                                                title="Edit System"
+                                            >
+                                                <FaEdit /> Edit
+                                            </Button>
+                                            <Button
+                                                variant="outline-danger"
+                                                size="sm"
+                                                onClick={() => handleDelete(system.id)}
+                                                title="Delete System"
+                                            >
+                                                <FaTrash /> Delete
+                                            </Button>
+                                        </Card.Footer>
+                                    </Card>
+                                </Col>
+                            );
+                        })}
                     </Row>
                 </Tab>
-                <Tab eventKey="evidenceLibrary" title={<><FaPlus className="me-1" />Add New Integration</>}>
-                    <SystemIntegrationForm />
+                <Tab eventKey="addNew" title={<><FaPlus className="me-1" />Add New Integration</>}>
+                    {renderSystemTypeSelector()}
                 </Tab>
             </Tabs>
-
-                
-            
         </div>
     );
 }

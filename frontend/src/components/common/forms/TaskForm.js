@@ -21,7 +21,7 @@ const taskCategories = [
     "Vulnerability Management", "Audit", "Policy", "Other"
 ];
 
-function TaskForm({ initialData, onSubmit, onCancel, mode, requirements, users, connectedSystems, documents, parentId }) {
+function TaskForm({ initialData, onSubmit, onCancel, mode, requirements = [], users = [], connectedSystems = [], documents = [], parentId }) {
     // Multi-select for requirements
     const [requirementIds, setRequirementIds] = useState([]);
     const [title, setTitle] = useState('');

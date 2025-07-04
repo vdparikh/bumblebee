@@ -6,7 +6,8 @@ import {
     FaPlug,
     FaShieldAlt,
     FaExclamation,
-    FaExclamationTriangle
+    FaExclamationTriangle,
+    FaFileContract
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import ThemeSwitcher from './ThemeSwitcher';
@@ -31,8 +32,9 @@ const sidebarSections = [
                 icon: <FaShieldAlt />,
                 roles: ['admin'],
                 children: [
-                    { to: '/library', icon: <FaLayerGroup />, label: 'Library', roles: ['admin', 'auditor'] },
-                    { to: '/tasks', icon: <FaTasks />, label: 'Tasks', roles: ['admin', 'auditor'] },
+                    { to: '/standards', icon: <FaLayerGroup />, label: 'Standards', roles: ['admin', 'auditor'] },
+                    { to: '/requirements', icon: <FaFileContract />, label: 'Requirements', roles: ['admin', 'auditor'] },
+                    { to: '/tasks', icon: <FaTasks />, label: 'Task Library', roles: ['admin', 'auditor'] },
                     { to: '/risks', icon: <FaExclamationTriangle />, label: 'Risks', roles: ['admin', 'auditor'] }
 
                 ]
@@ -45,8 +47,14 @@ const sidebarSections = [
                     { to: '/admin-settings', icon: <FaCog />, label: 'Settings', roles: ['admin'] },
                     { to: '/admin/system-integrations', icon: <FaPlug />, label: 'Integrations', roles: ['admin'] },
                     { to: '/teams', icon: <FaUsers />, label: 'Teams', roles: ['admin', 'auditor'] },
+                    { to: '/users', icon: <FaUser />, label: 'Users', roles: ['admin', 'auditor'] }
                 ]
             }
+        ]
+    },
+    {
+        items: [
+            { to: '/help', icon: <FaQuestionCircle />, label: 'Help', roles: ['admin', 'auditor', 'user'] },
         ]
     }
 ];

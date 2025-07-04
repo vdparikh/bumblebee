@@ -177,11 +177,11 @@ function Dashboard() {
 
     return (
         <div>
-            <PageHeader icon={<FaTachometerAlt />} title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, ${currentUser?.name || 'User'}!`} 
+            {/* <PageHeader icon={<FaTachometerAlt />} title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, ${currentUser?.name || 'User'}!`} 
             subtitle={"Here's a quick overview of your compliance activities."}
-            />
+            /> */}
 
-            
+            <h6 className='p-2'>{`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, ${currentUser?.name || 'User'}!`}<br/><span className='text-muted fw-normal'>Here's a quick overview of your compliance activities.</span></h6>
             {/* <Row className="mb-4">
                 <Col>
                     <h5>

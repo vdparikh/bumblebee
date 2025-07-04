@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import {
     getTeams,
     createTeam,
@@ -26,6 +26,86 @@ import { FaUsers, FaPlusCircle, FaEdit, FaTrashAlt, FaUserPlus, FaUserMinus } fr
 import PageHeader from './common/PageHeader';
 import ConfirmModal from './common/ConfirmModal';
 import Select from 'react-select';
+import { RightPanelContext } from '../App';
+
+// TeamForm component for the right panel
+function TeamForm({ team, onSuccess, onClose }) {
+    const [formData, setFormData] = useState({ 
+        name: team?.name || '', 
+        description: team?.description || '' 
+    });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        if (!formData.name.trim()) {
+            setError("Team Name is required.");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            if (team) {
+                await updateTeam(team.id, formData);
+            } else {
+                await createTeam(formData);
+            }
+            onSuccess();
+        } catch (err) {
+            setError('Operation failed. ' + (err.response?.data?.error || err.message));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="p-3">
+            <h6 className="mb-3">{team ? 'Edit Team' : 'Create New Team'}</h6>
+            
+            {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
+            
+            <Form onSubmit={handleSubmit}>
+                <Form.Group className="mb-3" controlId="teamName">
+                    <Form.Label>Team Name*</Form.Label>
+                    <Form.Control 
+                        type="text" 
+                        name="name" 
+                        value={formData.name} 
+                        onChange={handleInputChange} 
+                        required 
+                    />
+                </Form.Group>
+                
+                <Form.Group className="mb-3" controlId="teamDescription">
+                    <Form.Label>Description</Form.Label>
+                    <Form.Control 
+                        as="textarea" 
+                        rows={3} 
+                        name="description" 
+                        value={formData.description} 
+                        onChange={handleInputChange} 
+                    />
+                </Form.Group>
+                
+                <div className="d-flex justify-content-end gap-2">
+                    <Button variant="secondary" onClick={onClose}>
+                        Cancel
+                    </Button>
+                    <Button variant="primary" type="submit" disabled={loading}>
+                        {loading ? 'Saving...' : (team ? 'Update Team' : 'Create Team')}
+                    </Button>
+                </div>
+            </Form>
+        </div>
+    );
+}
 
 function TeamsPage() {
     const [teams, setTeams] = useState([]);
@@ -33,10 +113,6 @@ function TeamsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-
-    const [showModal, setShowModal] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [currentTeam, setCurrentTeam] = useState(null);
 
     const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
     const [teamToDelete, setTeamToDelete] = useState(null);
@@ -46,8 +122,7 @@ function TeamsPage() {
     const [teamMembers, setTeamMembers] = useState([]);
     const [selectedUserToAdd, setSelectedUserToAdd] = useState(null);
 
-    const initialFormState = { name: '', description: '' };
-    const [formData, setFormData] = useState(initialFormState);
+    const { openRightPanel, closeRightPanel } = useContext(RightPanelContext);
 
     const fetchTeamsAndUsers = useCallback(async () => {
         setLoading(true);
@@ -68,53 +143,35 @@ function TeamsPage() {
         fetchTeamsAndUsers();
     }, [fetchTeamsAndUsers]);
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
     const handleOpenCreateModal = () => {
-        setIsEditing(false);
-        setCurrentTeam(null);
-        setFormData(initialFormState);
-        setShowModal(true);
-        setError(''); setSuccess('');
+        openRightPanel('teamForm', {
+            title: 'Create New Team',
+            content: (
+                <TeamForm 
+                    onSuccess={() => {
+                        fetchTeamsAndUsers();
+                        closeRightPanel();
+                    }}
+                    onClose={closeRightPanel}
+                />
+            )
+        });
     };
 
     const handleOpenEditModal = (team) => {
-        setIsEditing(true);
-        setCurrentTeam(team);
-        setFormData({ name: team.name || '', description: team.description || '' });
-        setShowModal(true);
-        setError(''); setSuccess('');
-    };
-
-    const handleCloseModal = () => {
-        setShowModal(false);
-        setIsEditing(false);
-        setCurrentTeam(null);
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError(''); setSuccess('');
-        if (!formData.name.trim()) {
-            setError("Team Name is required.");
-            return;
-        }
-        try {
-            if (isEditing && currentTeam) {
-                await updateTeam(currentTeam.id, formData);
-                setSuccess('Team updated successfully!');
-            } else {
-                await createTeam(formData);
-                setSuccess('Team created successfully!');
-            }
-            fetchTeamsAndUsers();
-            handleCloseModal();
-        } catch (err) {
-            setError('Operation failed. ' + (err.response?.data?.error || err.message));
-        }
+        openRightPanel('teamForm', {
+            title: `Edit "${team.name}" Team`,
+            content: (
+                <TeamForm 
+                    team={team}
+                    onSuccess={() => {
+                        fetchTeamsAndUsers();
+                        closeRightPanel();
+                    }}
+                    onClose={closeRightPanel}
+                />
+            )
+        });
     };
 
     const handleDeleteClick = (team) => {
@@ -184,7 +241,7 @@ function TeamsPage() {
     const usersNotInTeam = allUsers.filter(user => !teamMembers.some(member => member.id === user.value));
 
     return (
-        <Container fluid>
+        <div>
             <PageHeader
                 icon={<FaUsers />}
                 title="Manage Teams"
@@ -225,26 +282,6 @@ function TeamsPage() {
                 ))}
             </Row>
             {teams.length === 0 && !loading && <Alert variant="info">No teams found. Click "Create Team" to add one.</Alert>}
-
-            <Modal show={showModal} onHide={handleCloseModal}>
-                <Modal.Header closeButton>
-                    <Modal.Title>{isEditing ? 'Edit Team' : 'Create New Team'}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Form onSubmit={handleSubmit}>
-                        <Form.Group className="mb-3" controlId="teamName">
-                            <Form.Label>Team Name*</Form.Label>
-                            <Form.Control type="text" name="name" value={formData.name} onChange={handleInputChange} required />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="teamDescription">
-                            <Form.Label>Description</Form.Label>
-                            <Form.Control as="textarea" rows={3} name="description" value={formData.description} onChange={handleInputChange} />
-                        </Form.Group>
-                        <Button variant="secondary" onClick={handleCloseModal} className="me-2">Cancel</Button>
-                        <Button variant="primary" type="submit">{isEditing ? 'Update Team' : 'Create Team'}</Button>
-                    </Form>
-                </Modal.Body>
-            </Modal>
 
             <ConfirmModal
                 show={showDeleteConfirmModal}
@@ -299,7 +336,7 @@ function TeamsPage() {
                     <Button variant="secondary" onClick={() => setShowManageMembersModal(false)}>Close</Button>
                 </Modal.Footer>
             </Modal>
-        </Container>
+        </div>
     );
 }
 

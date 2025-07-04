@@ -8,7 +8,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
 import Tasks from './components/Tasks';
-import Requirements from './components/Requirements';
+import Requirements from './pages/RequirementsPage';
 import Standards from './components/Standards';
 import MyTasks from './components/MyTasks';
 import Campaigns from './components/Campaigns';
@@ -39,7 +39,13 @@ import HelpPage from './pages/HelpPage';
 import SystemIntegrations from './components/admin/SystemIntegrations';
 import SystemIntegrationForm from './components/admin/SystemIntegrationForm';
 import TaskWizardPage from './pages/TaskWizardPage';
-
+import RightSidePanel from './components/common/RightSidePanel';
+import StandardsPage from './pages/StandardsPage';
+import TaskLibraryPage from './pages/TaskLibraryPage';
+import RisksPage from './pages/RisksPage';
+import DashboardPage from './pages/DashboardPage';
+import UserManagement
+ from './components/admin/UserManagement';
 function DynamicHeader() {
   const location = useLocation();
   const { currentUser } = useAuth(); // Access currentUser for simulation status
@@ -105,87 +111,113 @@ function DynamicHeader() {
   );
 }
 
+const RightPanelContext = React.createContext();
+
 function Layout() {
   const location = useLocation();
-  const [showDetailsPanel, setShowDetailsPanel] = useState(false);
+  const [rightPanel, setRightPanel] = useState({ type: null, props: {} });
   const { currentUser, logout } = useAuth();
-  return (
-    <div fluid className="p-0"
-    >
-      <div>
-        <div>
 
-          <div style={{ display: 'flex', minHeight: '100vh' }}>
-            <Sidebar
-              currentUser={currentUser}
-              location={location}
-              logout={logout}
-              showDetailsPanel={showDetailsPanel}
-              setShowDetailsPanel={setShowDetailsPanel}
-            />
-              <Container fluid >
+  const openRightPanel = (type, props = {}) => setRightPanel({ type, props });
+  const closeRightPanel = () => setRightPanel({ type: null, props: {} });
+
+  // Close right panel on route change
+  useEffect(() => {
+    closeRightPanel();
+    // eslint-disable-next-line
+  }, [location.pathname]);
+
+  // For backward compatibility, showDetailsPanel toggles help
+  const showDetailsPanel = rightPanel.type === 'help';
+  const setShowDetailsPanel = (show) => {
+    if (show) openRightPanel('help');
+    else closeRightPanel();
+  };
+
+  return (
+    <RightPanelContext.Provider value={{ openRightPanel, closeRightPanel, rightPanel }}>
+      <div fluid className="p-0">
+        <div>
+          <div>
+            <div style={{ display: 'flex', minHeight: '100vh' }}>
+              <Sidebar
+                currentUser={currentUser}
+                location={location}
+                logout={logout}
+                showDetailsPanel={showDetailsPanel}
+                setShowDetailsPanel={setShowDetailsPanel}
+              />
+              <Container fluid>
                 <Row>
                   <Col className="p-0 ">
-
                     <Navbar expand="lg" className="d-none border-bottom shadow-0 topnav">
                       <Container fluid className=''>
                         <Navbar.Toggle aria-controls="top-navbar-nav" />
                         <DynamicHeader />
                       </Container>
                     </Navbar>
-
                     <Row className="g-0 " style={{ height: 'calc(100vh)' }}>
-                      <Col  className="p-0" style={{ height: '100%', overflowY: 'auto', transition: 'width 0.3s ease-in-out' }}>
-                      <div className="content">
-
-                        <Container fluid>
-                          <main className="p-4">
-                            <Routes>
-                              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                              <Route path="/tasks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Tasks /></ProtectedRoute>} />
-                              <Route path="/pending-review" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><PendingReviewPage /></ProtectedRoute>} />
-                              <Route path="/auditor-dashboard" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><AuditorDashboard /></ProtectedRoute>} />
-                              <Route path="/library" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><LibraryManagementPage /></ProtectedRoute>} />
-                              <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
-                              <Route path="/documents" element={<ProtectedRoute roles={['admin', 'auditor']}><Documents /></ProtectedRoute>} />
-                              <Route path="/requirements" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Requirements /></ProtectedRoute>} />
-                              <Route path="/standards" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Standards /></ProtectedRoute>} />
-                              <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
-                              <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
-                              <Route path="/campaign-task/:instanceId" element={<ProtectedRoute><CampaignTaskInstanceDetail /></ProtectedRoute>} />
-                              <Route path="/teams" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TeamsPage /></ProtectedRoute>} />
-                              <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
-                              <Route path="/admin-settings" element={<ProtectedRoute requiredRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
-                              <Route path="/audit-logs" element={<ProtectedRoute roles={['admin', 'auditor']}><AuditLogsPage /></ProtectedRoute>} />
-                              <Route path="/alt-view" element={<ProtectedRoute><ModernComplianceView /></ProtectedRoute>} />
-                              <Route path="/campaigns/:campaignId" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
-                              <Route path="/admin/system-integrations" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrations /></ProtectedRoute>} />
-                              <Route path="/admin/system-integrations/new" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
-                              <Route path="/admin/system-integrations/edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
-                              <Route path="/tasks/new" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TaskWizardPage /></ProtectedRoute>} />
-                              <Route path="/tasks/:id/edit" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TaskWizardPage /></ProtectedRoute>} />
-                            </Routes>
-                          </main>
-                        </Container>
-
-                        </div>                                          
+                      <Col className="p-0" style={{ height: '100%', overflowY: 'auto', transition: 'width 0.3s ease-in-out' }}>
+                        <div className="content">
+                          <Container fluid>
+                            <main className="p-4">
+                              <Routes>
+                                <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                                <Route path="/tasks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TaskLibraryPage /></ProtectedRoute>} />
+                                <Route path="/pending-review" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><PendingReviewPage /></ProtectedRoute>} />
+                                <Route path="/auditor-dashboard" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><AuditorDashboard /></ProtectedRoute>} />
+                                <Route path="/library" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><LibraryManagementPage /></ProtectedRoute>} />
+                                <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+                                <Route path="/documents" element={<ProtectedRoute roles={['admin', 'auditor']}><Documents /></ProtectedRoute>} />
+                                <Route path="/requirements" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Requirements /></ProtectedRoute>} />
+                                <Route path="/standards" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><StandardsPage /></ProtectedRoute>} />
+                                <Route path="/risks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><RisksPage /></ProtectedRoute>} />
+                                <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
+                                <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
+                                <Route path="/campaign-task/:instanceId" element={<ProtectedRoute><CampaignTaskInstanceDetail /></ProtectedRoute>} />
+                                <Route path="/teams" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TeamsPage /></ProtectedRoute>} />
+                                <Route path="/users" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><UserManagement /></ProtectedRoute>} />
+                                <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+                                <Route path="/admin-settings" element={<ProtectedRoute requiredRoles={['admin']}><AdminSettingsPage /></ProtectedRoute>} />
+                                <Route path="/audit-logs" element={<ProtectedRoute roles={['admin', 'auditor']}><AuditLogsPage /></ProtectedRoute>} />
+                                <Route path="/alt-view" element={<ProtectedRoute><ModernComplianceView /></ProtectedRoute>} />
+                                <Route path="/campaigns/:campaignId" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
+                                <Route path="/admin/system-integrations" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrations /></ProtectedRoute>} />
+                                <Route path="/admin/system-integrations/new" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
+                                <Route path="/admin/system-integrations/edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
+                                <Route path="/tasks/new" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TaskWizardPage /></ProtectedRoute>} />
+                                <Route path="/tasks/:id/edit" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TaskWizardPage /></ProtectedRoute>} />
+                              </Routes>
+                            </main>
+                          </Container>
+                        </div>
                       </Col>
-                     { showDetailsPanel ?  <Col
-                        xs={12} md={4} xl={3}
-                        className={`p-3  details-pane ${showDetailsPanel ? 'd-md-block' : 'd-none'}`}
-                        style={{ height: '100%', overflowY: 'auto', transition: 'display 0.3s ease-in-out' }}
-                      >
-                        <HelpSupportPanel />
-                      </Col> : null}
+                      {rightPanel.type && (
+                        <Col xs={12} md={4} xl={3}
+                          className={`details-pane d-md-block`}
+                          style={{ height: '100%', overflowY: 'auto', transition: 'display 0.3s ease-in-out' }}
+                        >
+                          <RightSidePanel
+                            show={!!rightPanel.type}
+                            onClose={closeRightPanel}
+                            title={rightPanel.type === 'help' ? 'Help & Support' : rightPanel.props.title || 'Panel'}
+                            width={400}
+                          >
+                            {rightPanel.type === 'help' && <HelpSupportPanel />}
+                            {/* Add more panel types here */}
+                            {rightPanel.type !== 'help' && rightPanel.props.content}
+                          </RightSidePanel>
+                        </Col>
+                      )}
                     </Row>
                   </Col>
                 </Row>
               </Container>
+            </div>
           </div>
-
         </div>
       </div>
-    </div>
+    </RightPanelContext.Provider>
   );
 }
 
@@ -216,7 +248,7 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<DashboardPage />} />
         <Route path="my-tasks" element={<MyTasks />} />
         <Route path="campaigns" element={<Campaigns />} />
         <Route path="help" element={<HelpPage />} />
@@ -228,11 +260,13 @@ function AppRoutes() {
         <Route path="audit-logs" element={<ProtectedRoute roles={['admin', 'auditor']}><AuditLogsPage /></ProtectedRoute>} />
         <Route path="alt-view" element={<ModernComplianceView />} />
         <Route path="campaigns/:campaignId" element={<CampaignDetail />} />
-        <Route path="tasks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Tasks /></ProtectedRoute>} />
+        <Route path="tasks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TaskLibraryPage /></ProtectedRoute>} />
         <Route path="pending-review" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><PendingReviewPage /></ProtectedRoute>} />
         <Route path="requirements" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Requirements /></ProtectedRoute>} />
-        <Route path="standards" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><Standards /></ProtectedRoute>} />
+        <Route path="standards" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><StandardsPage /></ProtectedRoute>} />
+        <Route path="risks" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><RisksPage /></ProtectedRoute>} />
         <Route path="teams" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><TeamsPage /></ProtectedRoute>} />
+        <Route path="users" element={<ProtectedRoute allowedRoles={['admin', 'auditor']}><UserManagement /></ProtectedRoute>} />
         <Route path="campaign-task/:instanceId" element={<ProtectedRoute><CampaignTaskInstanceDetail /></ProtectedRoute>} />
         <Route path="admin/system-integrations" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrations /></ProtectedRoute>} />
         <Route path="admin/system-integrations/new" element={<ProtectedRoute allowedRoles={['admin']}><SystemIntegrationForm /></ProtectedRoute>} />
@@ -245,3 +279,5 @@ function AppRoutes() {
 }
 
 export default App;
+
+export { RightPanelContext };

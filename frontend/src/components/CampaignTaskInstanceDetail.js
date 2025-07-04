@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import {
     getCampaignTaskInstanceById,
@@ -62,6 +62,8 @@ import TeamDisplay from './common/TeamDisplay';
 import CopyEvidenceModal from './modals/CopyEvidenceModal';
 import CommentSection from './common/CommentSection';
 import PageHeader from './common/PageHeader';
+import RightSidePanel from './common/RightSidePanel';
+import { RightPanelContext } from '../App';
 
 // ParameterModal component
 const ParameterModal = React.memo(({
@@ -71,42 +73,38 @@ const ParameterModal = React.memo(({
     onParameterChange,
     onExecute
 }) => (
-    <Modal
+    <RightSidePanel
         show={show}
-        onHide={onHide}
-        backdrop="static"
-        keyboard={false}
+        onClose={onHide}
+        title="Edit Task Parameters"
+        width={400}
     >
-        <Modal.Header closeButton>
-            <Modal.Title>Edit Task Parameters</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-            {Object.entries(parameters).map(([key, value]) => (
-                <Form.Group key={key} className="mb-3">
-                    <Form.Label>{key}</Form.Label>
-                    <Form.Control
-                        type="text"
-                        value={value}
-                        onChange={(e) => onParameterChange(key, e.target.value)}
-                    />
-                </Form.Group>
-            ))}
-        </Modal.Body>
-        <Modal.Footer>
+        {Object.entries(parameters).map(([key, value]) => (
+            <Form.Group key={key} className="mb-3">
+                <Form.Label>{key}</Form.Label>
+                <Form.Control
+                    type="text"
+                    value={value}
+                    onChange={(e) => onParameterChange(key, e.target.value)}
+                />
+            </Form.Group>
+        ))}
+        <div className="mt-4 d-flex justify-content-end gap-2">
             <Button variant="secondary" onClick={onHide}>
                 Cancel
             </Button>
             <Button variant="primary" onClick={onExecute}>
                 Execute with Parameters
             </Button>
-        </Modal.Footer>
-    </Modal>
+        </div>
+    </RightSidePanel>
 ));
 
 function CampaignTaskInstanceDetail() {
     const { currentUser } = useAuth();
     const { instanceId } = useParams();
     const location = useLocation();
+    const { openRightPanel, closeRightPanel } = useContext(RightPanelContext);
 
     // State management
     const [taskInstance, setTaskInstance] = useState(null);
@@ -181,7 +179,17 @@ function CampaignTaskInstanceDetail() {
     };
 
     const handleOpenCopyEvidenceModal = () => {
-        setShowCopyEvidenceModal(true);
+        openRightPanel('copyEvidence', {
+            title: <><span>Copy Evidence From Another Task</span></>,
+            content: (
+                <CopyEvidenceModal
+                    show={true}
+                    onHide={closeRightPanel}
+                    targetCampaignId={taskInstance.campaign_id}
+                    onCopySubmit={handleCopyEvidenceSubmit}
+                />
+            )
+        });
     };
 
     const handleCopyEvidenceSubmit = async (selectedEvidenceIds) => {
@@ -234,7 +242,28 @@ function CampaignTaskInstanceDetail() {
         setEvidenceToReview(evidence);
         setReviewComment('');
         setReviewError('');
-        setShowRejectModal(true);
+        openRightPanel('rejectEvidence', {
+            title: <span className="text-danger">Reject Evidence: {evidence?.file_name || evidence?.id}</span>,
+            content: (
+                <>
+                    {reviewError && <Alert variant="danger">{reviewError}</Alert>}
+                    <Form.Group controlId="reviewComment">
+                        <Form.Label>Rejection Reason (Required)</Form.Label>
+                        <Form.Control
+                            as="textarea"
+                            rows={3}
+                            value={reviewComment}
+                            onChange={(e) => setReviewComment(e.target.value)}
+                            placeholder="Provide a reason for rejecting this evidence."
+                        />
+                    </Form.Group>
+                    <div className="mt-4 d-flex justify-content-end gap-2">
+                        <Button variant="secondary" onClick={closeRightPanel}>Cancel</Button>
+                        <Button variant="danger" onClick={() => handleEvidenceReview(evidence.id, "Rejected", reviewComment)} disabled={!reviewComment.trim()}>Confirm Rejection</Button>
+                    </div>
+                </>
+            )
+        });
     };
 
     const handleEvidenceReview = async (evidenceId, status, comment = '') => {
@@ -430,11 +459,6 @@ function CampaignTaskInstanceDetail() {
         }));
     }, []);
 
-    const handleOpenParameterModal = useCallback(() => {
-        setEditedParameters(taskInstance?.parameters || {});
-        setShowParameterModal(true);
-    }, [taskInstance?.parameters]);
-
     const handleExecuteInstance = useCallback(async () => {
         if (!canManageEvidenceAndExecution) {
             setExecutionError("You don't have permission to execute this task.");
@@ -448,7 +472,7 @@ function CampaignTaskInstanceDetail() {
         try {
             const response = await executeCampaignTaskInstance(instanceId, editedParameters);
             setExecutionSuccess('Task execution started successfully.');
-            setShowParameterModal(false);
+            closeRightPanel();
 
             const status = await getTaskExecutionStatus(instanceId);
             setExecutionStatus(status);
@@ -456,7 +480,32 @@ function CampaignTaskInstanceDetail() {
             console.error('Error executing task:', err);
             setExecutionError(err.response?.data?.error || 'Failed to execute task. Please try again.');
         }
-    }, [instanceId, editedParameters, canManageEvidenceAndExecution]);
+    }, [instanceId, editedParameters, canManageEvidenceAndExecution, closeRightPanel]);
+
+    const handleOpenParameterModal = useCallback(() => {
+        setEditedParameters(taskInstance?.parameters || {});
+        openRightPanel('parameterEdit', {
+            title: 'Edit Task Parameters',
+            content: (
+                <>
+                    {Object.entries(editedParameters).map(([key, value]) => (
+                        <Form.Group key={key} className="mb-3">
+                            <Form.Label>{key}</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={value}
+                                onChange={(e) => setEditedParameters(prev => ({ ...prev, [key]: e.target.value }))}
+                            />
+                        </Form.Group>
+                    ))}
+                    <div className="mt-4 d-flex justify-content-end gap-2">
+                        <Button variant="secondary" onClick={closeRightPanel}>Cancel</Button>
+                        <Button variant="primary" onClick={handleExecuteInstance}>Execute with Parameters</Button>
+                    </div>
+                </>
+            )
+        });
+    }, [taskInstance?.parameters, editedParameters, handleExecuteInstance, closeRightPanel, openRightPanel]);
 
     const fetchInstanceResults = async () => {
         setExecutionError('');
@@ -1105,38 +1154,6 @@ function CampaignTaskInstanceDetail() {
                     </Card>
                 </Col>
             </Row>
-
-            {taskInstance && (
-                <CopyEvidenceModal
-                    show={showCopyEvidenceModal}
-                    onHide={() => setShowCopyEvidenceModal(false)}
-                    targetCampaignId={taskInstance.campaign_id}
-                    onCopySubmit={handleCopyEvidenceSubmit}
-                />
-            )}
-
-            <Modal show={showRejectModal} onHide={() => setShowRejectModal(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>Reject Evidence: {evidenceToReview?.file_name || evidenceToReview?.id}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    {reviewError && <Alert variant="danger">{reviewError}</Alert>}
-                    <Form.Group controlId="reviewComment">
-                        <Form.Label>Rejection Reason (Required)</Form.Label>
-                        <Form.Control
-                            as="textarea"
-                            rows={3}
-                            value={reviewComment}
-                            onChange={(e) => setReviewComment(e.target.value)}
-                            placeholder="Provide a reason for rejecting this evidence."
-                        />
-                    </Form.Group>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowRejectModal(false)}>Cancel</Button>
-                    <Button variant="danger" onClick={() => handleEvidenceReview(evidenceToReview.id, "Rejected", reviewComment)} disabled={!reviewComment.trim()}>Confirm Rejection</Button>
-                </Modal.Footer>
-            </Modal>
 
             <ParameterModal
                 show={showParameterModal}

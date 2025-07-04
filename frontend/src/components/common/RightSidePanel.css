@@ -1,0 +1,106 @@
+.right-side-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1200;
+  pointer-events: none;
+}
+
+.right-side-panel-overlay.open {
+  pointer-events: auto;
+}
+
+.right-side-panel {
+  /* position: fixed; */
+  top: 0;
+  right: 0;
+  height: 100vh;
+  background: #fff;
+  color: #222;
+  /* box-shadow: -4px 0 24px rgba(0,0,0,0.12); */
+  transition: right 0.32s cubic-bezier(0.4,0,0.2,1);
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  max-width: 100vw;
+  padding: 20px 10px;
+}
+
+.right-side-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* padding: 20px 24px 12px 24px; */
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  background: inherit;
+}
+
+.right-side-panel-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.right-side-panel-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.right-side-panel-close:hover {
+  background: #f0f0f0;
+  color: #222;
+}
+
+.right-side-panel-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  /* padding: 24px; */
+  background: inherit;
+  padding-top: 10px!important;
+
+}
+
+.right-side-panel-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.18);
+  z-index: 1250;
+  transition: background 0.2s;
+}
+
+@media (max-width: 600px) {
+  .right-side-panel {
+    width: 100vw !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
+  }
+}
+
+[data-bs-theme="dark"] .right-side-panel {
+  background: var(--bs-body-bg, #181a20);
+  color: var(--bs-body-color, #fff);
+  box-shadow: -4px 0 24px rgba(0,0,0,0.32);
+}
+
+[data-bs-theme="dark"] .right-side-panel-header {
+  border-bottom: 1px solid #222;
+}
+
+[data-bs-theme="dark"] .right-side-panel-close {
+  color: #bbb;
+}
+[data-bs-theme="dark"] .right-side-panel-close:hover {
+  background: #23232b;
+  color: #fff;
+} 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Offcanvas, Form, Button, FloatingLabel, Row, Col, Alert } from 'react-bootstrap';
+import { Form, Button, FloatingLabel, Row, Col, Alert } from 'react-bootstrap';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import StandardForm from './forms/StandardForm'; // We'll create this
@@ -8,18 +8,18 @@ import TaskForm from './forms/TaskForm'; // We'll create this
 import RiskForm from './forms/RiskForm'; // Import the new RiskForm
 
 function EntityFormPanel({
-    show,
+    show, // unused now
     mode, // 'add' or 'edit'
     entityType, // 'standard', 'requirement', 'task'
     initialData,
     parentId, // e.g., standardId for new requirement, requirementId for new task
     onSave,
     onClose,
-    allStandards,
-    allRequirements,
-    allUsers,
-    allConnectedSystems,
-    allDocuments
+    allStandards = [],
+    allRequirements = [],
+    allUsers = [],
+    allConnectedSystems = [],
+    allDocuments = []
 }) {
 
     const handleFormSubmit = async (formData) => {
@@ -174,18 +174,11 @@ function EntityFormPanel({
         }
     };
 
-    const title = `${mode === 'edit' ? 'Edit' : 'Add New'} ${entityType.charAt(0).toUpperCase() + entityType.slice(1)}`;
-
     return (
-        <Offcanvas show={show} onHide={onClose} placement="end" style={{ width: '50%' }}>
-            <Offcanvas.Header closeButton>
-                <Offcanvas.Title>{title}</Offcanvas.Title>
-            </Offcanvas.Header>
-            <Offcanvas.Body>
-                {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
-                {renderForm()}
-            </Offcanvas.Body>
-        </Offcanvas>
+        <div>
+            {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
+            {renderForm()}
+        </div>
     );
 }
 
