@@ -1,8 +1,8 @@
 import React from 'react';
 import { Button, Badge, ListGroup, ListGroupItem, Row, Col } from 'react-bootstrap';
 import { FaExclamationTriangle } from 'react-icons/fa';
-import UserDisplay from '../common/UserDisplay';
-import RightSidePanel from '../common/RightSidePanel';
+import UserDisplay from '../ui/UserDisplay';
+import RightSidePanel from '../layout/RightSidePanel';
 
 const RiskDetailModal = ({ show, onHide, risk, allUsers }) => {
     if (!risk) {

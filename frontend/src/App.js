@@ -7,45 +7,45 @@ import Navbar from 'react-bootstrap/Navbar';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
-import Tasks from './components/Tasks';
-import Requirements from './pages/RequirementsPage';
-import Standards from './components/Standards';
-import MyTasks from './components/MyTasks';
-import Campaigns from './components/Campaigns';
-import CampaignDetail from './components/CampaignDetail';
-import Dashboard from './components/Dashboard';
+// Updated imports for new structure
+import Tasks from './pages/tasks/Tasks';
+import Requirements from './pages/compliance/RequirementsPage';
+import Standards from './pages/compliance/Standards';
+import MyTasks from './pages/tasks/MyTasks';
+import Campaigns from './pages/campaigns/Campaigns';
+import CampaignDetail from './pages/campaigns/CampaignDetail';
+import Dashboard from './pages/dashboard/Dashboard';
 import { ThemeProvider } from './contexts/ThemeContext';
-import ThemeSwitcher from './components/common/ThemeSwitcher';
-import CampaignTaskInstanceDetail from './components/CampaignTaskInstanceDetail';
+import ThemeSwitcher from './components/ui/ThemeSwitcher';
+import CampaignTaskInstanceDetail from './pages/campaigns/CampaignTaskInstanceDetail';
 import { Button, Spinner } from 'react-bootstrap';
-import HelpSupportPanel from './components/common/HelpSupportPanel';
+import HelpSupportPanel from './components/ui/HelpSupportPanel';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import LoginPage from './components/auth/LoginPage';
-import ProtectedRoute from './components/auth/ProtectedRoute';
-import RegisterPage from './components/auth/RegisterPage';
-import ThreeColumnView from './components/views/ThreeColumnView';
-import ModernComplianceView from './components/views/ModernComplianceView';
-import UserProfilePage from './components/auth/UserProfilePage';
-import AdminSettingsPage from './pages/AdminSettingsPage';
+import LoginPage from './pages/auth/LoginPage';
+import ProtectedRoute from './pages/auth/ProtectedRoute';
+import RegisterPage from './pages/auth/RegisterPage';
+import ThreeColumnView from './components/ui/ThreeColumnView';
+import ModernComplianceView from './components/ui/ModernComplianceView';
+import UserProfilePage from './pages/auth/UserProfilePage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 
-import AuditorDashboard from './pages/AuditorDashboard'; // Import AuditorDashboard
-import LibraryManagementPage from './pages/LibraryManagementPage'; // Import the new page
-import PendingReviewPage from './pages/PendingReviewPage'; // Import PendingReviewPage
-import Sidebar from './components/common/Sidebar';
-import Documents from './components/Documents';
-import TeamsPage from './components/TeamsPage';
-import AuditLogsPage from './pages/AuditLogsPage'; // You will create this file
-import HelpPage from './pages/HelpPage';
-import SystemIntegrations from './components/admin/SystemIntegrations';
-import SystemIntegrationForm from './components/admin/SystemIntegrationForm';
-import TaskWizardPage from './pages/TaskWizardPage';
-import RightSidePanel from './components/common/RightSidePanel';
-import StandardsPage from './pages/StandardsPage';
-import TaskLibraryPage from './pages/TaskLibraryPage';
-import RisksPage from './pages/RisksPage';
-import DashboardPage from './pages/DashboardPage';
-import UserManagement
- from './components/admin/UserManagement';
+import AuditorDashboard from './pages/dashboard/AuditorDashboard';
+import LibraryManagementPage from './pages/compliance/LibraryManagementPage';
+import PendingReviewPage from './pages/admin/PendingReviewPage';
+import Sidebar from './components/layout/Sidebar';
+import Documents from './pages/compliance/Documents';
+import TeamsPage from './pages/teams/TeamsPage';
+import AuditLogsPage from './pages/admin/AuditLogsPage';
+import HelpPage from './pages/admin/HelpPage';
+import SystemIntegrations from './features/admin/SystemIntegrations';
+import SystemIntegrationForm from './features/admin/SystemIntegrationForm';
+import TaskWizardPage from './pages/tasks/TaskWizardPage';
+import RightSidePanel from './components/layout/RightSidePanel';
+import StandardsPage from './pages/compliance/StandardsPage';
+import TaskLibraryPage from './pages/compliance/TaskLibraryPage';
+import RisksPage from './pages/compliance/RisksPage';
+import DashboardPage from './pages/dashboard/DashboardPage';
+import UserManagement from './features/admin/UserManagement';
 function DynamicHeader() {
   const location = useLocation();
   const { currentUser } = useAuth(); // Access currentUser for simulation status

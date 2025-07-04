@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button, ListGroup, Form, Spinner, Alert, Row, Col, Card } from 'react-bootstrap';
 import { getCampaigns, getCampaignTaskInstances, getEvidenceByCampaignTaskInstanceId } from '../../services/api';
 import { FaCopy, FaFileAlt, FaLink } from 'react-icons/fa';
-import RightSidePanel from '../common/RightSidePanel';
+import RightSidePanel from '../layout/RightSidePanel';
 
 const CopyEvidenceModal = ({ show, onHide, targetCampaignId, onCopySubmit }) => {
     const [campaigns, setCampaigns] = useState([]);
